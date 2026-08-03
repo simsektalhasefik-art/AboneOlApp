@@ -8,7 +8,7 @@ export default function App() {
     { id: '2', name: 'Spotify', price: 45, category: 'Müzik', billingDay: 8, period: 'monthly' },
   ]);
 
-  const [activeTab, setActiveTab] = useState('list'); // 'list' | 'analytics'
+  const [activeTab, setActiveTab] = useState('list');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
@@ -19,9 +19,12 @@ export default function App() {
   const [formCategory, setFormCategory] = useState('Eğlence');
   const [formPeriod, setFormPeriod] = useState('monthly');
 
-  // Toplam Hesaplama
-  const monthlyTotal = subscriptions.reduce((sum, item) => {
-    const cost = item.period === 'yearly' ? Number(item.price) / 12 : Number(item.price);
+  // Toplam Hesaplama (Güvenli liste kontrolü ile)
+  const safeList = Array.isArray(subscriptions) ? subscriptions : [];
+  
+  const monthlyTotal = safeList.reduce((sum, item) => {
+    if (!item) return sum;
+    const cost = item.period === 'yearly' ? Number(item.price || 0) / 12 : Number(item.price || 0);
     return sum + cost;
   }, 0);
 
@@ -31,9 +34,9 @@ export default function App() {
   const openForm = (item = null) => {
     if (item) {
       setEditingId(item.id);
-      setFormName(item.name);
-      setFormPrice(String(item.price));
-      setFormDay(String(item.billingDay));
+      setFormName(item.name || '');
+      setFormPrice(String(item.price || ''));
+      setFormDay(String(item.billingDay || ''));
       setFormCategory(item.category || 'Eğlence');
       setFormPeriod(item.period || 'monthly');
     } else {
@@ -51,7 +54,7 @@ export default function App() {
     if (!formName || !formPrice) return;
 
     if (editingId) {
-      setSubscriptions(subscriptions.map(s => s.id === editingId ? {
+      setSubscriptions(safeList.map(s => s.id === editingId ? {
         ...s,
         name: formName,
         price: Number(formPrice),
@@ -60,7 +63,7 @@ export default function App() {
         period: formPeriod
       } : s));
     } else {
-      setSubscriptions([...subscriptions, {
+      setSubscriptions([...safeList, {
         id: Date.now().toString(),
         name: formName,
         price: Number(formPrice),
@@ -72,13 +75,13 @@ export default function App() {
     setIsModalOpen(false);
   };
 
-  const handleDelete = (id) => setSubscriptions(subscriptions.filter(s => s.id !== id));
+  const handleDelete = (id) => setSubscriptions(safeList.filter(s => s.id !== id));
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
       
-      {/* Üst Header */}
+      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>AboneOl</Text>
         <TouchableOpacity style={styles.addBtn} onPress={() => openForm()}>
@@ -88,10 +91,9 @@ export default function App() {
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         
-        {/* SEKME 1: LİSTEM */}
+        {/* LİSTEM */}
         {activeTab === 'list' && (
           <>
-            {/* Özet Paneli */}
             <View style={styles.summaryCard}>
               <Text style={styles.summaryLabel}>Aylık Toplam Harcama</Text>
               <Text style={styles.summaryValue}>{monthlyTotal.toFixed(2)} ₺</Text>
@@ -108,10 +110,9 @@ export default function App() {
               </View>
             </View>
 
-            {/* Abonelik Listesi */}
-            <Text style={styles.sectionTitle}>Abonelikleriniz ({subscriptions.length})</Text>
+            <Text style={styles.sectionTitle}>Abonelikleriniz ({safeList.length})</Text>
 
-            {subscriptions.map((item) => {
+            {safeList.map((item) => {
               const isYearly = item.period === 'yearly';
               const monthlyDisplayPrice = isYearly ? (Number(item.price) / 12).toFixed(2) : item.price;
 
@@ -157,13 +158,13 @@ export default function App() {
           </>
         )}
 
-        {/* SEKME 2: TASARRUF ANALİZİ */}
+        {/* TASARRUF ANALİZİ */}
         {activeTab === 'analytics' && (
           <View style={{ marginTop: 20 }}>
             <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#fbbf24', marginBottom: 16 }}>💡 Akıllı Tasarruf Analizi</Text>
             <View style={{ backgroundColor: '#1e293b', borderRadius: 12, padding: 20 }}>
               <Text style={styles.insightPoint}>
-                • Toplam <Text style={{ fontWeight: 'bold', color: '#38bdf8' }}>{subscriptions.length} aktif aboneliğiniz</Text> bulunuyor.
+                • Toplam <Text style={{ fontWeight: 'bold', color: '#38bdf8' }}>{safeList.length} aktif aboneliğiniz</Text> bulunuyor.
               </Text>
               <Text style={styles.insightPoint}>
                 • Yıllık tahmini harcamanız: <Text style={{ fontWeight: 'bold', color: '#ef4444' }}>{(monthlyTotal * 12).toFixed(2)} ₺</Text>
@@ -177,7 +178,7 @@ export default function App() {
 
       </ScrollView>
 
-      {/* Alt Navigasyon Barı */}
+      {/* Alt Navigasyon */}
       <View style={styles.bottomNav}>
         <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('list')}>
           <Text style={[styles.navText, activeTab === 'list' && styles.navTextActive]}>📋 Listem</Text>
@@ -187,7 +188,7 @@ export default function App() {
         </TouchableOpacity>
       </View>
 
-      {/* Ekle / Düzenle Modalı */}
+      {/* Modal */}
       <Modal visible={isModalOpen} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -201,7 +202,6 @@ export default function App() {
               onChangeText={setFormName}
             />
 
-            {/* Aylık / Yıllık Seçimi */}
             <View style={styles.periodSelector}>
               <TouchableOpacity 
                 style={[styles.periodOption, formPeriod === 'monthly' && styles.periodActive]}
@@ -267,7 +267,6 @@ const styles = StyleSheet.create({
   statValue: { color: '#ffffff', fontSize: 15, fontWeight: 'bold', marginTop: 2 },
   sectionTitle: { color: '#94a3b8', fontSize: 14, fontWeight: '600', marginBottom: 12 },
   
-  // Card
   card: { backgroundColor: '#1e293b', borderRadius: 12, padding: 16, marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   leftSection: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   iconContainer: { width: 44, height: 44, borderRadius: 10, backgroundColor: '#0f172a', justifyContent: 'center', alignItems: 'center' },
@@ -284,13 +283,11 @@ const styles = StyleSheet.create({
   cancelText: { color: '#fbbf24', fontSize: 11, fontWeight: '600' },
   deleteBtn: { padding: 4, backgroundColor: '#0f172a', borderRadius: 6 },
 
-  // Bottom Navigation
   bottomNav: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#0f172a', borderTopWidth: 1, borderTopColor: '#1e293b', flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 14 },
   navItem: { paddingHorizontal: 20 },
   navText: { color: '#94a3b8', fontSize: 14, fontWeight: '600' },
   navTextActive: { color: '#38bdf8', fontWeight: 'bold' },
 
-  // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', padding: 20 },
   modalContent: { backgroundColor: '#1e293b', borderRadius: 16, padding: 20 },
   modalTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 16 },
