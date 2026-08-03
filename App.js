@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View, SafeAreaView, ScrollView, TouchableOpacity, Modal, TextInput, Linking } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
-// Popüler servisler ve Marka Renkleri
 const POPULAR_SERVICES = [
   { name: 'Netflix', price: 345, category: 'Eğlence', color: '#E50914', cancelUrl: 'https://www.netflix.com/youraccount' },
   { name: 'Exxen', price: 160, category: 'Eğlence', color: '#FACC15', cancelUrl: 'https://www.exxen.com/tr/account' },
@@ -22,7 +21,6 @@ const MONTH_NAMES = [
 
 const YEARS = [2025, 2026, 2027, 2028, 2029, 2030];
 
-// Marka Renk Eşleştirici Fonksiyon
 const getServiceColor = (name = '') => {
   const lower = name.toLowerCase();
   if (lower.includes('netflix')) return '#E50914';
@@ -32,27 +30,25 @@ const getServiceColor = (name = '') => {
   if (lower.includes('chatgpt') || lower.includes('openai')) return '#10A37F';
   if (lower.includes('prime') || lower.includes('amazon')) return '#00A8E1';
   if (lower.includes('icloud') || lower.includes('apple')) return '#38BDF8';
-  return '#6366F1'; // Varsayılan renk
+  return '#6366F1';
 };
 
 export default function App() {
   const [subscriptions, setSubscriptions] = useState([
     { id: '1', name: 'Netflix', price: 345, category: 'Eğlence', billingDay: 7, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://www.netflix.com/youraccount', color: '#E50914' },
     { id: '2', name: 'YouTube Premium', price: 79, category: 'Eğlence', billingDay: 15, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://www.youtube.com/paid_memberships', color: '#FF0000' },
-    { id: '3', name: 'ChatGPT Plus', price: 1250, category: 'Yazılım & AI', billingDay: 12, billingMonth: 8, billingYear: 2026, period: 'yearly', cancelUrl: 'https://chatgpt.com/#settings', color: '#10A37F' },
+    { id: '3', name: 'ChatGPT Plus', price: 650, category: 'Yazılım & AI', billingDay: 12, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://chatgpt.com/#settings', color: '#10A37F' },
     { id: '4', name: 'Spotify', price: 59, category: 'Müzik', billingDay: 1, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://www.spotify.com/account/overview/', color: '#1DB954' }
   ]);
 
-  const [activeTab, setActiveTab] = useState('calendar'); 
+  const [activeTab, setActiveTab] = useState('list'); 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
-  // Takvim Gezinme State'leri
-  const [calMonth, setCalMonth] = useState(7); // 7 = Ağustos
+  const [calMonth, setCalMonth] = useState(7); // Ağustos
   const [calYear, setCalYear] = useState(2026);
-  const [calendarViewMode, setCalendarViewMode] = useState('daily'); // 'daily' | 'monthly'
+  const [calendarViewMode, setCalendarViewMode] = useState('daily');
 
-  // Analiz Sekmesi Yıl Seçimi
   const [selectedAnalysisYear, setSelectedAnalysisYear] = useState(2026);
 
   // Form State
@@ -68,14 +64,12 @@ export default function App() {
 
   const safeList = Array.isArray(subscriptions) ? subscriptions : [];
 
-  // Aylık Özet Harcama (Genel Toplam)
   const monthlyTotal = safeList.reduce((sum, item) => {
     if (!item) return sum;
     const cost = item.period === 'yearly' ? Number(item.price || 0) / 12 : Number(item.price || 0);
     return sum + cost;
   }, 0);
 
-  // Takvimdeki Seçili Aya Ait Toplam Harcama Hesabı
   const calculateMonthTotal = (monthIndex, year) => {
     return safeList.reduce((sum, item) => {
       if (item.period === 'monthly') {
@@ -93,7 +87,6 @@ export default function App() {
 
   const currentCalMonthTotal = calculateMonthTotal(calMonth, calYear);
 
-  // --- SEÇİLEN YILA GÖRE AY AY HESAPLAMA (ANALİZ SEKME BİLGİSİ) ---
   const getMonthlyBreakdownForYear = (targetYear) => {
     const monthlyData = Array(12).fill(0);
     safeList.forEach(sub => {
@@ -111,8 +104,8 @@ export default function App() {
 
   const monthlyBreakdown = getMonthlyBreakdownForYear(selectedAnalysisYear);
   const totalYearlyExpenseForSelectedYear = monthlyBreakdown.reduce((a, b) => a + b, 0);
+  const maxMonthlyExpense = Math.max(...monthlyBreakdown, 1); // Grafik ölçeklendirmesi için
 
-  // Kategori Kırılımı
   const yearlyCategoryStats = safeList.reduce((acc, item) => {
     const cat = item.category || 'Diğer';
     const price = Number(item.price || 0);
@@ -124,7 +117,45 @@ export default function App() {
     return acc;
   }, {});
 
-  // Takvim Gezinme
+  // TASARRUF ÖNERİLERİ ALGORİTMASI
+  const generateInsights = () => {
+    const insights = [];
+
+    // Öneri 1: Yıllık ödemeye geçiş fırsatı
+    const monthlySubs = safeList.filter(s => s.period === 'monthly');
+    if (monthlySubs.length > 0) {
+      const potentialSavings = monthlySubs.reduce((sum, s) => sum + (Number(s.price) * 12 * 0.15), 0);
+      insights.push({
+        type: 'warning',
+        title: '💡 Yıllık Plan İndirimi Fırsatı',
+        desc: `Aylık ödediğiniz abonelikleri yıllık plana geçirerek yılda yaklaşık ${potentialSavings.toFixed(0)} ₺ (%15) tasarruf edebilirsiniz.`
+      });
+    }
+
+    // Öneri 2: Aynı kategoride çok abonelik var mı?
+    const eglenveSubs = safeList.filter(s => s.category === 'Eğlence');
+    if (eglenveSubs.length >= 2) {
+      insights.push({
+        type: 'info',
+        title: '🎬 Eğlence Harcaması Yüksek',
+        desc: `Şu an ${eglenveSubs.length} adet dijital yayın servisine (Netflix, Exxen vb.) abonesiniz. Aktif izlemediğinizi dondurarak ayda ${eglenveSubs[0].price} ₺ cebinizde kalabilir.`
+      });
+    }
+
+    // Öneri 3: Genel Yüksek Harcama Uyarısı
+    if (monthlyTotal > 1000) {
+      insights.push({
+        type: 'danger',
+        title: '⚠️ Aylık 1.000 ₺ Sınırı Aşıldı',
+        desc: `Sabit abonelik giderleriniz aylık ${monthlyTotal.toFixed(0)} ₺ tutarına ulaştı. Yılda toplam ${(monthlyTotal * 12).toFixed(0)} ₺ cebinizden çıkıyor.`
+      });
+    }
+
+    return insights;
+  };
+
+  const insightsList = generateInsights();
+
   const handlePrevMonth = () => {
     if (calYear === 2025 && calMonth === 0) return;
     if (calMonth === 0) {
@@ -217,36 +248,46 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
       
-      {/* Header */}
+      {/* Header - Corporate & Premium Look */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>AboneOl</Text>
+        <View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={styles.headerTitle}>Cebin</Text>
+            <View style={styles.proBadge}>
+              <Text style={styles.proBadgeText}>FINANCE</Text>
+            </View>
+          </View>
+          <Text style={styles.headerSubtitle}>Abonelik & Ödeme Asistanı</Text>
+        </View>
         <TouchableOpacity style={styles.addBtn} onPress={() => openForm()}>
-          <Text style={styles.addBtnText}>+ Ekle</Text>
+          <Text style={styles.addBtnText}>+ Yeni Abonelik</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         
-        {/* TAB 1: LİSTEM */}
+        {/* TAB 1: ABONELİKLER */}
         {activeTab === 'list' && (
           <>
             <View style={styles.summaryCard}>
-              <Text style={styles.summaryLabel}>Aylık Toplam Harcama</Text>
+              <Text style={styles.summaryLabel}>Toplam Aylık Taahhüt</Text>
               <Text style={styles.summaryValue}>{monthlyTotal.toFixed(2)} ₺</Text>
               
               <View style={styles.statsRow}>
                 <View style={styles.statBox}>
-                  <Text style={styles.statLabel}>Günlük Ort.</Text>
+                  <Text style={styles.statLabel}>Günlük Yük</Text>
                   <Text style={styles.statValue}>{(monthlyTotal / 30).toFixed(2)} ₺</Text>
                 </View>
                 <View style={styles.statBox}>
-                  <Text style={styles.statLabel}>Haftalık Ort.</Text>
-                  <Text style={styles.statValue}>{(monthlyTotal / 4).toFixed(2)} ₺</Text>
+                  <Text style={styles.statLabel}>Yıllık Tahmini</Text>
+                  <Text style={styles.statValue}>{(monthlyTotal * 12).toFixed(2)} ₺</Text>
                 </View>
               </View>
             </View>
 
-            <Text style={styles.sectionTitle}>Abonelikleriniz ({safeList.length})</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <Text style={styles.sectionTitle}>Aktif Servisler ({safeList.length})</Text>
+            </View>
 
             {safeList.map((item) => {
               const isYearly = item.period === 'yearly';
@@ -255,26 +296,25 @@ export default function App() {
               return (
                 <View key={item.id} style={styles.card}>
                   <View style={styles.leftSection}>
-                    {/* Marka Renkli İkon Kutusu */}
                     <View style={[styles.brandIconBox, { backgroundColor: serviceColor }]}>
-                      <Text style={styles.brandIconText}>{item.name ? item.name.charAt(0).toUpperCase() : 'A'}</Text>
+                      <Text style={styles.brandIconText}>{item.name ? item.name.charAt(0).toUpperCase() : 'C'}</Text>
                     </View>
                     <View>
                       <Text style={styles.cardTitle}>{item.name}</Text>
                       <Text style={styles.cardSubtitle}>
-                        {item.category} • {isYearly ? `${item.billingDay}/${item.billingMonth}/${item.billingYear}` : `Ayın ${item.billingDay}. günü`}
+                        {item.category} • {isYearly ? `${item.billingDay}/${item.billingMonth}/${item.billingYear}` : `Her ayın ${item.billingDay}. günü`}
                       </Text>
                     </View>
                   </View>
 
                   <View style={styles.rightSection}>
-                    <Text style={styles.price}>{item.price} ₺ {isYearly ? '/ yıl' : '/ ay'}</Text>
+                    <Text style={styles.price}>{item.price} ₺ {isYearly ? '/yıl' : '/ay'}</Text>
                     <View style={styles.actionButtons}>
                       <TouchableOpacity style={styles.editBtn} onPress={() => openForm(item)}>
-                        <Text style={{ color: '#60a5fa', fontSize: 11 }}>✏️ Düzenle</Text>
+                        <Text style={{ color: '#94a3b8', fontSize: 11 }}>Düzenle</Text>
                       </TouchableOpacity>
                       <TouchableOpacity style={styles.cancelBtn} onPress={() => item.cancelUrl && Linking.openURL(item.cancelUrl)}>
-                        <Text style={styles.cancelText}>İptal Et 🔗</Text>
+                        <Text style={styles.cancelText}>İptal Bağlantısı 🔗</Text>
                       </TouchableOpacity>
                       <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.deleteBtn}>
                         <Text style={{ color: '#ef4444', fontSize: 11 }}>🗑️</Text>
@@ -287,39 +327,36 @@ export default function App() {
           </>
         )}
 
-        {/* TAB 2: TAKVİM EKRANI */}
+        {/* TAB 2: ÖDEME TAKVİMİ */}
         {activeTab === 'calendar' && (
           <View style={{ marginTop: 10 }}>
-            {/* Ay / Yıl Gezinme Barı */}
             <View style={styles.calendarHeaderNav}>
               <TouchableOpacity style={styles.arrowBtn} onPress={handlePrevMonth}>
                 <Text style={styles.arrowText}>◀</Text>
               </TouchableOpacity>
               <Text style={styles.calendarTitleText}>
-                📅 {MONTH_NAMES[calMonth]} {calYear}
+                {MONTH_NAMES[calMonth]} {calYear}
               </Text>
               <TouchableOpacity style={styles.arrowBtn} onPress={handleNextMonth}>
                 <Text style={styles.arrowText}>▶</Text>
               </TouchableOpacity>
             </View>
 
-            {/* Görünüm Modu Seçici (Sadece Günlük ve Aylık) */}
             <View style={styles.viewModeContainer}>
               <TouchableOpacity
                 style={[styles.viewModeBtn, calendarViewMode === 'daily' && styles.viewModeBtnActive]}
                 onPress={() => setCalendarViewMode('daily')}
               >
-                <Text style={[styles.viewModeText, calendarViewMode === 'daily' && styles.viewModeTextActive]}>Günlük</Text>
+                <Text style={[styles.viewModeText, calendarViewMode === 'daily' && styles.viewModeTextActive]}>Günlük Akış</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.viewModeBtn, calendarViewMode === 'monthly' && styles.viewModeBtnActive]}
                 onPress={() => setCalendarViewMode('monthly')}
               >
-                <Text style={[styles.viewModeText, calendarViewMode === 'monthly' && styles.viewModeTextActive]}>Aylık Grid</Text>
+                <Text style={[styles.viewModeText, calendarViewMode === 'monthly' && styles.viewModeTextActive]}>Aylık Matris</Text>
               </TouchableOpacity>
             </View>
 
-            {/* GÜNLÜK SEKMESİ (AYIN BÜTÜN GÜNLERİNİ LİSTE HALİNDE GÖSTERİR) */}
             {calendarViewMode === 'daily' && (
               <View style={{ gap: 8 }}>
                 {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
@@ -337,26 +374,24 @@ export default function App() {
                             </View>
                           );
                         }) : (
-                          <Text style={{ color: '#475569', fontSize: 12 }}>Ödeme yok</Text>
+                          <Text style={{ color: '#475569', fontSize: 12 }}>Ödeme planı yok</Text>
                         )}
                       </View>
                     </View>
                   );
                 })}
 
-                {/* EN ALTTA TOPLAM AYLIK ÖDENECEK TUTAR KARTI */}
                 <View style={styles.monthTotalFooterCard}>
                   <Text style={{ color: '#94a3b8', fontSize: 13, fontWeight: '600' }}>
-                    {MONTH_NAMES[calMonth]} {calYear} Toplam Ödenecek Tutar:
+                    {MONTH_NAMES[calMonth]} {calYear} Dönemi Toplam Ödeme:
                   </Text>
-                  <Text style={{ color: '#4ade80', fontSize: 24, fontWeight: 'bold', marginTop: 4 }}>
+                  <Text style={{ color: '#38bdf8', fontSize: 24, fontWeight: 'bold', marginTop: 4 }}>
                     {currentCalMonthTotal.toFixed(2)} ₺
                   </Text>
                 </View>
               </View>
             )}
 
-            {/* AYLIK GÖRÜNÜM (GRID) */}
             {calendarViewMode === 'monthly' && (
               <View style={styles.calendarGrid}>
                 {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
@@ -382,13 +417,13 @@ export default function App() {
           </View>
         )}
 
-        {/* TAB 3: YILLIK & AY AY DETAYLI ANALİZ */}
+        {/* TAB 3: FİNANS & ANALİZ (GRAFİKLER + TASARRUF ÖNERİLERİ) */}
         {activeTab === 'analytics' && (
           <View style={{ marginTop: 10 }}>
-            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#fbbf24', marginBottom: 12 }}>📊 Harcama & Yıllık Analiz</Text>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#ffffff', marginBottom: 4 }}>Finansal Analiz & İpuçları</Text>
+            <Text style={{ color: '#94a3b8', fontSize: 12, marginBottom: 16 }}>Harcama alışkanlıklarınız ve Cebin Akıllı İpuçları</Text>
 
-            {/* Yıl Seçici */}
-            <Text style={{ color: '#94a3b8', fontSize: 12, marginBottom: 8 }}>İncelemek İstediğiniz Yılı Seçin:</Text>
+            {/* Yıl Seçimi */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
               {YEARS.map(y => (
                 <TouchableOpacity 
@@ -401,39 +436,51 @@ export default function App() {
               ))}
             </ScrollView>
 
-            {/* Toplam Yıllık Özet */}
-            <View style={{ backgroundColor: '#1e293b', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-              <Text style={{ color: '#94a3b8', fontSize: 12 }}>{selectedAnalysisYear} Yılı Toplam Harcaması</Text>
-              <Text style={{ color: '#4ade80', fontSize: 28, fontWeight: 'bold', marginVertical: 4 }}>
-                {totalYearlyExpenseForSelectedYear.toFixed(2)} ₺
-              </Text>
-            </View>
-
-            {/* TABLO 1: AY AY HARCAMA TABLOSU */}
-            <Text style={{ color: '#94a3b8', fontSize: 14, fontWeight: '600', marginBottom: 8 }}>
-              🗓️ {selectedAnalysisYear} Yılı Ay Ay Harcama Tablosu
-            </Text>
-            <View style={styles.tableContainer}>
-              <View style={styles.tableHeader}>
-                <Text style={[styles.tableCellHeader, { flex: 1 }]}>Ay</Text>
-                <Text style={[styles.tableCellHeader, { flex: 1, textAlign: 'right' }]}>Toplam Harcama</Text>
+            {/* GRAFİK BÖLÜMÜ (VISUAL BAR CHART) */}
+            <View style={styles.chartContainer}>
+              <Text style={{ color: '#ffffff', fontWeight: 'bold', marginBottom: 12 }}>Aylık Harcama Grafiği ({selectedAnalysisYear})</Text>
+              <View style={styles.barsArea}>
+                {MONTH_NAMES.map((mName, idx) => {
+                  const val = monthlyBreakdown[idx];
+                  const heightPercent = maxMonthlyExpense > 0 ? (val / maxMonthlyExpense) * 100 : 0;
+                  return (
+                    <View key={mName} style={styles.barItemContainer}>
+                      <View style={styles.barTrack}>
+                        <View style={[styles.barFill, { height: `${Math.max(heightPercent, 4)}%`, backgroundColor: val > 0 ? '#6366f1' : '#334155' }]} />
+                      </View>
+                      <Text style={styles.barLabel}>{mName.substr(0, 3)}</Text>
+                    </View>
+                  );
+                })}
               </View>
-              {MONTH_NAMES.map((mName, idx) => {
-                const amount = monthlyBreakdown[idx];
-                return (
-                  <View key={mName} style={[styles.tableRow, idx % 2 === 1 && { backgroundColor: '#151f30' }]}>
-                    <Text style={[styles.tableCell, { flex: 1 }]}>{mName}</Text>
-                    <Text style={[styles.tableCell, { flex: 1, textAlign: 'right', color: amount > 0 ? '#38bdf8' : '#64748b', fontWeight: amount > 0 ? 'bold' : 'normal' }]}>
-                      {amount.toFixed(2)} ₺
-                    </Text>
-                  </View>
-                );
-              })}
+              <View style={{ borderTopWidth: 1, borderTopColor: '#334155', paddingTop: 10, marginTop: 10, flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Text style={{ color: '#94a3b8', fontSize: 12 }}>Yıllık Toplam:</Text>
+                <Text style={{ color: '#38bdf8', fontWeight: 'bold' }}>{totalYearlyExpenseForSelectedYear.toFixed(2)} ₺</Text>
+              </View>
             </View>
 
-            {/* TABLO 2: KATEGORİ BAZLI HARCAMALAR */}
-            <Text style={{ color: '#94a3b8', fontSize: 14, fontWeight: '600', marginTop: 16, marginBottom: 12 }}>
-              🏷️ {selectedAnalysisYear} Kategori Bazlı Dağılım:
+            {/* CEBİN AKILLI TASARRUF ÖNERİLERİ KARTLARI */}
+            <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: 'bold', marginTop: 16, marginBottom: 12 }}>
+              💡 Cebin Akıllı Tasarruf İpuçları
+            </Text>
+
+            {insightsList.length > 0 ? (
+              insightsList.map((insight, index) => (
+                <View key={index} style={[styles.insightCard, insight.type === 'warning' && { borderLeftColor: '#f59e0b' }, insight.type === 'danger' && { borderLeftColor: '#ef4444' }]}>
+                  <Text style={styles.insightTitle}>{insight.title}</Text>
+                  <Text style={styles.insightDesc}>{insight.desc}</Text>
+                </View>
+              ))
+            ) : (
+              <View style={styles.insightCard}>
+                <Text style={styles.insightTitle}>✅ Harcamalarınız İdeal Durumda</Text>
+                <Text style={styles.insightDesc}>Şu anda aboneliklerinizde kritik bir tasarruf uyarısı bulunmuyor.</Text>
+              </View>
+            )}
+
+            {/* KATEGORİ DAĞILIMI */}
+            <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: 'bold', marginTop: 16, marginBottom: 12 }}>
+              🏷️ Kategori Bazlı Dağılım
             </Text>
             {Object.keys(yearlyCategoryStats).map((cat) => {
               const amount = yearlyCategoryStats[cat];
@@ -456,24 +503,24 @@ export default function App() {
 
       </ScrollView>
 
-      {/* Alt Navigasyon Barı */}
+      {/* Corporate Bottom Nav */}
       <View style={styles.bottomNav}>
         <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('list')}>
-          <Text style={[styles.navText, activeTab === 'list' && styles.navTextActive]}>📋 Listem</Text>
+          <Text style={[styles.navText, activeTab === 'list' && styles.navTextActive]}>💳 Abonelikler</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('calendar')}>
-          <Text style={[styles.navText, activeTab === 'calendar' && styles.navTextActive]}>📅 Takvim</Text>
+          <Text style={[styles.navText, activeTab === 'calendar' && styles.navTextActive]}>📅 Ödeme Takvimi</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('analytics')}>
-          <Text style={[styles.navText, activeTab === 'analytics' && styles.navTextActive]}>📊 Analiz</Text>
+          <Text style={[styles.navText, activeTab === 'analytics' && styles.navTextActive]}>📊 Finans & Analiz</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Ekle / Düzenle Modalı */}
+      {/* Modal */}
       <Modal visible={isModalOpen} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <ScrollView contentContainerStyle={styles.modalContent}>
-            <Text style={styles.modalTitle}>{editingId ? 'Abonelik Bilgilerini Güncelle' : 'Yeni Abonelik Ekle'}</Text>
+            <Text style={styles.modalTitle}>{editingId ? 'Abonelik Bilgilerini Düzenle' : 'Yeni Abonelik Tanımla'}</Text>
 
             {!editingId && (
               <View style={{ marginBottom: 16 }}>
@@ -488,7 +535,7 @@ export default function App() {
               </View>
             )}
 
-            <Text style={styles.fieldLabel}>Abonelik Adı:</Text>
+            <Text style={styles.fieldLabel}>Servis Adı:</Text>
             <TextInput 
               placeholder="ör: Netflix" 
               placeholderTextColor="#64748b" 
@@ -600,104 +647,106 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0b1329' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 40, paddingBottom: 16 },
-  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#ffffff' },
-  addBtn: { backgroundColor: '#6366f1', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
-  addBtnText: { color: '#ffffff', fontWeight: 'bold' },
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 100 },
-  summaryCard: { backgroundColor: '#4f46e5', borderRadius: 16, padding: 20, marginBottom: 16 },
-  summaryLabel: { color: '#c7d2fe', fontSize: 14 },
+  container: { flex: 1, backgroundColor: '#090d16' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 40, paddingBottom: 16, backgroundColor: '#0f172a', borderBottomWidth: 1, borderBottomColor: '#1e293b' },
+  headerTitle: { fontSize: 26, fontWeight: 'bold', color: '#ffffff', letterSpacing: 0.5 },
+  headerSubtitle: { color: '#64748b', fontSize: 11, marginTop: 2 },
+  proBadge: { backgroundColor: '#6366f1', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  proBadgeText: { color: '#ffffff', fontSize: 9, fontWeight: 'bold' },
+  addBtn: { backgroundColor: '#6366f1', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
+  addBtnText: { color: '#ffffff', fontWeight: 'bold', fontSize: 13 },
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 100, paddingTop: 16 },
+  
+  summaryCard: { backgroundColor: '#1e1b4b', borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#312e81' },
+  summaryLabel: { color: '#a5b4fc', fontSize: 13, fontWeight: '500' },
   summaryValue: { color: '#ffffff', fontSize: 32, fontWeight: 'bold', marginVertical: 8 },
   statsRow: { flexDirection: 'row', gap: 12, marginTop: 12 },
-  statBox: { flex: 1, backgroundColor: 'rgba(255, 255, 255, 0.1)', padding: 10, borderRadius: 8 },
-  statLabel: { color: '#e0e7ff', fontSize: 11 },
+  statBox: { flex: 1, backgroundColor: 'rgba(255, 255, 255, 0.05)', padding: 10, borderRadius: 8 },
+  statLabel: { color: '#c7d2fe', fontSize: 11 },
   statValue: { color: '#ffffff', fontSize: 15, fontWeight: 'bold', marginTop: 2 },
-  sectionTitle: { color: '#94a3b8', fontSize: 14, fontWeight: '600', marginBottom: 12 },
+  sectionTitle: { color: '#94a3b8', fontSize: 14, fontWeight: '600' },
   
-  card: { backgroundColor: '#1e293b', borderRadius: 12, padding: 16, marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  card: { backgroundColor: '#151f30', borderRadius: 12, padding: 16, marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: '#1e293b' },
   leftSection: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  brandIconBox: { width: 40, height: 40, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  brandIconBox: { width: 42, height: 42, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
   brandIconText: { color: '#ffffff', fontSize: 18, fontWeight: 'bold' },
   cardTitle: { color: '#ffffff', fontSize: 16, fontWeight: 'bold' },
-  cardSubtitle: { color: '#94a3b8', fontSize: 12, marginTop: 2 },
+  cardSubtitle: { color: '#64748b', fontSize: 12, marginTop: 2 },
   rightSection: { alignItems: 'flex-end' },
   price: { color: '#ffffff', fontSize: 15, fontWeight: 'bold' },
   actionButtons: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
   editBtn: { padding: 4, backgroundColor: '#0f172a', borderRadius: 6 },
-  cancelBtn: { backgroundColor: '#334155', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  cancelText: { color: '#fbbf24', fontSize: 11, fontWeight: '600' },
+  cancelBtn: { backgroundColor: '#1e293b', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  cancelText: { color: '#38bdf8', fontSize: 11, fontWeight: '600' },
   deleteBtn: { padding: 4, backgroundColor: '#0f172a', borderRadius: 6 },
 
-  // Calendar Nav
+  // Calendar
   calendarHeaderNav: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  calendarTitleText: { fontSize: 18, fontWeight: 'bold', color: '#38bdf8' },
-  arrowBtn: { backgroundColor: '#1e293b', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
+  calendarTitleText: { fontSize: 18, fontWeight: 'bold', color: '#ffffff' },
+  arrowBtn: { backgroundColor: '#151f30', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
   arrowText: { color: '#38bdf8', fontSize: 14, fontWeight: 'bold' },
-
-  // View Mode
   viewModeContainer: { flexDirection: 'row', gap: 8, marginBottom: 16 },
-  viewModeBtn: { flex: 1, paddingVertical: 8, backgroundColor: '#1e293b', borderRadius: 8, alignItems: 'center' },
+  viewModeBtn: { flex: 1, paddingVertical: 8, backgroundColor: '#151f30', borderRadius: 8, alignItems: 'center' },
   viewModeBtnActive: { backgroundColor: '#6366f1' },
   viewModeText: { color: '#94a3b8', fontSize: 12 },
   viewModeTextActive: { color: '#fff', fontWeight: 'bold' },
 
-  // Daily Row List
-  dailyRow: { backgroundColor: '#1e293b', padding: 12, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  dailyRow: { backgroundColor: '#151f30', padding: 12, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 12 },
   dailyDayText: { color: '#94a3b8', fontSize: 12, width: 85, fontWeight: '600' },
   brandBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
   brandBadgeText: { color: '#ffffff', fontSize: 11, fontWeight: 'bold' },
+  monthTotalFooterCard: { backgroundColor: '#0f172a', borderColor: '#1e293b', borderWidth: 1, padding: 16, borderRadius: 12, marginTop: 12, alignItems: 'center' },
 
-  // Month Total Footer Card
-  monthTotalFooterCard: { backgroundColor: '#0f172a', borderColor: '#334155', borderWidth: 1, padding: 16, borderRadius: 12, marginTop: 12, alignItems: 'center' },
-
-  // Calendar Monthly Grid
   calendarGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  calendarDayBox: { width: '13%', height: 70, backgroundColor: '#1e293b', borderRadius: 6, padding: 4 },
+  calendarDayBox: { width: '13%', height: 70, backgroundColor: '#151f30', borderRadius: 6, padding: 4 },
   activeDayBox: { borderWidth: 1, borderColor: '#6366f1', backgroundColor: '#1e1b4b' },
   dayNumber: { color: '#94a3b8', fontSize: 10, fontWeight: 'bold' },
   daySubBadge: { borderRadius: 4, padding: 2, marginTop: 2 },
   daySubText: { color: '#fff', fontSize: 8, fontWeight: 'bold' },
   daySubPrice: { color: '#ffffff', fontSize: 8, opacity: 0.9 },
 
-  // Year Selection Chips
-  yearChip: { backgroundColor: '#1e293b', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 8 },
-  yearChipActive: { backgroundColor: '#fbbf24' },
+  // Analytics & Visual Chart
+  yearChip: { backgroundColor: '#151f30', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 8 },
+  yearChipActive: { backgroundColor: '#6366f1' },
   yearChipText: { color: '#94a3b8', fontWeight: '600' },
-  yearChipTextActive: { color: '#0f172a', fontWeight: 'bold' },
+  yearChipTextActive: { color: '#ffffff', fontWeight: 'bold' },
 
-  // Table Styles
-  tableContainer: { backgroundColor: '#1e293b', borderRadius: 12, overflow: 'hidden' },
-  tableHeader: { flexDirection: 'row', backgroundColor: '#0f172a', padding: 12, borderBottomWidth: 1, borderBottomColor: '#334155' },
-  tableCellHeader: { color: '#fbbf24', fontWeight: 'bold', fontSize: 12 },
-  tableRow: { flexDirection: 'row', padding: 10, borderBottomWidth: 1, borderBottomColor: '#1e293b' },
-  tableCell: { color: '#fff', fontSize: 13 },
+  chartContainer: { backgroundColor: '#151f30', borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#1e293b' },
+  barsArea: { flexDirection: 'row', height: 120, alignItems: 'flex-end', justifyContent: 'space-between', paddingTop: 20 },
+  barItemContainer: { flex: 1, alignItems: 'center' },
+  barTrack: { width: 12, height: '100%', backgroundColor: '#0f172a', borderRadius: 6, justifyContent: 'flex-end', overflow: 'hidden' },
+  barFill: { width: '100%', borderRadius: 6 },
+  barLabel: { color: '#64748b', fontSize: 9, marginTop: 6 },
 
-  // Analytics Categories
-  categoryCard: { backgroundColor: '#1e293b', padding: 12, borderRadius: 10, marginBottom: 8 },
+  // Insight Cards
+  insightCard: { backgroundColor: '#151f30', padding: 14, borderRadius: 10, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: '#38bdf8' },
+  insightTitle: { color: '#ffffff', fontWeight: 'bold', fontSize: 13, marginBottom: 4 },
+  insightDesc: { color: '#94a3b8', fontSize: 12, lineHeight: 16 },
+
+  categoryCard: { backgroundColor: '#151f30', padding: 12, borderRadius: 10, marginBottom: 8 },
   progressBarBg: { height: 6, backgroundColor: '#0f172a', borderRadius: 3, overflow: 'hidden' },
   progressBarFill: { height: '100%', backgroundColor: '#38bdf8', borderRadius: 3 },
 
-  // Bottom Navigation
+  // Bottom Nav
   bottomNav: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#0f172a', borderTopWidth: 1, borderTopColor: '#1e293b', flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 14 },
-  navItem: { paddingHorizontal: 16 },
-  navText: { color: '#94a3b8', fontSize: 13, fontWeight: '600' },
-  navTextActive: { color: '#38bdf8', fontWeight: 'bold' },
+  navItem: { paddingHorizontal: 12 },
+  navText: { color: '#64748b', fontSize: 12, fontWeight: '600' },
+  navTextActive: { color: '#6366f1', fontWeight: 'bold' },
 
-  // Modal Styles
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', padding: 20 },
-  modalContent: { backgroundColor: '#1e293b', borderRadius: 16, padding: 20, marginVertical: 40 },
+  // Modal
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: 20 },
+  modalContent: { backgroundColor: '#151f30', borderRadius: 16, padding: 20, marginVertical: 40 },
   modalTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 16 },
   fieldLabel: { color: '#94a3b8', fontSize: 12, marginBottom: 4 },
   input: { backgroundColor: '#0f172a', color: '#fff', padding: 12, borderRadius: 8, marginBottom: 12 },
-  chipBtn: { backgroundColor: '#1e293b', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, marginRight: 8 },
+  chipBtn: { backgroundColor: '#151f30', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, marginRight: 8 },
   categoryChip: { backgroundColor: '#0f172a', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, marginRight: 8 },
   categoryChipActive: { backgroundColor: '#6366f1' },
   categoryText: { color: '#94a3b8', fontSize: 12 },
   categoryTextActive: { color: '#fff', fontWeight: 'bold' },
   periodSelector: { flexDirection: 'row', gap: 8, marginBottom: 12 },
   periodOption: { flex: 1, padding: 10, backgroundColor: '#0f172a', borderRadius: 8, alignItems: 'center' },
-  periodActive: { backgroundColor: '#4f46e5' },
+  periodActive: { backgroundColor: '#6366f1' },
   periodText: { color: '#94a3b8', fontSize: 12 },
   periodTextActive: { color: '#fff', fontWeight: 'bold' },
   modalButtons: { flexDirection: 'row', gap: 12, marginTop: 12 },
