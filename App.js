@@ -19,6 +19,8 @@ const MONTH_NAMES = [
   'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
 ];
 
+const YEARS = [2025, 2026, 2027, 2028, 2029, 2030];
+
 export default function App() {
   const [subscriptions, setSubscriptions] = useState([
     { id: '1', name: 'Netflix', price: 345, category: 'Eğlence', billingDay: 7, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://www.netflix.com/youraccount', logo: 'https://logo.clearbit.com/netflix.com' },
@@ -26,15 +28,18 @@ export default function App() {
     { id: '3', name: 'ChatGPT Plus', price: 1250, category: 'Yazılım & AI', billingDay: 12, billingMonth: 8, billingYear: 2026, period: 'yearly', cancelUrl: 'https://chatgpt.com/#settings', logo: 'https://logo.clearbit.com/openai.com' }
   ]);
 
-  const [activeTab, setActiveTab] = useState('list'); 
+  const [activeTab, setActiveTab] = useState('analytics'); 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
-  // Takvim Gezinme State'leri (Başlangıç: Ağustos 2026)
-  const [calMonth, setCalMonth] = useState(7); // 0-indexed (7 = Ağustos)
+  // Takvim Gezinme State'leri
+  const [calMonth, setCalMonth] = useState(7); // 7 = Ağustos
   const [calYear, setCalYear] = useState(2026);
-  const [calendarViewMode, setCalendarViewMode] = useState('monthly'); // 'daily' | 'weekly' | 'monthly'
+  const [calendarViewMode, setCalendarViewMode] = useState('monthly'); 
   const [selectedDayForDaily, setSelectedDayForDaily] = useState(1);
+
+  // Analiz Sekmesi Yıl Seçimi
+  const [selectedAnalysisYear, setSelectedAnalysisYear] = useState(2026);
 
   // Form State
   const [formName, setFormName] = useState('');
@@ -49,26 +54,55 @@ export default function App() {
 
   const safeList = Array.isArray(subscriptions) ? subscriptions : [];
 
-  // Aylık Toplam Harcama
+  // Aylık Özet Harcama
   const monthlyTotal = safeList.reduce((sum, item) => {
     if (!item) return sum;
     const cost = item.period === 'yearly' ? Number(item.price || 0) / 12 : Number(item.price || 0);
     return sum + cost;
   }, 0);
 
-  // Yıllık Harcama & Kategori Kırılımı Hesaplama
+  // --- SEÇİLEN YILA GÖRE AY AY HESAPLAMA ---
+  const getMonthlyBreakdownForYear = (targetYear) => {
+    const monthlyData = Array(12).fill(0);
+
+    safeList.forEach(sub => {
+      const price = Number(sub.price || 0);
+      if (sub.period === 'monthly') {
+        // Aylık abonelikler her ay ödenir
+        for (let m = 0; m < 12; m++) {
+          monthlyData[m] += price;
+        }
+      } else if (sub.period === 'yearly') {
+        // Yıllık abonelik sadece kaydedilen yıl ve ayda ödenir
+        const subMonthIndex = Number(sub.billingMonth || 1) - 1;
+        const subYear = Number(sub.billingYear || 2026);
+        if (subYear === targetYear) {
+          monthlyData[subMonthIndex] += price;
+        }
+      }
+    });
+
+    return monthlyData;
+  };
+
+  const monthlyBreakdown = getMonthlyBreakdownForYear(selectedAnalysisYear);
+  const totalYearlyExpenseForSelectedYear = monthlyBreakdown.reduce((a, b) => a + b, 0);
+
+  // Seçilen Yıla Göre Kategori Kırılımı
   const yearlyCategoryStats = safeList.reduce((acc, item) => {
     const cat = item.category || 'Diğer';
-    const yearlyCost = item.period === 'yearly' ? Number(item.price || 0) : Number(item.price || 0) * 12;
-    acc[cat] = (acc[cat] || 0) + yearlyCost;
+    const price = Number(item.price || 0);
+    if (item.period === 'monthly') {
+      acc[cat] = (acc[cat] || 0) + (price * 12);
+    } else if (item.period === 'yearly' && Number(item.billingYear || 2026) === selectedAnalysisYear) {
+      acc[cat] = (acc[cat] || 0) + price;
+    }
     return acc;
   }, {});
 
-  const totalYearlyExpense = Object.values(yearlyCategoryStats).reduce((a, b) => a + b, 0);
-
-  // Takvim Okları İle Gezinme (Ocak 2025 - Aralık 2030)
+  // Takvim Gezinme
   const handlePrevMonth = () => {
-    if (calYear === 2025 && calMonth === 0) return; // Sınır: Jan 2025
+    if (calYear === 2025 && calMonth === 0) return;
     if (calMonth === 0) {
       setCalMonth(11);
       setCalYear(calYear - 1);
@@ -78,7 +112,7 @@ export default function App() {
   };
 
   const handleNextMonth = () => {
-    if (calYear === 2030 && calMonth === 11) return; // Sınır: Dec 2030
+    if (calYear === 2030 && calMonth === 11) return;
     if (calMonth === 11) {
       setCalMonth(0);
       setCalYear(calYear + 1);
@@ -124,7 +158,6 @@ export default function App() {
 
   const handleSave = () => {
     if (!formName || !formPrice) return;
-
     const logoUrl = formLogo || `https://logo.clearbit.com/${formName.toLowerCase().replace(/\s+/g, '')}.com`;
 
     const subData = {
@@ -149,12 +182,10 @@ export default function App() {
 
   const handleDelete = (id) => setSubscriptions(safeList.filter(s => s.id !== id));
 
-  // Takvim filtreleme mantığı
   const isSubActiveOnDay = (sub, day) => {
     if (sub.period === 'monthly') {
       return Number(sub.billingDay) === day;
     } else {
-      // Yıllık ise sadece ilgili ay ve yılda veya seçili ayın o gününde
       return Number(sub.billingDay) === day && (Number(sub.billingMonth) === (calMonth + 1));
     }
   };
@@ -231,7 +262,6 @@ export default function App() {
         {/* TAB 2: TAKVİM EKRANI */}
         {activeTab === 'calendar' && (
           <View style={{ marginTop: 10 }}>
-            {/* Ay/Yıl Başlığı ve Oklar */}
             <View style={styles.calendarHeaderNav}>
               <TouchableOpacity style={styles.arrowBtn} onPress={handlePrevMonth}>
                 <Text style={styles.arrowText}>◀</Text>
@@ -244,7 +274,6 @@ export default function App() {
               </TouchableOpacity>
             </View>
 
-            {/* Görünüm Modu Seçici (Günlük / Haftalık / Aylık) */}
             <View style={styles.viewModeContainer}>
               {['daily', 'weekly', 'monthly'].map((mode) => (
                 <TouchableOpacity
@@ -259,7 +288,6 @@ export default function App() {
               ))}
             </View>
 
-            {/* AYLIK GÖRÜNÜM */}
             {calendarViewMode === 'monthly' && (
               <View style={styles.calendarGrid}>
                 {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
@@ -279,7 +307,6 @@ export default function App() {
               </View>
             )}
 
-            {/* HAFTALIK GÖRÜNÜM */}
             {calendarViewMode === 'weekly' && (
               <View style={{ gap: 8 }}>
                 <Text style={{ color: '#94a3b8', fontSize: 12 }}>1 - 7 {MONTH_NAMES[calMonth]} Haftası Ödemeleri:</Text>
@@ -301,7 +328,6 @@ export default function App() {
               </View>
             )}
 
-            {/* GÜNLÜK GÖRÜNÜM */}
             {calendarViewMode === 'daily' && (
               <View>
                 <Text style={{ color: '#94a3b8', marginBottom: 8 }}>Gün Seçin:</Text>
@@ -337,24 +363,62 @@ export default function App() {
           </View>
         )}
 
-        {/* TAB 3: TASARRUF & YILLIK KATEGORİ ANALİZİ */}
+        {/* TAB 3: YILLIK & AY AY DETAYLI ANALİZ */}
         {activeTab === 'analytics' && (
           <View style={{ marginTop: 10 }}>
-            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#fbbf24', marginBottom: 16 }}>📊 Yıllık & Kategori Harcama Analizi</Text>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#fbbf24', marginBottom: 12 }}>📊 Harcama & Yıllık Analiz</Text>
+
+            {/* Yıl Seçici Butonlar */}
+            <Text style={{ color: '#94a3b8', fontSize: 12, marginBottom: 8 }}>İncelemek İstediğiniz Yılı Seçin:</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+              {YEARS.map(y => (
+                <TouchableOpacity 
+                  key={y} 
+                  style={[styles.yearChip, selectedAnalysisYear === y && styles.yearChipActive]}
+                  onPress={() => setSelectedAnalysisYear(y)}
+                >
+                  <Text style={[styles.yearChipText, selectedAnalysisYear === y && styles.yearChipTextActive]}>{y}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
 
             {/* Toplam Yıllık Özet */}
             <View style={{ backgroundColor: '#1e293b', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-              <Text style={{ color: '#94a3b8', fontSize: 12 }}>Toplam Tahmini Yıllık Harcama</Text>
+              <Text style={{ color: '#94a3b8', fontSize: 12 }}>{selectedAnalysisYear} Yılı Toplam Harcaması</Text>
               <Text style={{ color: '#4ade80', fontSize: 28, fontWeight: 'bold', marginVertical: 4 }}>
-                {totalYearlyExpense.toFixed(2)} ₺ / yıl
+                {totalYearlyExpenseForSelectedYear.toFixed(2)} ₺
               </Text>
             </View>
 
-            {/* Kategorilere Göre Dağılım */}
-            <Text style={{ color: '#94a3b8', fontSize: 14, fontWeight: '600', marginBottom: 12 }}>Kategori Bazlı Yıllık Harcamalar:</Text>
+            {/* TABLO 1: AY AY HARCAMA TABLOSU */}
+            <Text style={{ color: '#94a3b8', fontSize: 14, fontWeight: '600', marginBottom: 8 }}>
+              🗓️ {selectedAnalysisYear} Yılı Ay Ay Harcama Tablosu
+            </Text>
+            <View style={styles.tableContainer}>
+              <View style={styles.tableHeader}>
+                <Text style={[styles.tableCellHeader, { flex: 1 }]}>Ay</Text>
+                <Text style={[styles.tableCellHeader, { flex: 1, textAlign: 'right' }]}>Toplam Harcama</Text>
+              </View>
+              {MONTH_NAMES.map((mName, idx) => {
+                const amount = monthlyBreakdown[idx];
+                return (
+                  <View key={mName} style={[styles.tableRow, idx % 2 === 1 && { backgroundColor: '#151f30' }]}>
+                    <Text style={[styles.tableCell, { flex: 1 }]}>{mName}</Text>
+                    <Text style={[styles.tableCell, { flex: 1, textAlign: 'right', color: amount > 0 ? '#38bdf8' : '#64748b', fontWeight: amount > 0 ? 'bold' : 'normal' }]}>
+                      {amount.toFixed(2)} ₺
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+
+            {/* TABLO 2: KATEGORİ BAZLI HARCAMALAR */}
+            <Text style={{ color: '#94a3b8', fontSize: 14, fontWeight: '600', marginTop: 16, marginBottom: 12 }}>
+              🏷️ {selectedAnalysisYear} Kategori Bazlı Dağılım:
+            </Text>
             {Object.keys(yearlyCategoryStats).map((cat) => {
               const amount = yearlyCategoryStats[cat];
-              const percentage = totalYearlyExpense > 0 ? ((amount / totalYearlyExpense) * 100).toFixed(1) : 0;
+              const percentage = totalYearlyExpenseForSelectedYear > 0 ? ((amount / totalYearlyExpenseForSelectedYear) * 100).toFixed(1) : 0;
 
               return (
                 <View key={cat} style={styles.categoryCard}>
@@ -453,7 +517,6 @@ export default function App() {
               onChangeText={setFormPrice}
             />
 
-            {/* Gün, Ay ve Yıl Kutucukları */}
             {formPeriod === 'monthly' ? (
               <>
                 <Text style={styles.fieldLabel}>Ödeme Günü (Ayın kaçıncı günü: 1-31):</Text>
@@ -570,6 +633,19 @@ const styles = StyleSheet.create({
   weeklyDayText: { color: '#94a3b8', fontSize: 12, width: 80 },
   daySelectorChip: { backgroundColor: '#1e293b', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, marginRight: 6 },
   daySelectorChipActive: { backgroundColor: '#6366f1' },
+
+  // Year Selection Chips
+  yearChip: { backgroundColor: '#1e293b', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 8 },
+  yearChipActive: { backgroundColor: '#fbbf24' },
+  yearChipText: { color: '#94a3b8', fontWeight: '600' },
+  yearChipTextActive: { color: '#0f172a', fontWeight: 'bold' },
+
+  // Table Styles
+  tableContainer: { backgroundColor: '#1e293b', borderRadius: 12, overflow: 'hidden' },
+  tableHeader: { flexDirection: 'row', backgroundColor: '#0f172a', padding: 12, borderBottomWidth: 1, borderBottomColor: '#334155' },
+  tableCellHeader: { color: '#fbbf24', fontWeight: 'bold', fontSize: 12 },
+  tableRow: { flexDirection: 'row', padding: 10, borderBottomWidth: 1, borderBottomColor: '#1e293b' },
+  tableCell: { color: '#fff', fontSize: 13 },
 
   // Analytics Categories
   categoryCard: { backgroundColor: '#1e293b', padding: 12, borderRadius: 10, marginBottom: 8 },
