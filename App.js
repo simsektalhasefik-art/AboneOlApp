@@ -2,6 +2,15 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View, SafeAreaView, ScrollView, TouchableOpacity, Modal, TextInput, Linking } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
+const CATEGORY_COLORS = {
+  'Eğlence': '#ef4444',     // Kırmızı
+  'Müzik': '#10b981',       // Yeşil
+  'Depolama': '#3b82f6',    // Mavi
+  'Yazılım & AI': '#8b5cf6', // Mor
+  'Spor': '#f59e0b',        // Turuncu
+  'Diğer': '#64748b'        // Gri
+};
+
 const POPULAR_SERVICES = [
   { name: 'Netflix', price: 345, category: 'Eğlence', color: '#E50914', cancelUrl: 'https://www.netflix.com/youraccount' },
   { name: 'Exxen', price: 160, category: 'Eğlence', color: '#FACC15', cancelUrl: 'https://www.exxen.com/tr/account' },
@@ -27,6 +36,12 @@ const formatTL = (amount) => {
   return val.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
 };
 
+const formatShortTL = (amount) => {
+  const val = Number(amount) || 0;
+  if (val === 0) return '0 ₺';
+  return val.toLocaleString('tr-TR', { maximumFractionDigits: 0 }) + ' ₺';
+};
+
 const getServiceColor = (name = '') => {
   const lower = name.toLowerCase();
   if (lower.includes('netflix')) return '#E50914';
@@ -40,6 +55,8 @@ const getServiceColor = (name = '') => {
 };
 
 export default function App() {
+  const [isDarkMode, setIsDarkMode] = useState(true);
+
   const [subscriptions, setSubscriptions] = useState([
     { id: '1', name: 'Netflix', price: 345, category: 'Eğlence', billingDay: 7, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://www.netflix.com/youraccount', color: '#E50914' },
     { id: '2', name: 'YouTube Premium', price: 79, category: 'Eğlence', billingDay: 15, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://www.youtube.com/paid_memberships', color: '#FF0000' },
@@ -70,6 +87,18 @@ export default function App() {
 
   const safeList = Array.isArray(subscriptions) ? subscriptions : [];
 
+  // TEMA DİNAMİK RENKLERİ
+  const theme = {
+    bg: isDarkMode ? '#090d16' : '#f8fafc',
+    headerBg: isDarkMode ? '#0f172a' : '#ffffff',
+    cardBg: isDarkMode ? '#151f30' : '#ffffff',
+    cardBorder: isDarkMode ? '#1e293b' : '#e2e8f0',
+    textPrimary: isDarkMode ? '#ffffff' : '#0f172a',
+    textSecondary: isDarkMode ? '#94a3b8' : '#64748b',
+    inputBg: isDarkMode ? '#0f172a' : '#f1f5f9',
+    accent: '#38bdf8',
+  };
+
   const monthlyTotal = safeList.reduce((sum, item) => {
     if (!item) return sum;
     const cost = item.period === 'yearly' ? Number(item.price || 0) / 12 : Number(item.price || 0);
@@ -93,24 +122,36 @@ export default function App() {
 
   const currentCalMonthTotal = calculateMonthTotal(calMonth, calYear);
 
-  const getMonthlyBreakdownForYear = (targetYear) => {
-    const monthlyData = Array(12).fill(0);
+  // Kategori Bazlı Aylık Detaylı Hesaplama (Stacked Bar İçin)
+  const getDetailedMonthlyBreakdown = (targetYear) => {
+    const monthlyCategoryData = Array(12).fill(null).map(() => ({}));
+    const monthlyTotals = Array(12).fill(0);
+
     safeList.forEach(sub => {
       const price = Number(sub.price || 0);
+      const cat = sub.category || 'Diğer';
+
       if (sub.period === 'monthly') {
-        for (let m = 0; m < 12; m++) monthlyData[m] += price;
+        for (let m = 0; m < 12; m++) {
+          monthlyCategoryData[m][cat] = (monthlyCategoryData[m][cat] || 0) + price;
+          monthlyTotals[m] += price;
+        }
       } else if (sub.period === 'yearly') {
         const subMonthIndex = Number(sub.billingMonth || 1) - 1;
         const subYear = Number(sub.billingYear || 2026);
-        if (subYear === targetYear) monthlyData[subMonthIndex] += price;
+        if (subYear === targetYear) {
+          monthlyCategoryData[subMonthIndex][cat] = (monthlyCategoryData[subMonthIndex][cat] || 0) + price;
+          monthlyTotals[subMonthIndex] += price;
+        }
       }
     });
-    return monthlyData;
+
+    return { monthlyCategoryData, monthlyTotals };
   };
 
-  const monthlyBreakdown = getMonthlyBreakdownForYear(selectedAnalysisYear);
-  const totalYearlyExpenseForSelectedYear = monthlyBreakdown.reduce((a, b) => a + b, 0);
-  const maxMonthlyExpense = Math.max(...monthlyBreakdown, 1);
+  const { monthlyCategoryData, monthlyTotals } = getDetailedMonthlyBreakdown(selectedAnalysisYear);
+  const totalYearlyExpenseForSelectedYear = monthlyTotals.reduce((a, b) => a + b, 0);
+  const maxMonthlyExpense = Math.max(...monthlyTotals, 1);
 
   const yearlyCategoryStats = safeList.reduce((acc, item) => {
     const cat = item.category || 'Diğer';
@@ -141,14 +182,6 @@ export default function App() {
         type: 'info',
         title: '🎬 Eğlence Harcaması Yüksek',
         desc: `Şu an ${eglenveSubs.length} adet dijital yayın servisine (Netflix, Exxen vb.) abonesiniz. Aktif izlemediğinizi dondurarak ayda ${formatTL(eglenveSubs[0].price)} cebinizde kalabilir.`
-      });
-    }
-
-    if (monthlyTotal > 1000) {
-      insights.push({
-        type: 'danger',
-        title: '⚠️ Aylık 1.000 ₺ Sınırı Aşıldı',
-        desc: `Sabit abonelik giderleriniz aylık ${formatTL(monthlyTotal)} tutarına ulaştı. Yılda toplam ${formatTL(monthlyTotal * 12)} cebinizden çıkıyor.`
       });
     }
 
@@ -215,7 +248,6 @@ export default function App() {
   const handleSave = () => {
     if (!formName || !formPrice) return;
 
-    // Türkçe noktalı/virgüllü fiyatı sayıya çevirme
     const normalizedPrice = Number(formPrice.replace(',', '.'));
 
     const subData = {
@@ -249,23 +281,34 @@ export default function App() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="light" />
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
       
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.headerBg, borderBottomColor: theme.cardBorder }]}>
         <View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={styles.headerTitle}>Cebin</Text>
+            <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Cebin</Text>
             <View style={styles.proBadge}>
               <Text style={styles.proBadgeText}>FINANCE</Text>
             </View>
           </View>
-          <Text style={styles.headerSubtitle}>Abonelik & Ödeme Asistanı</Text>
+          <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Abonelik & Ödeme Asistanı</Text>
         </View>
-        <TouchableOpacity style={styles.addBtn} onPress={() => openForm()}>
-          <Text style={styles.addBtnText}>+ Yeni Abonelik</Text>
-        </TouchableOpacity>
+
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          {/* Gündüz / Gece Modu Butonu */}
+          <TouchableOpacity 
+            style={[styles.themeToggleBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+            onPress={() => setIsDarkMode(!isDarkMode)}
+          >
+            <Text style={{ fontSize: 16 }}>{isDarkMode ? '☀️' : '🌙'}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.addBtn} onPress={() => openForm()}>
+            <Text style={styles.addBtnText}>+ Ekle</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -289,38 +332,36 @@ export default function App() {
               </View>
             </View>
 
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <Text style={styles.sectionTitle}>Aktif Servisler ({safeList.length})</Text>
-            </View>
+            <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Aktif Servisler ({safeList.length})</Text>
 
             {safeList.map((item) => {
               const isYearly = item.period === 'yearly';
               const serviceColor = item.color || getServiceColor(item.name);
 
               return (
-                <View key={item.id} style={styles.card}>
+                <View key={item.id} style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
                   <View style={styles.leftSection}>
                     <View style={[styles.brandIconBox, { backgroundColor: serviceColor }]}>
                       <Text style={styles.brandIconText}>{item.name ? item.name.charAt(0).toUpperCase() : 'C'}</Text>
                     </View>
                     <View>
-                      <Text style={styles.cardTitle}>{item.name}</Text>
-                      <Text style={styles.cardSubtitle}>
+                      <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>{item.name}</Text>
+                      <Text style={[styles.cardSubtitle, { color: theme.textSecondary }]}>
                         {item.category} • {isYearly ? `${item.billingDay}/${item.billingMonth}/${item.billingYear}` : `Her ayın ${item.billingDay}. günü`}
                       </Text>
                     </View>
                   </View>
 
                   <View style={styles.rightSection}>
-                    <Text style={styles.price}>{formatTL(item.price)} {isYearly ? '/yıl' : '/ay'}</Text>
+                    <Text style={[styles.price, { color: theme.textPrimary }]}>{formatTL(item.price)} {isYearly ? '/yıl' : '/ay'}</Text>
                     <View style={styles.actionButtons}>
-                      <TouchableOpacity style={styles.editBtn} onPress={() => openForm(item)}>
-                        <Text style={{ color: '#94a3b8', fontSize: 11 }}>Düzenle</Text>
+                      <TouchableOpacity style={[styles.editBtn, { backgroundColor: theme.inputBg }]} onPress={() => openForm(item)}>
+                        <Text style={{ color: theme.textSecondary, fontSize: 11 }}>Düzenle</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity style={styles.cancelBtn} onPress={() => item.cancelUrl && Linking.openURL(item.cancelUrl)}>
-                        <Text style={styles.cancelText}>İptal Bağlantısı 🔗</Text>
+                      <TouchableOpacity style={[styles.cancelBtn, { backgroundColor: theme.inputBg }]} onPress={() => item.cancelUrl && Linking.openURL(item.cancelUrl)}>
+                        <Text style={styles.cancelText}>İptal 🔗</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.deleteBtn}>
+                      <TouchableOpacity onPress={() => handleDelete(item.id)} style={[styles.deleteBtn, { backgroundColor: theme.inputBg }]}>
                         <Text style={{ color: '#ef4444', fontSize: 11 }}>🗑️</Text>
                       </TouchableOpacity>
                     </View>
@@ -335,29 +376,29 @@ export default function App() {
         {activeTab === 'calendar' && (
           <View style={{ marginTop: 10 }}>
             <View style={styles.calendarHeaderNav}>
-              <TouchableOpacity style={styles.arrowBtn} onPress={handlePrevMonth}>
+              <TouchableOpacity style={[styles.arrowBtn, { backgroundColor: theme.cardBg }]} onPress={handlePrevMonth}>
                 <Text style={styles.arrowText}>◀</Text>
               </TouchableOpacity>
-              <Text style={styles.calendarTitleText}>
+              <Text style={[styles.calendarTitleText, { color: theme.textPrimary }]}>
                 {MONTH_NAMES[calMonth]} {calYear}
               </Text>
-              <TouchableOpacity style={styles.arrowBtn} onPress={handleNextMonth}>
+              <TouchableOpacity style={[styles.arrowBtn, { backgroundColor: theme.cardBg }]} onPress={handleNextMonth}>
                 <Text style={styles.arrowText}>▶</Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.viewModeContainer}>
               <TouchableOpacity
-                style={[styles.viewModeBtn, calendarViewMode === 'daily' && styles.viewModeBtnActive]}
+                style={[styles.viewModeBtn, { backgroundColor: theme.cardBg }, calendarViewMode === 'daily' && styles.viewModeBtnActive]}
                 onPress={() => setCalendarViewMode('daily')}
               >
-                <Text style={[styles.viewModeText, calendarViewMode === 'daily' && styles.viewModeTextActive]}>Günlük Akış</Text>
+                <Text style={[styles.viewModeText, { color: theme.textSecondary }, calendarViewMode === 'daily' && styles.viewModeTextActive]}>Günlük Akış</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.viewModeBtn, calendarViewMode === 'monthly' && styles.viewModeBtnActive]}
+                style={[styles.viewModeBtn, { backgroundColor: theme.cardBg }, calendarViewMode === 'monthly' && styles.viewModeBtnActive]}
                 onPress={() => setCalendarViewMode('monthly')}
               >
-                <Text style={[styles.viewModeText, calendarViewMode === 'monthly' && styles.viewModeTextActive]}>Aylık Matris</Text>
+                <Text style={[styles.viewModeText, { color: theme.textSecondary }, calendarViewMode === 'monthly' && styles.viewModeTextActive]}>Aylık Matris</Text>
               </TouchableOpacity>
             </View>
 
@@ -367,8 +408,8 @@ export default function App() {
                   const daySubs = safeList.filter(s => isSubActiveOnDay(s, day));
 
                   return (
-                    <View key={day} style={styles.dailyRow}>
-                      <Text style={styles.dailyDayText}>{day} {MONTH_NAMES[calMonth]}</Text>
+                    <View key={day} style={[styles.dailyRow, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                      <Text style={[styles.dailyDayText, { color: theme.textSecondary }]}>{day} {MONTH_NAMES[calMonth]}</Text>
                       <View style={{ flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
                         {daySubs.length > 0 ? daySubs.map(s => {
                           const sColor = s.color || getServiceColor(s.name);
@@ -378,18 +419,18 @@ export default function App() {
                             </View>
                           );
                         }) : (
-                          <Text style={{ color: '#475569', fontSize: 12 }}>Ödeme planı yok</Text>
+                          <Text style={{ color: theme.textSecondary, fontSize: 12 }}>Ödeme planı yok</Text>
                         )}
                       </View>
                     </View>
                   );
                 })}
 
-                <View style={styles.monthTotalFooterCard}>
-                  <Text style={{ color: '#94a3b8', fontSize: 13, fontWeight: '600' }}>
+                <View style={[styles.monthTotalFooterCard, { backgroundColor: theme.headerBg, borderColor: theme.cardBorder }]}>
+                  <Text style={{ color: theme.textSecondary, fontSize: 13, fontWeight: '600' }}>
                     {MONTH_NAMES[calMonth]} {calYear} Dönemi Toplam Ödeme:
                   </Text>
-                  <Text style={{ color: '#38bdf8', fontSize: 24, fontWeight: 'bold', marginTop: 4 }}>
+                  <Text style={{ color: theme.accent, fontSize: 24, fontWeight: 'bold', marginTop: 4 }}>
                     {formatTL(currentCalMonthTotal)}
                   </Text>
                 </View>
@@ -401,8 +442,8 @@ export default function App() {
                 {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
                   const daySubs = safeList.filter(s => isSubActiveOnDay(s, day));
                   return (
-                    <View key={day} style={[styles.calendarDayBox, daySubs.length > 0 && styles.activeDayBox]}>
-                      <Text style={styles.dayNumber}>{day}</Text>
+                    <View key={day} style={[styles.calendarDayBox, { backgroundColor: theme.cardBg }, daySubs.length > 0 && styles.activeDayBox]}>
+                      <Text style={[styles.dayNumber, { color: theme.textSecondary }]}>{day}</Text>
                       {daySubs.map(s => {
                         const sColor = s.color || getServiceColor(s.name);
                         return (
@@ -424,93 +465,125 @@ export default function App() {
         {/* TAB 3: FİNANS & ANALİZ */}
         {activeTab === 'analytics' && (
           <View style={{ marginTop: 10 }}>
-            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#ffffff', marginBottom: 4 }}>Finansal Analiz & İpuçları</Text>
-            <Text style={{ color: '#94a3b8', fontSize: 12, marginBottom: 16 }}>Harcama alışkanlıklarınız ve Cebin Akıllı İpuçları</Text>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.textPrimary, marginBottom: 4 }}>Finansal Analiz & Grafikler</Text>
+            <Text style={{ color: theme.textSecondary, fontSize: 12, marginBottom: 16 }}>Aylık harcama dağılımları ve akıllı ipuçları</Text>
 
             {/* Yıl Seçimi */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
               {YEARS.map(y => (
                 <TouchableOpacity 
                   key={y} 
-                  style={[styles.yearChip, selectedAnalysisYear === y && styles.yearChipActive]}
+                  style={[styles.yearChip, { backgroundColor: theme.cardBg }, selectedAnalysisYear === y && styles.yearChipActive]}
                   onPress={() => setSelectedAnalysisYear(y)}
                 >
-                  <Text style={[styles.yearChipText, selectedAnalysisYear === y && styles.yearChipTextActive]}>{y}</Text>
+                  <Text style={[styles.yearChipText, { color: theme.textSecondary }, selectedAnalysisYear === y && styles.yearChipTextActive]}>{y}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
 
-            {/* YENİLENEN RECT/BAR GRAFİK BÖLÜMÜ */}
-            <View style={styles.chartContainer}>
-              <Text style={{ color: '#ffffff', fontWeight: 'bold', marginBottom: 16 }}>Aylık Harcama Grafiği ({selectedAnalysisYear})</Text>
+            {/* KATEGORİLİ YIĞILMIŞ (STACKED) GRAFİK BÖLÜMÜ */}
+            <View style={[styles.chartContainer, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+              <Text style={{ color: theme.textPrimary, fontWeight: 'bold', fontSize: 16, marginBottom: 12 }}>
+                Aylık Harcama Grafiği ({selectedAnalysisYear})
+              </Text>
               
-              {/* Sabit Yükseklik Verilerek Web Görünürlüğü Garanti Edildi */}
+              {/* KATEGORİ RENK AÇIKLAMALARI (LEGEND) */}
+              <View style={styles.legendContainer}>
+                {Object.keys(CATEGORY_COLORS).map(cat => (
+                  <View key={cat} style={styles.legendItem}>
+                    <View style={[styles.legendColorBox, { backgroundColor: CATEGORY_COLORS[cat] }]} />
+                    <Text style={[styles.legendText, { color: theme.textSecondary }]}>{cat}</Text>
+                  </View>
+                ))}
+              </View>
+
+              {/* BAR AREA */}
               <View style={styles.barsAreaContainer}>
                 {MONTH_NAMES.map((mName, idx) => {
-                  const val = monthlyBreakdown[idx];
-                  const heightPercent = maxMonthlyExpense > 0 ? (val / maxMonthlyExpense) * 100 : 0;
-                  const finalBarHeight = Math.max(heightPercent, 6); // En az 6% görünsün
+                  const totalVal = monthlyTotals[idx];
+                  const catBreakdown = monthlyCategoryData[idx];
+                  const heightPercent = maxMonthlyExpense > 0 ? (totalVal / maxMonthlyExpense) * 100 : 0;
+                  const finalBarHeight = Math.max(heightPercent, totalVal > 0 ? 8 : 2);
 
                   return (
                     <View key={mName} style={styles.barColumn}>
-                      <View style={styles.barTrack}>
-                        <View 
-                          style={[
-                            styles.barFill, 
-                            { 
-                              height: `${finalBarHeight}%`, 
-                              backgroundColor: val > 0 ? '#6366f1' : '#1e293b' 
-                            }
-                          ]} 
-                        />
+                      {/* Çubuk (Stacked) */}
+                      <View style={[styles.barTrack, { backgroundColor: isDarkMode ? '#0f172a' : '#e2e8f0' }]}>
+                        <View style={{ width: '100%', height: `${finalBarHeight}%`, borderRadius: 6, overflow: 'hidden', flexDirection: 'column-reverse' }}>
+                          {Object.keys(catBreakdown).map(cat => {
+                            const catAmount = catBreakdown[cat];
+                            const catRatio = totalVal > 0 ? (catAmount / totalVal) * 100 : 0;
+                            return (
+                              <View 
+                                key={cat} 
+                                style={{ 
+                                  width: '100%', 
+                                  height: `${catRatio}%`, 
+                                  backgroundColor: CATEGORY_COLORS[cat] || '#64748b' 
+                                }} 
+                              />
+                            );
+                          })}
+                        </View>
                       </View>
-                      <Text style={styles.barLabel}>{mName.substr(0, 3)}</Text>
+
+                      {/* Ay Kısaltması */}
+                      <Text style={[styles.barLabel, { color: theme.textSecondary }]}>{mName.substr(0, 3)}</Text>
+                      
+                      {/* AYLARIN ALTINDA HER KATEGORİ HARCAMASI (TUTAR GÖSTERİMİ) */}
+                      <Text style={[styles.barAmountText, { color: totalVal > 0 ? theme.accent : theme.textSecondary }]}>
+                        {formatShortTL(totalVal)}
+                      </Text>
                     </View>
                   );
                 })}
               </View>
 
-              <View style={styles.chartFooter}>
-                <Text style={{ color: '#94a3b8', fontSize: 13 }}>Yıllık Toplam:</Text>
-                <Text style={{ color: '#38bdf8', fontSize: 18, fontWeight: 'bold' }}>{formatTL(totalYearlyExpenseForSelectedYear)}</Text>
+              <View style={[styles.chartFooter, { borderTopColor: theme.cardBorder }]}>
+                <Text style={{ color: theme.textSecondary, fontSize: 13 }}>Yıllık Toplam:</Text>
+                <Text style={{ color: theme.accent, fontSize: 20, fontWeight: 'bold' }}>{formatTL(totalYearlyExpenseForSelectedYear)}</Text>
               </View>
             </View>
 
             {/* CEBİN AKILLI TASARRUF ÖNERİLERİ */}
-            <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: 'bold', marginTop: 16, marginBottom: 12 }}>
+            <Text style={{ color: theme.textPrimary, fontSize: 16, fontWeight: 'bold', marginTop: 16, marginBottom: 12 }}>
               💡 Cebin Akıllı Tasarruf İpuçları
             </Text>
 
             {insightsList.length > 0 ? (
               insightsList.map((insight, index) => (
-                <View key={index} style={[styles.insightCard, insight.type === 'warning' && { borderLeftColor: '#f59e0b' }, insight.type === 'danger' && { borderLeftColor: '#ef4444' }]}>
-                  <Text style={styles.insightTitle}>{insight.title}</Text>
-                  <Text style={styles.insightDesc}>{insight.desc}</Text>
+                <View key={index} style={[styles.insightCard, { backgroundColor: theme.cardBg }, insight.type === 'warning' && { borderLeftColor: '#f59e0b' }]}>
+                  <Text style={[styles.insightTitle, { color: theme.textPrimary }]}>{insight.title}</Text>
+                  <Text style={[styles.insightDesc, { color: theme.textSecondary }]}>{insight.desc}</Text>
                 </View>
               ))
             ) : (
-              <View style={styles.insightCard}>
-                <Text style={styles.insightTitle}>✅ Harcamalarınız İdeal Durumda</Text>
-                <Text style={styles.insightDesc}>Şu anda aboneliklerinizde kritik bir tasarruf uyarısı bulunmuyor.</Text>
+              <View style={[styles.insightCard, { backgroundColor: theme.cardBg }]}>
+                <Text style={[styles.insightTitle, { color: theme.textPrimary }]}>✅ Harcamalarınız İdeal Durumda</Text>
+                <Text style={[styles.insightDesc, { color: theme.textSecondary }]}>Şu anda aboneliklerinizde kritik bir tasarruf uyarısı bulunmuyor.</Text>
               </View>
             )}
 
             {/* KATEGORİ DAĞILIMI */}
-            <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: 'bold', marginTop: 16, marginBottom: 12 }}>
+            <Text style={{ color: theme.textPrimary, fontSize: 16, fontWeight: 'bold', marginTop: 16, marginBottom: 12 }}>
               🏷️ Kategori Bazlı Dağılım
             </Text>
             {Object.keys(yearlyCategoryStats).map((cat) => {
               const amount = yearlyCategoryStats[cat];
               const percentage = totalYearlyExpenseForSelectedYear > 0 ? ((amount / totalYearlyExpenseForSelectedYear) * 100).toFixed(1) : 0;
+              const catColor = CATEGORY_COLORS[cat] || '#38bdf8';
 
               return (
-                <View key={cat} style={styles.categoryCard}>
+                <View key={cat} style={[styles.categoryCard, { backgroundColor: theme.cardBg }]}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <Text style={{ color: '#fff', fontWeight: 'bold' }}>{cat}</Text>
-                    <Text style={{ color: '#38bdf8', fontWeight: 'bold' }}>{formatTL(amount)} (%{percentage})</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: catColor }} />
+                      <Text style={{ color: theme.textPrimary, fontWeight: 'bold' }}>{cat}</Text>
+                    </View>
+                    <Text style={{ color: theme.accent, fontWeight: 'bold' }}>{formatTL(amount)} (%{percentage})</Text>
                   </View>
-                  <View style={styles.progressBarBg}>
-                    <View style={[styles.progressBarFill, { width: `${percentage}%` }]} />
+                  <View style={[styles.progressBarBg, { backgroundColor: theme.inputBg }]}>
+                    <View style={[styles.progressBarFill, { width: `${percentage}%`, backgroundColor: catColor }]} />
                   </View>
                 </View>
               );
@@ -521,27 +594,27 @@ export default function App() {
       </ScrollView>
 
       {/* Bottom Nav */}
-      <View style={styles.bottomNav}>
+      <View style={[styles.bottomNav, { backgroundColor: theme.headerBg, borderTopColor: theme.cardBorder }]}>
         <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('list')}>
-          <Text style={[styles.navText, activeTab === 'list' && styles.navTextActive]}>💳 Abonelikler</Text>
+          <Text style={[styles.navText, { color: theme.textSecondary }, activeTab === 'list' && styles.navTextActive]}>💳 Abonelikler</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('calendar')}>
-          <Text style={[styles.navText, activeTab === 'calendar' && styles.navTextActive]}>📅 Ödeme Takvimi</Text>
+          <Text style={[styles.navText, { color: theme.textSecondary }, activeTab === 'calendar' && styles.navTextActive]}>📅 Takvim</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('analytics')}>
-          <Text style={[styles.navText, activeTab === 'analytics' && styles.navTextActive]}>📊 Finans & Analiz</Text>
+          <Text style={[styles.navText, { color: theme.textSecondary }, activeTab === 'analytics' && styles.navTextActive]}>📊 Analiz</Text>
         </TouchableOpacity>
       </View>
 
       {/* Modal */}
       <Modal visible={isModalOpen} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
-          <ScrollView contentContainerStyle={styles.modalContent}>
-            <Text style={styles.modalTitle}>{editingId ? 'Abonelik Bilgilerini Düzenle' : 'Yeni Abonelik Tanımla'}</Text>
+          <ScrollView contentContainerStyle={[styles.modalContent, { backgroundColor: theme.cardBg }]}>
+            <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>{editingId ? 'Abonelik Bilgilerini Düzenle' : 'Yeni Abonelik Tanımla'}</Text>
 
             {!editingId && (
               <View style={{ marginBottom: 16 }}>
-                <Text style={styles.fieldLabel}>Hızlı Ekle (Popüler Servisler):</Text>
+                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Hızlı Ekle (Popüler Servisler):</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
                   {POPULAR_SERVICES.map((s, idx) => (
                     <TouchableOpacity key={idx} style={[styles.chipBtn, { borderColor: s.color, borderWidth: 1 }]} onPress={() => selectPopularService(s)}>
@@ -552,11 +625,11 @@ export default function App() {
               </View>
             )}
 
-            <Text style={styles.fieldLabel}>Servis Adı:</Text>
+            <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Servis Adı:</Text>
             <TextInput 
               placeholder="ör: Netflix" 
               placeholderTextColor="#64748b" 
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.inputBg, color: theme.textPrimary }]}
               value={formName}
               onChangeText={(txt) => {
                 setFormName(txt);
@@ -564,66 +637,66 @@ export default function App() {
               }}
             />
 
-            <Text style={styles.fieldLabel}>Kategori:</Text>
+            <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Kategori:</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
               {CATEGORIES.map((cat) => (
                 <TouchableOpacity 
                   key={cat} 
-                  style={[styles.categoryChip, formCategory === cat && styles.categoryChipActive]}
+                  style={[styles.categoryChip, { backgroundColor: theme.inputBg }, formCategory === cat && styles.categoryChipActive]}
                   onPress={() => setFormCategory(cat)}
                 >
-                  <Text style={[styles.categoryText, formCategory === cat && styles.categoryTextActive]}>{cat}</Text>
+                  <Text style={[styles.categoryText, { color: theme.textSecondary }, formCategory === cat && styles.categoryTextActive]}>{cat}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
 
-            <Text style={styles.fieldLabel}>Ödeme Periyodu:</Text>
+            <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Ödeme Periyodu:</Text>
             <View style={styles.periodSelector}>
               <TouchableOpacity 
-                style={[styles.periodOption, formPeriod === 'monthly' && styles.periodActive]}
+                style={[styles.periodOption, { backgroundColor: theme.inputBg }, formPeriod === 'monthly' && styles.periodActive]}
                 onPress={() => setFormPeriod('monthly')}
               >
-                <Text style={[styles.periodText, formPeriod === 'monthly' && styles.periodTextActive]}>Aylık Ödeme</Text>
+                <Text style={[styles.periodText, { color: theme.textSecondary }, formPeriod === 'monthly' && styles.periodTextActive]}>Aylık Ödeme</Text>
               </TouchableOpacity>
               <TouchableOpacity 
-                style={[styles.periodOption, formPeriod === 'yearly' && styles.periodActive]}
+                style={[styles.periodOption, { backgroundColor: theme.inputBg }, formPeriod === 'yearly' && styles.periodActive]}
                 onPress={() => setFormPeriod('yearly')}
               >
-                <Text style={[styles.periodText, formPeriod === 'yearly' && styles.periodTextActive]}>Yıllık Ödeme</Text>
+                <Text style={[styles.periodText, { color: theme.textSecondary }, formPeriod === 'yearly' && styles.periodTextActive]}>Yıllık Ödeme</Text>
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.fieldLabel}>{formPeriod === 'yearly' ? "Yıllık Tutar (₺):" : "Aylık Tutar (₺):"}</Text>
+            <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>{formPeriod === 'yearly' ? "Yıllık Tutar (₺):" : "Aylık Tutar (₺):"}</Text>
             <TextInput 
               placeholder="0,00" 
               placeholderTextColor="#64748b" 
               keyboardType="numeric"
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.inputBg, color: theme.textPrimary }]}
               value={formPrice}
-              onChangeText={(txt) => setFormPrice(txt.replace(/[^0-9,.]/g, ''))} // Harf girilmesini engeller
+              onChangeText={(txt) => setFormPrice(txt.replace(/[^0-9,.]/g, ''))}
             />
 
             {formPeriod === 'monthly' ? (
               <>
-                <Text style={styles.fieldLabel}>Ödeme Günü (Ayın kaçıncı günü: 1-31):</Text>
+                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Ödeme Günü (Ayın kaçıncı günü: 1-31):</Text>
                 <TextInput 
                   placeholder="ör: 15" 
                   placeholderTextColor="#64748b" 
                   keyboardType="numeric"
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: theme.inputBg, color: theme.textPrimary }]}
                   value={formDay}
-                  onChangeText={(txt) => setFormDay(txt.replace(/[^0-9]/g, ''))} // Sadece rakam
+                  onChangeText={(txt) => setFormDay(txt.replace(/[^0-9]/g, ''))}
                 />
               </>
             ) : (
               <>
-                <Text style={styles.fieldLabel}>Yenileme Tarihi (Gün, Ay ve Yıl):</Text>
+                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Yenileme Tarihi (Gün, Ay ve Yıl):</Text>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   <TextInput 
                     placeholder="Gün (1-31)" 
                     placeholderTextColor="#64748b" 
                     keyboardType="numeric"
-                    style={[styles.input, { flex: 1 }]}
+                    style={[styles.input, { backgroundColor: theme.inputBg, color: theme.textPrimary, flex: 1 }]}
                     value={formDay}
                     onChangeText={(txt) => setFormDay(txt.replace(/[^0-9]/g, ''))}
                   />
@@ -631,7 +704,7 @@ export default function App() {
                     placeholder="Ay (1-12)" 
                     placeholderTextColor="#64748b" 
                     keyboardType="numeric"
-                    style={[styles.input, { flex: 1 }]}
+                    style={[styles.input, { backgroundColor: theme.inputBg, color: theme.textPrimary, flex: 1 }]}
                     value={formMonth}
                     onChangeText={(txt) => setFormMonth(txt.replace(/[^0-9]/g, ''))}
                   />
@@ -639,7 +712,7 @@ export default function App() {
                     placeholder="Yıl (ör: 2026)" 
                     placeholderTextColor="#64748b" 
                     keyboardType="numeric"
-                    style={[styles.input, { flex: 1 }]}
+                    style={[styles.input, { backgroundColor: theme.inputBg, color: theme.textPrimary, flex: 1 }]}
                     value={formYear}
                     onChangeText={(txt) => setFormYear(txt.replace(/[^0-9]/g, ''))}
                   />
@@ -664,12 +737,13 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#090d16' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 40, paddingBottom: 16, backgroundColor: '#0f172a', borderBottomWidth: 1, borderBottomColor: '#1e293b' },
-  headerTitle: { fontSize: 26, fontWeight: 'bold', color: '#ffffff', letterSpacing: 0.5 },
-  headerSubtitle: { color: '#64748b', fontSize: 11, marginTop: 2 },
+  container: { flex: 1 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 40, paddingBottom: 16, borderBottomWidth: 1 },
+  headerTitle: { fontSize: 26, fontWeight: 'bold', letterSpacing: 0.5 },
+  headerSubtitle: { fontSize: 11, marginTop: 2 },
   proBadge: { backgroundColor: '#6366f1', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   proBadgeText: { color: '#ffffff', fontSize: 9, fontWeight: 'bold' },
+  themeToggleBtn: { padding: 8, borderRadius: 8, borderWidth: 1 },
   addBtn: { backgroundColor: '#6366f1', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
   addBtnText: { color: '#ffffff', fontWeight: 'bold', fontSize: 13 },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 100, paddingTop: 16 },
@@ -681,91 +755,97 @@ const styles = StyleSheet.create({
   statBox: { flex: 1, backgroundColor: 'rgba(255, 255, 255, 0.05)', padding: 10, borderRadius: 8 },
   statLabel: { color: '#c7d2fe', fontSize: 11 },
   statValue: { color: '#ffffff', fontSize: 14, fontWeight: 'bold', marginTop: 2 },
-  sectionTitle: { color: '#94a3b8', fontSize: 14, fontWeight: '600' },
+  sectionTitle: { fontSize: 14, fontWeight: '600', marginBottom: 12 },
   
-  card: { backgroundColor: '#151f30', borderRadius: 12, padding: 16, marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: '#1e293b' },
+  card: { borderRadius: 12, padding: 16, marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1 },
   leftSection: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   brandIconBox: { width: 42, height: 42, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
   brandIconText: { color: '#ffffff', fontSize: 18, fontWeight: 'bold' },
-  cardTitle: { color: '#ffffff', fontSize: 16, fontWeight: 'bold' },
-  cardSubtitle: { color: '#64748b', fontSize: 12, marginTop: 2 },
+  cardTitle: { fontSize: 16, fontWeight: 'bold' },
+  cardSubtitle: { fontSize: 12, marginTop: 2 },
   rightSection: { alignItems: 'flex-end' },
-  price: { color: '#ffffff', fontSize: 15, fontWeight: 'bold' },
+  price: { fontSize: 15, fontWeight: 'bold' },
   actionButtons: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
-  editBtn: { padding: 4, backgroundColor: '#0f172a', borderRadius: 6 },
-  cancelBtn: { backgroundColor: '#1e293b', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  editBtn: { padding: 4, borderRadius: 6 },
+  cancelBtn: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
   cancelText: { color: '#38bdf8', fontSize: 11, fontWeight: '600' },
-  deleteBtn: { padding: 4, backgroundColor: '#0f172a', borderRadius: 6 },
+  deleteBtn: { padding: 4, borderRadius: 6 },
 
   // Calendar
   calendarHeaderNav: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  calendarTitleText: { fontSize: 18, fontWeight: 'bold', color: '#ffffff' },
-  arrowBtn: { backgroundColor: '#151f30', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
+  calendarTitleText: { fontSize: 18, fontWeight: 'bold' },
+  arrowBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
   arrowText: { color: '#38bdf8', fontSize: 14, fontWeight: 'bold' },
   viewModeContainer: { flexDirection: 'row', gap: 8, marginBottom: 16 },
-  viewModeBtn: { flex: 1, paddingVertical: 8, backgroundColor: '#151f30', borderRadius: 8, alignItems: 'center' },
+  viewModeBtn: { flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
   viewModeBtnActive: { backgroundColor: '#6366f1' },
-  viewModeText: { color: '#94a3b8', fontSize: 12 },
+  viewModeText: { fontSize: 12 },
   viewModeTextActive: { color: '#fff', fontWeight: 'bold' },
 
-  dailyRow: { backgroundColor: '#151f30', padding: 12, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  dailyDayText: { color: '#94a3b8', fontSize: 12, width: 85, fontWeight: '600' },
+  dailyRow: { padding: 12, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1 },
+  dailyDayText: { fontSize: 12, width: 85, fontWeight: '600' },
   brandBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
   brandBadgeText: { color: '#ffffff', fontSize: 11, fontWeight: 'bold' },
-  monthTotalFooterCard: { backgroundColor: '#0f172a', borderColor: '#1e293b', borderWidth: 1, padding: 16, borderRadius: 12, marginTop: 12, alignItems: 'center' },
+  monthTotalFooterCard: { borderWidth: 1, padding: 16, borderRadius: 12, marginTop: 12, alignItems: 'center' },
 
   calendarGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  calendarDayBox: { width: '13%', height: 70, backgroundColor: '#151f30', borderRadius: 6, padding: 4 },
+  calendarDayBox: { width: '13%', height: 70, borderRadius: 6, padding: 4 },
   activeDayBox: { borderWidth: 1, borderColor: '#6366f1', backgroundColor: '#1e1b4b' },
-  dayNumber: { color: '#94a3b8', fontSize: 10, fontWeight: 'bold' },
+  dayNumber: { fontSize: 10, fontWeight: 'bold' },
   daySubBadge: { borderRadius: 4, padding: 2, marginTop: 2 },
   daySubText: { color: '#fff', fontSize: 8, fontWeight: 'bold' },
   daySubPrice: { color: '#ffffff', fontSize: 8, opacity: 0.9 },
 
   // Visual Chart Styles Fixed
-  yearChip: { backgroundColor: '#151f30', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 8 },
+  yearChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 8 },
   yearChipActive: { backgroundColor: '#6366f1' },
-  yearChipText: { color: '#94a3b8', fontWeight: '600' },
+  yearChipText: { fontWeight: '600' },
   yearChipTextActive: { color: '#ffffff', fontWeight: 'bold' },
 
-  chartContainer: { backgroundColor: '#151f30', borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#1e293b' },
-  barsAreaContainer: { flexDirection: 'row', height: 140, alignItems: 'flex-end', justifyContent: 'space-between', paddingVertical: 10 },
+  chartContainer: { borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1 },
+  legendContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  legendColorBox: { width: 10, height: 10, borderRadius: 2 },
+  legendText: { fontSize: 10, fontWeight: '600' },
+
+  barsAreaContainer: { flexDirection: 'row', height: 160, alignItems: 'flex-end', justifyContent: 'space-between', paddingVertical: 10 },
   barColumn: { flex: 1, height: '100%', alignItems: 'center', justifyContent: 'flex-end' },
-  barTrack: { width: 14, height: 100, backgroundColor: '#0f172a', borderRadius: 6, justifyContent: 'flex-end', overflow: 'hidden' },
-  barFill: { width: '100%', borderRadius: 6 },
-  barLabel: { color: '#64748b', fontSize: 9, marginTop: 6 },
-  chartFooter: { borderTopWidth: 1, borderTopColor: '#1e293b', paddingTop: 12, marginTop: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  barTrack: { width: 14, height: 110, borderRadius: 6, justifyContent: 'flex-end', overflow: 'hidden' },
+  barLabel: { fontSize: 9, marginTop: 4, fontWeight: 'bold' },
+  barAmountText: { fontSize: 7, marginTop: 2, fontWeight: 'bold' },
+
+  chartFooter: { borderTopWidth: 1, paddingTop: 12, marginTop: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 
   // Insight Cards
-  insightCard: { backgroundColor: '#151f30', padding: 14, borderRadius: 10, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: '#38bdf8' },
-  insightTitle: { color: '#ffffff', fontWeight: 'bold', fontSize: 13, marginBottom: 4 },
-  insightDesc: { color: '#94a3b8', fontSize: 12, lineHeight: 16 },
+  insightCard: { padding: 14, borderRadius: 10, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: '#38bdf8' },
+  insightTitle: { fontWeight: 'bold', fontSize: 13, marginBottom: 4 },
+  insightDesc: { fontSize: 12, lineHeight: 16 },
 
-  categoryCard: { backgroundColor: '#151f30', padding: 12, borderRadius: 10, marginBottom: 8 },
-  progressBarBg: { height: 6, backgroundColor: '#0f172a', borderRadius: 3, overflow: 'hidden' },
-  progressBarFill: { height: '100%', backgroundColor: '#38bdf8', borderRadius: 3 },
+  categoryCard: { padding: 12, borderRadius: 10, marginBottom: 8 },
+  progressBarBg: { height: 6, borderRadius: 3, overflow: 'hidden' },
+  progressBarFill: { height: '100%', borderRadius: 3 },
 
   // Bottom Nav
-  bottomNav: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#0f172a', borderTopWidth: 1, borderTopColor: '#1e293b', flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 14 },
+  bottomNav: { position: 'absolute', bottom: 0, left: 0, right: 0, borderTopWidth: 1, flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 14 },
   navItem: { paddingHorizontal: 12 },
-  navText: { color: '#64748b', fontSize: 12, fontWeight: '600' },
+  navText: { fontSize: 12, fontWeight: '600' },
   navTextActive: { color: '#6366f1', fontWeight: 'bold' },
 
   // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: 20 },
-  modalContent: { backgroundColor: '#151f30', borderRadius: 16, padding: 20, marginVertical: 40 },
-  modalTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 16 },
-  fieldLabel: { color: '#94a3b8', fontSize: 12, marginBottom: 4 },
-  input: { backgroundColor: '#0f172a', color: '#fff', padding: 12, borderRadius: 8, marginBottom: 12 },
-  chipBtn: { backgroundColor: '#151f30', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, marginRight: 8 },
-  categoryChip: { backgroundColor: '#0f172a', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, marginRight: 8 },
+  modalContent: { borderRadius: 16, padding: 20, marginVertical: 40 },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 16 },
+  fieldLabel: { fontSize: 12, marginBottom: 4 },
+  input: { padding: 12, borderRadius: 8, marginBottom: 12 },
+  chipBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, marginRight: 8 },
+  categoryChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, marginRight: 8 },
   categoryChipActive: { backgroundColor: '#6366f1' },
-  categoryText: { color: '#94a3b8', fontSize: 12 },
+  categoryText: { fontSize: 12 },
   categoryTextActive: { color: '#fff', fontWeight: 'bold' },
   periodSelector: { flexDirection: 'row', gap: 8, marginBottom: 12 },
-  periodOption: { flex: 1, padding: 10, backgroundColor: '#0f172a', borderRadius: 8, alignItems: 'center' },
+  periodOption: { flex: 1, padding: 10, borderRadius: 8, alignItems: 'center' },
   periodActive: { backgroundColor: '#6366f1' },
-  periodText: { color: '#94a3b8', fontSize: 12 },
+  periodText: { fontSize: 12 },
   periodTextActive: { color: '#fff', fontWeight: 'bold' },
   modalButtons: { flexDirection: 'row', gap: 12, marginTop: 12 },
   cancelModalBtn: { flex: 1, backgroundColor: '#334155', padding: 12, borderRadius: 8, alignItems: 'center' },
