@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, SafeAreaView, ScrollView, TouchableOpacity, Modal, TextInput, Linking } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+
+const STORAGE_KEY = '@cebin_subscriptions_v1';
 
 const CATEGORY_COLORS = {
   'Eğlence': '#ef4444',     // Kırmızı
@@ -10,6 +12,12 @@ const CATEGORY_COLORS = {
   'Spor': '#f59e0b',        // Turuncu
   'Diğer': '#64748b'        // Gri
 };
+
+const DEFAULT_SUBSCRIPTIONS = [
+  { id: '1', name: 'Netflix', price: 345, category: 'Eğlence', billingDay: 7, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://www.netflix.com/youraccount', color: '#E50914' },
+  { id: '2', name: 'YouTube Premium', price: 79, category: 'Eğlence', billingDay: 15, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://www.youtube.com/paid_memberships', color: '#FF0000' },
+  { id: '3', name: 'ChatGPT Plus', price: 650, category: 'Yazılım & AI', billingDay: 12, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://chatgpt.com/#settings', color: '#10A37F' }
+];
 
 const POPULAR_SERVICES = [
   { name: 'Netflix', price: 345, category: 'Eğlence', color: '#E50914', cancelUrl: 'https://www.netflix.com/youraccount' },
@@ -55,12 +63,8 @@ const getServiceColor = (name = '') => {
 
 export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(true);
-
-  const [subscriptions, setSubscriptions] = useState([
-    { id: '1', name: 'Netflix', price: 345, category: 'Eğlence', billingDay: 7, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://www.netflix.com/youraccount', color: '#E50914' },
-    { id: '2', name: 'YouTube Premium', price: 79, category: 'Eğlence', billingDay: 15, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://www.youtube.com/paid_memberships', color: '#FF0000' },
-    { id: '3', name: 'ChatGPT Plus', price: 650, category: 'Yazılım & AI', billingDay: 12, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://chatgpt.com/#settings', color: '#10A37F' }
-  ]);
+  const [subscriptions, setSubscriptions] = useState([]);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   const [activeTab, setActiveTab] = useState('list'); 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -69,7 +73,6 @@ export default function App() {
   const [calMonth, setCalMonth] = useState(7);
   const [calYear, setCalYear] = useState(2026);
   const [calendarViewMode, setCalendarViewMode] = useState('monthly');
-
   const [selectedAnalysisYear, setSelectedAnalysisYear] = useState(2026);
 
   // Form State
@@ -83,14 +86,54 @@ export default function App() {
   const [formCancelUrl, setFormCancelUrl] = useState('');
   const [formColor, setFormColor] = useState('#6366F1');
 
+  useEffect(() => {
+    const loadStoredData = async () => {
+      try {
+        let savedData = null;
+        if (typeof window !== 'undefined' && window.localStorage) {
+          savedData = window.localStorage.getItem(STORAGE_KEY);
+        }
+        
+        if (savedData) {
+          setSubscriptions(JSON.parse(savedData));
+        } else {
+          setSubscriptions(DEFAULT_SUBSCRIPTIONS);
+        }
+      } catch (error) {
+        console.error('Veriler yüklenirken hata oluştu:', error);
+        setSubscriptions(DEFAULT_SUBSCRIPTIONS);
+      } finally {
+        setIsLoaded(true);
+      }
+    };
+
+    loadStoredData();
+  }, []);
+
+  useEffect(() => {
+    if (!isLoaded) return; // İlk yükleme bitmeden kaydetme yapma
+
+    const saveStoredData = async () => {
+      try {
+        const jsonValue = JSON.stringify(subscriptions);
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.setItem(STORAGE_KEY, jsonValue);
+        }
+      } catch (error) {
+        console.error('Veriler kaydedilirken hata oluştu:', error);
+      }
+    };
+
+    saveStoredData();
+  }, [subscriptions, isLoaded]);
+
   const safeList = Array.isArray(subscriptions) ? subscriptions : [];
 
-  // TEMA RENKLERİ (Gündüz modundaki lacivert kart yumuşatıldı)
   const theme = {
     bg: isDarkMode ? '#090d16' : '#f8fafc',
     headerBg: isDarkMode ? '#0f172a' : '#ffffff',
     cardBg: isDarkMode ? '#151f30' : '#ffffff',
-    summaryBg: isDarkMode ? '#1e1b4b' : '#4f46e5', // Gündüz modunda çok daha canlı ve açık indigo/mavi
+    summaryBg: isDarkMode ? '#1e1b4b' : '#4f46e5', // Gündüz modunda göz yormayan açık indigo/mavi
     summaryBorder: isDarkMode ? '#312e81' : '#4338ca',
     cardBorder: isDarkMode ? '#1e293b' : '#e2e8f0',
     textPrimary: isDarkMode ? '#ffffff' : '#0f172a',
@@ -243,7 +286,9 @@ export default function App() {
     setIsModalOpen(false);
   };
 
-  const handleDelete = (id) => setSubscriptions(safeList.filter(s => s.id !== id));
+  const handleDelete = (id) => {
+    setSubscriptions(safeList.filter(s => s.id !== id));
+  };
 
   const isSubActiveOnDay = (sub, day) => {
     if (sub.period === 'monthly') {
@@ -285,10 +330,10 @@ export default function App() {
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         
-        {/* TAB 1: ABONELİKLER */}
+        {/* TAB 1: ABONELİKLER LİSTESİ */}
         {activeTab === 'list' && (
           <>
-            {/* YUMUŞATILMIŞ / YENİLENMİŞ KART RENK TASARIMI */}
+            {/* YENİLENMİŞ GÜNDÜZ/GECE UYUMLU ÖZET KARTI */}
             <View style={[styles.summaryCard, { backgroundColor: theme.summaryBg, borderColor: theme.summaryBorder }]}>
               <Text style={styles.summaryLabel}>Toplam Aylık Taahhüt</Text>
               <Text style={styles.summaryValue}>{formatTL(monthlyTotal)}</Text>
@@ -307,45 +352,52 @@ export default function App() {
 
             <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Aktif Servisler ({safeList.length})</Text>
 
-            {safeList.map((item) => {
-              const isYearly = item.period === 'yearly';
-              const serviceColor = item.color || getServiceColor(item.name);
+            {            safeList.length === 0 ? (
+              <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                <Text style={{ color: theme.textSecondary, textAlign: 'center' }}>Henüz kayıtlı aboneliğiniz yok.</Text>
+              </View>
+            ) : (
+              safeList.map((item) => {
+                const isYearly = item.period === 'yearly';
+                const serviceColor = item.color || getServiceColor(item.name);
 
-              return (
-                <View key={item.id} style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-                  <View style={styles.leftSection}>
-                    <View style={[styles.brandIconBox, { backgroundColor: serviceColor }]}>
-                      <Text style={styles.brandIconText}>{item.name ? item.name.charAt(0).toUpperCase() : 'C'}</Text>
+                return (
+                  <View key={item.id} style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                    <View style={styles.leftSection}>
+                      <View style={[styles.brandIconBox, { backgroundColor: serviceColor }]}>
+                        <Text style={styles.brandIconText}>{item.name ? item.name.charAt(0).toUpperCase() : 'C'}</Text>
+                      </View>
+                      <View>
+                        <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>{item.name}</Text>
+                        <Text style={[styles.cardSubtitle, { color: theme.textSecondary }]}>
+                          {item.category} • {isYearly ? `${item.billingDay}/${item.billingMonth}/${item.billingYear}` : `Her ayın ${item.billingDay}. günü`}
+                        </Text>
+                      </View>
                     </View>
-                    <View>
-                      <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>{item.name}</Text>
-                      <Text style={[styles.cardSubtitle, { color: theme.textSecondary }]}>
-                        {item.category} • {isYearly ? `${item.billingDay}/${item.billingMonth}/${item.billingYear}` : `Her ayın ${item.billingDay}. günü`}
-                      </Text>
+
+                    <View style={styles.rightSection}>
+                      <Text style={[styles.price, { color: theme.textPrimary }]}>{formatTL(item.price)} {isYearly ? '/yıl' : '/ay'}</Text>
+                      <View style={styles.actionButtons}>
+                        <TouchableOpacity style={[styles.editBtn, { backgroundColor: theme.inputBg }]} onPress={() => openForm(item)}>
+                          <Text style={{ color: theme.textSecondary, fontSize: 11 }}>Düzenle</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[styles.cancelBtn, { backgroundColor: theme.inputBg }]} onPress={() => item.cancelUrl && Linking.openURL(item.cancelUrl)}>
+                          <Text style={styles.cancelText}>İptal 🔗</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => handleDelete(item.id)} style={[styles.deleteBtn, { backgroundColor: theme.inputBg }]}>
+                          <Text style={{ color: '#ef4444', fontSize: 11 }}>🗑️</Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   </View>
-
-                  <View style={styles.rightSection}>
-                    <Text style={[styles.price, { color: theme.textPrimary }]}>{formatTL(item.price)} {isYearly ? '/yıl' : '/ay'}</Text>
-                    <View style={styles.actionButtons}>
-                      <TouchableOpacity style={[styles.editBtn, { backgroundColor: theme.inputBg }]} onPress={() => openForm(item)}>
-                        <Text style={{ color: theme.textSecondary, fontSize: 11 }}>Düzenle</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={[styles.cancelBtn, { backgroundColor: theme.inputBg }]} onPress={() => item.cancelUrl && Linking.openURL(item.cancelUrl)}>
-                        <Text style={styles.cancelText}>İptal 🔗</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={() => handleDelete(item.id)} style={[styles.deleteBtn, { backgroundColor: theme.inputBg }]}>
-                        <Text style={{ color: '#ef4444', fontSize: 11 }}>🗑️</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </View>
-              );
-            })}
+                );
+              })
+            )}
           </>
         )}
 
         {/* TAB 2: ÖDEME TAKVİMİ */}
+        {}
         {activeTab === 'calendar' && (
           <View style={{ marginTop: 10 }}>
             <View style={styles.calendarHeaderNav}>
@@ -401,7 +453,6 @@ export default function App() {
               </View>
             )}
 
-            {/* BÜYÜTÜLMÜŞ ABONELİK İSİM VE TUTARLARI */}
             {calendarViewMode === 'monthly' && (
               <View style={styles.calendarGrid}>
                 {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
@@ -437,6 +488,7 @@ export default function App() {
         )}
 
         {/* TAB 3: FİNANS & ANALİZ */}
+        {}
         {activeTab === 'analytics' && (
           <View style={{ marginTop: 10 }}>
             <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.textPrimary, marginBottom: 4 }}>Finansal Analiz & Grafikler</Text>
@@ -454,7 +506,6 @@ export default function App() {
               ))}
             </ScrollView>
 
-            {/* BÜYÜTÜLMÜŞ AY VE RAKAM FONT BOYUTLARI */}
             <View style={[styles.chartContainer, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
               <Text style={{ color: theme.textPrimary, fontWeight: 'bold', fontSize: 16, marginBottom: 14 }}>
                 Aylık Harcama Grafiği ({selectedAnalysisYear})
@@ -515,7 +566,6 @@ export default function App() {
               </View>
             </View>
 
-            {/* KATEGORİ DAĞILIMI */}
             <Text style={{ color: theme.textPrimary, fontSize: 16, fontWeight: 'bold', marginTop: 16, marginBottom: 12 }}>
               🏷️ Kategori Bazlı Dağılım
             </Text>
@@ -544,7 +594,7 @@ export default function App() {
 
       </ScrollView>
 
-      {/* Bottom Nav */}
+      {}
       <View style={[styles.bottomNav, { backgroundColor: theme.headerBg, borderTopColor: theme.cardBorder }]}>
         <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('list')}>
           <Text style={[styles.navText, { color: theme.textSecondary }, activeTab === 'list' && styles.navTextActive]}>💳 Abonelikler</Text>
@@ -557,7 +607,7 @@ export default function App() {
         </TouchableOpacity>
       </View>
 
-      {/* Modal */}
+      {}
       <Modal visible={isModalOpen} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <ScrollView contentContainerStyle={[styles.modalContent, { backgroundColor: theme.cardBg }]}>
@@ -699,7 +749,7 @@ const styles = StyleSheet.create({
   addBtnText: { color: '#ffffff', fontWeight: 'bold', fontSize: 13 },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 100, paddingTop: 16 },
   
-  // Özet Kartı
+  emptyCard: { borderRadius: 12, padding: 20, borderWidth: 1, alignItems: 'center' },
   summaryCard: { borderRadius: 16, padding: 22, marginBottom: 16, borderWidth: 1 },
   summaryLabel: { color: '#ffffff', fontSize: 13, fontWeight: '600', opacity: 0.9 },
   summaryValue: { color: '#ffffff', fontSize: 34, fontWeight: 'bold', marginVertical: 8 },
@@ -740,16 +790,14 @@ const styles = StyleSheet.create({
   brandBadgeText: { color: '#ffffff', fontSize: 11, fontWeight: 'bold' },
   monthTotalFooterCard: { borderWidth: 1, padding: 16, borderRadius: 12, marginTop: 12, alignItems: 'center' },
 
-  // Büyütülen Takvim Kartları ve İçerikleri
   calendarGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   calendarDayBox: { width: '13.5%', minHeight: 82, borderRadius: 8, padding: 6, borderWidth: 1 },
   activeDayBox: { borderColor: '#6366f1', borderWidth: 1.5 },
   dayNumber: { fontSize: 12, fontWeight: 'bold', marginBottom: 2 },
   daySubBadge: { borderRadius: 4, padding: 4, marginTop: 3 },
-  daySubText: { color: '#fff', fontSize: 12, fontWeight: 'bold' }, // Büyütüldü (10 -> 12)
-  daySubPrice: { color: '#ffffff', fontSize: 11, fontWeight: '600', marginTop: 1 }, // Büyütüldü (9 -> 11)
+  daySubText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
+  daySubPrice: { color: '#ffffff', fontSize: 11, fontWeight: '600', marginTop: 1 },
 
-  // Büyütülen Grafik Boyutları
   yearChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 8 },
   yearChipActive: { backgroundColor: '#6366f1' },
   yearChipText: { fontWeight: '600' },
@@ -764,8 +812,8 @@ const styles = StyleSheet.create({
   barsAreaContainer: { flexDirection: 'row', height: 180, alignItems: 'flex-end', justifyContent: 'space-between', paddingVertical: 10 },
   barColumn: { flex: 1, height: '100%', alignItems: 'center', justifyContent: 'flex-end' },
   barTrack: { width: 16, height: 120, borderRadius: 6, justifyContent: 'flex-end', overflow: 'hidden' },
-  barLabel: { fontSize: 12, marginTop: 6, fontWeight: 'bold' }, // Büyütüldü (9 -> 12)
-  barAmountText: { fontSize: 9, marginTop: 2, fontWeight: 'bold' }, // Büyütüldü (7 -> 9)
+  barLabel: { fontSize: 12, marginTop: 6, fontWeight: 'bold' },
+  barAmountText: { fontSize: 9, marginTop: 2, fontWeight: 'bold' },
 
   chartFooter: { borderTopWidth: 1, paddingTop: 12, marginTop: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 
