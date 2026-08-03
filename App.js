@@ -21,6 +21,12 @@ const MONTH_NAMES = [
 
 const YEARS = [2025, 2026, 2027, 2028, 2029, 2030];
 
+// Türkçe Para Formatlayıcı (Örn: 135.125,76)
+const formatTL = (amount) => {
+  const val = Number(amount) || 0;
+  return val.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
+};
+
 const getServiceColor = (name = '') => {
   const lower = name.toLowerCase();
   if (lower.includes('netflix')) return '#E50914';
@@ -41,7 +47,7 @@ export default function App() {
     { id: '4', name: 'Spotify', price: 59, category: 'Müzik', billingDay: 1, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://www.spotify.com/account/overview/', color: '#1DB954' }
   ]);
 
-  const [activeTab, setActiveTab] = useState('list'); 
+  const [activeTab, setActiveTab] = useState('analytics'); 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
@@ -104,7 +110,7 @@ export default function App() {
 
   const monthlyBreakdown = getMonthlyBreakdownForYear(selectedAnalysisYear);
   const totalYearlyExpenseForSelectedYear = monthlyBreakdown.reduce((a, b) => a + b, 0);
-  const maxMonthlyExpense = Math.max(...monthlyBreakdown, 1); // Grafik ölçeklendirmesi için
+  const maxMonthlyExpense = Math.max(...monthlyBreakdown, 1);
 
   const yearlyCategoryStats = safeList.reduce((acc, item) => {
     const cat = item.category || 'Diğer';
@@ -117,37 +123,32 @@ export default function App() {
     return acc;
   }, {});
 
-  // TASARRUF ÖNERİLERİ ALGORİTMASI
   const generateInsights = () => {
     const insights = [];
-
-    // Öneri 1: Yıllık ödemeye geçiş fırsatı
     const monthlySubs = safeList.filter(s => s.period === 'monthly');
     if (monthlySubs.length > 0) {
       const potentialSavings = monthlySubs.reduce((sum, s) => sum + (Number(s.price) * 12 * 0.15), 0);
       insights.push({
         type: 'warning',
         title: '💡 Yıllık Plan İndirimi Fırsatı',
-        desc: `Aylık ödediğiniz abonelikleri yıllık plana geçirerek yılda yaklaşık ${potentialSavings.toFixed(0)} ₺ (%15) tasarruf edebilirsiniz.`
+        desc: `Aylık ödediğiniz abonelikleri yıllık plana geçirerek yılda yaklaşık ${formatTL(potentialSavings)} (%15) tasarruf edebilirsiniz.`
       });
     }
 
-    // Öneri 2: Aynı kategoride çok abonelik var mı?
     const eglenveSubs = safeList.filter(s => s.category === 'Eğlence');
     if (eglenveSubs.length >= 2) {
       insights.push({
         type: 'info',
         title: '🎬 Eğlence Harcaması Yüksek',
-        desc: `Şu an ${eglenveSubs.length} adet dijital yayın servisine (Netflix, Exxen vb.) abonesiniz. Aktif izlemediğinizi dondurarak ayda ${eglenveSubs[0].price} ₺ cebinizde kalabilir.`
+        desc: `Şu an ${eglenveSubs.length} adet dijital yayın servisine (Netflix, Exxen vb.) abonesiniz. Aktif izlemediğinizi dondurarak ayda ${formatTL(eglenveSubs[0].price)} cebinizde kalabilir.`
       });
     }
 
-    // Öneri 3: Genel Yüksek Harcama Uyarısı
     if (monthlyTotal > 1000) {
       insights.push({
         type: 'danger',
         title: '⚠️ Aylık 1.000 ₺ Sınırı Aşıldı',
-        desc: `Sabit abonelik giderleriniz aylık ${monthlyTotal.toFixed(0)} ₺ tutarına ulaştı. Yılda toplam ${(monthlyTotal * 12).toFixed(0)} ₺ cebinizden çıkıyor.`
+        desc: `Sabit abonelik giderleriniz aylık ${formatTL(monthlyTotal)} tutarına ulaştı. Yılda toplam ${formatTL(monthlyTotal * 12)} cebinizden çıkıyor.`
       });
     }
 
@@ -214,9 +215,12 @@ export default function App() {
   const handleSave = () => {
     if (!formName || !formPrice) return;
 
+    // Türkçe noktalı/virgüllü fiyatı sayıya çevirme
+    const normalizedPrice = Number(formPrice.replace(',', '.'));
+
     const subData = {
       name: formName,
-      price: Number(formPrice),
+      price: isNaN(normalizedPrice) ? 0 : normalizedPrice,
       billingDay: Number(formDay) || 1,
       billingMonth: Number(formMonth) || 1,
       billingYear: Number(formYear) || 2026,
@@ -248,7 +252,7 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
       
-      {/* Header - Corporate & Premium Look */}
+      {/* Header */}
       <View style={styles.header}>
         <View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -271,16 +275,16 @@ export default function App() {
           <>
             <View style={styles.summaryCard}>
               <Text style={styles.summaryLabel}>Toplam Aylık Taahhüt</Text>
-              <Text style={styles.summaryValue}>{monthlyTotal.toFixed(2)} ₺</Text>
+              <Text style={styles.summaryValue}>{formatTL(monthlyTotal)}</Text>
               
               <View style={styles.statsRow}>
                 <View style={styles.statBox}>
                   <Text style={styles.statLabel}>Günlük Yük</Text>
-                  <Text style={styles.statValue}>{(monthlyTotal / 30).toFixed(2)} ₺</Text>
+                  <Text style={styles.statValue}>{formatTL(monthlyTotal / 30)}</Text>
                 </View>
                 <View style={styles.statBox}>
                   <Text style={styles.statLabel}>Yıllık Tahmini</Text>
-                  <Text style={styles.statValue}>{(monthlyTotal * 12).toFixed(2)} ₺</Text>
+                  <Text style={styles.statValue}>{formatTL(monthlyTotal * 12)}</Text>
                 </View>
               </View>
             </View>
@@ -308,7 +312,7 @@ export default function App() {
                   </View>
 
                   <View style={styles.rightSection}>
-                    <Text style={styles.price}>{item.price} ₺ {isYearly ? '/yıl' : '/ay'}</Text>
+                    <Text style={styles.price}>{formatTL(item.price)} {isYearly ? '/yıl' : '/ay'}</Text>
                     <View style={styles.actionButtons}>
                       <TouchableOpacity style={styles.editBtn} onPress={() => openForm(item)}>
                         <Text style={{ color: '#94a3b8', fontSize: 11 }}>Düzenle</Text>
@@ -370,7 +374,7 @@ export default function App() {
                           const sColor = s.color || getServiceColor(s.name);
                           return (
                             <View key={s.id} style={[styles.brandBadge, { backgroundColor: sColor }]}>
-                              <Text style={styles.brandBadgeText}>{s.name} ({s.price}₺)</Text>
+                              <Text style={styles.brandBadgeText}>{s.name} ({formatTL(s.price)})</Text>
                             </View>
                           );
                         }) : (
@@ -386,7 +390,7 @@ export default function App() {
                     {MONTH_NAMES[calMonth]} {calYear} Dönemi Toplam Ödeme:
                   </Text>
                   <Text style={{ color: '#38bdf8', fontSize: 24, fontWeight: 'bold', marginTop: 4 }}>
-                    {currentCalMonthTotal.toFixed(2)} ₺
+                    {formatTL(currentCalMonthTotal)}
                   </Text>
                 </View>
               </View>
@@ -404,7 +408,7 @@ export default function App() {
                         return (
                           <View key={s.id} style={[styles.daySubBadge, { backgroundColor: sColor }]}>
                             <Text style={styles.daySubText} numberOfLines={1}>{s.name}</Text>
-                            <Text style={styles.daySubPrice}>{s.price}₺</Text>
+                            <Text style={styles.daySubPrice}>{formatTL(s.price)}</Text>
                           </View>
                         );
                       })}
@@ -417,7 +421,7 @@ export default function App() {
           </View>
         )}
 
-        {/* TAB 3: FİNANS & ANALİZ (GRAFİKLER + TASARRUF ÖNERİLERİ) */}
+        {/* TAB 3: FİNANS & ANALİZ */}
         {activeTab === 'analytics' && (
           <View style={{ marginTop: 10 }}>
             <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#ffffff', marginBottom: 4 }}>Finansal Analiz & İpuçları</Text>
@@ -436,30 +440,43 @@ export default function App() {
               ))}
             </ScrollView>
 
-            {/* GRAFİK BÖLÜMÜ (VISUAL BAR CHART) */}
+            {/* YENİLENEN RECT/BAR GRAFİK BÖLÜMÜ */}
             <View style={styles.chartContainer}>
-              <Text style={{ color: '#ffffff', fontWeight: 'bold', marginBottom: 12 }}>Aylık Harcama Grafiği ({selectedAnalysisYear})</Text>
-              <View style={styles.barsArea}>
+              <Text style={{ color: '#ffffff', fontWeight: 'bold', marginBottom: 16 }}>Aylık Harcama Grafiği ({selectedAnalysisYear})</Text>
+              
+              {/* Sabit Yükseklik Verilerek Web Görünürlüğü Garanti Edildi */}
+              <View style={styles.barsAreaContainer}>
                 {MONTH_NAMES.map((mName, idx) => {
                   const val = monthlyBreakdown[idx];
                   const heightPercent = maxMonthlyExpense > 0 ? (val / maxMonthlyExpense) * 100 : 0;
+                  const finalBarHeight = Math.max(heightPercent, 6); // En az 6% görünsün
+
                   return (
-                    <View key={mName} style={styles.barItemContainer}>
+                    <View key={mName} style={styles.barColumn}>
                       <View style={styles.barTrack}>
-                        <View style={[styles.barFill, { height: `${Math.max(heightPercent, 4)}%`, backgroundColor: val > 0 ? '#6366f1' : '#334155' }]} />
+                        <View 
+                          style={[
+                            styles.barFill, 
+                            { 
+                              height: `${finalBarHeight}%`, 
+                              backgroundColor: val > 0 ? '#6366f1' : '#1e293b' 
+                            }
+                          ]} 
+                        />
                       </View>
                       <Text style={styles.barLabel}>{mName.substr(0, 3)}</Text>
                     </View>
                   );
                 })}
               </View>
-              <View style={{ borderTopWidth: 1, borderTopColor: '#334155', paddingTop: 10, marginTop: 10, flexDirection: 'row', justifyContent: 'space-between' }}>
-                <Text style={{ color: '#94a3b8', fontSize: 12 }}>Yıllık Toplam:</Text>
-                <Text style={{ color: '#38bdf8', fontWeight: 'bold' }}>{totalYearlyExpenseForSelectedYear.toFixed(2)} ₺</Text>
+
+              <View style={styles.chartFooter}>
+                <Text style={{ color: '#94a3b8', fontSize: 13 }}>Yıllık Toplam:</Text>
+                <Text style={{ color: '#38bdf8', fontSize: 18, fontWeight: 'bold' }}>{formatTL(totalYearlyExpenseForSelectedYear)}</Text>
               </View>
             </View>
 
-            {/* CEBİN AKILLI TASARRUF ÖNERİLERİ KARTLARI */}
+            {/* CEBİN AKILLI TASARRUF ÖNERİLERİ */}
             <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: 'bold', marginTop: 16, marginBottom: 12 }}>
               💡 Cebin Akıllı Tasarruf İpuçları
             </Text>
@@ -490,7 +507,7 @@ export default function App() {
                 <View key={cat} style={styles.categoryCard}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
                     <Text style={{ color: '#fff', fontWeight: 'bold' }}>{cat}</Text>
-                    <Text style={{ color: '#38bdf8', fontWeight: 'bold' }}>{amount.toFixed(2)} ₺ (%{percentage})</Text>
+                    <Text style={{ color: '#38bdf8', fontWeight: 'bold' }}>{formatTL(amount)} (%{percentage})</Text>
                   </View>
                   <View style={styles.progressBarBg}>
                     <View style={[styles.progressBarFill, { width: `${percentage}%` }]} />
@@ -503,7 +520,7 @@ export default function App() {
 
       </ScrollView>
 
-      {/* Corporate Bottom Nav */}
+      {/* Bottom Nav */}
       <View style={styles.bottomNav}>
         <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('list')}>
           <Text style={[styles.navText, activeTab === 'list' && styles.navTextActive]}>💳 Abonelikler</Text>
@@ -578,12 +595,12 @@ export default function App() {
 
             <Text style={styles.fieldLabel}>{formPeriod === 'yearly' ? "Yıllık Tutar (₺):" : "Aylık Tutar (₺):"}</Text>
             <TextInput 
-              placeholder="0.00" 
+              placeholder="0,00" 
               placeholderTextColor="#64748b" 
               keyboardType="numeric"
               style={styles.input}
               value={formPrice}
-              onChangeText={setFormPrice}
+              onChangeText={(txt) => setFormPrice(txt.replace(/[^0-9,.]/g, ''))} // Harf girilmesini engeller
             />
 
             {formPeriod === 'monthly' ? (
@@ -595,7 +612,7 @@ export default function App() {
                   keyboardType="numeric"
                   style={styles.input}
                   value={formDay}
-                  onChangeText={setFormDay}
+                  onChangeText={(txt) => setFormDay(txt.replace(/[^0-9]/g, ''))} // Sadece rakam
                 />
               </>
             ) : (
@@ -608,7 +625,7 @@ export default function App() {
                     keyboardType="numeric"
                     style={[styles.input, { flex: 1 }]}
                     value={formDay}
-                    onChangeText={setFormDay}
+                    onChangeText={(txt) => setFormDay(txt.replace(/[^0-9]/g, ''))}
                   />
                   <TextInput 
                     placeholder="Ay (1-12)" 
@@ -616,7 +633,7 @@ export default function App() {
                     keyboardType="numeric"
                     style={[styles.input, { flex: 1 }]}
                     value={formMonth}
-                    onChangeText={setFormMonth}
+                    onChangeText={(txt) => setFormMonth(txt.replace(/[^0-9]/g, ''))}
                   />
                   <TextInput 
                     placeholder="Yıl (ör: 2026)" 
@@ -624,7 +641,7 @@ export default function App() {
                     keyboardType="numeric"
                     style={[styles.input, { flex: 1 }]}
                     value={formYear}
-                    onChangeText={setFormYear}
+                    onChangeText={(txt) => setFormYear(txt.replace(/[^0-9]/g, ''))}
                   />
                 </View>
               </>
@@ -663,7 +680,7 @@ const styles = StyleSheet.create({
   statsRow: { flexDirection: 'row', gap: 12, marginTop: 12 },
   statBox: { flex: 1, backgroundColor: 'rgba(255, 255, 255, 0.05)', padding: 10, borderRadius: 8 },
   statLabel: { color: '#c7d2fe', fontSize: 11 },
-  statValue: { color: '#ffffff', fontSize: 15, fontWeight: 'bold', marginTop: 2 },
+  statValue: { color: '#ffffff', fontSize: 14, fontWeight: 'bold', marginTop: 2 },
   sectionTitle: { color: '#94a3b8', fontSize: 14, fontWeight: '600' },
   
   card: { backgroundColor: '#151f30', borderRadius: 12, padding: 16, marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: '#1e293b' },
@@ -705,18 +722,19 @@ const styles = StyleSheet.create({
   daySubText: { color: '#fff', fontSize: 8, fontWeight: 'bold' },
   daySubPrice: { color: '#ffffff', fontSize: 8, opacity: 0.9 },
 
-  // Analytics & Visual Chart
+  // Visual Chart Styles Fixed
   yearChip: { backgroundColor: '#151f30', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 8 },
   yearChipActive: { backgroundColor: '#6366f1' },
   yearChipText: { color: '#94a3b8', fontWeight: '600' },
   yearChipTextActive: { color: '#ffffff', fontWeight: 'bold' },
 
   chartContainer: { backgroundColor: '#151f30', borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#1e293b' },
-  barsArea: { flexDirection: 'row', height: 120, alignItems: 'flex-end', justifyContent: 'space-between', paddingTop: 20 },
-  barItemContainer: { flex: 1, alignItems: 'center' },
-  barTrack: { width: 12, height: '100%', backgroundColor: '#0f172a', borderRadius: 6, justifyContent: 'flex-end', overflow: 'hidden' },
+  barsAreaContainer: { flexDirection: 'row', height: 140, alignItems: 'flex-end', justifyContent: 'space-between', paddingVertical: 10 },
+  barColumn: { flex: 1, height: '100%', alignItems: 'center', justifyContent: 'flex-end' },
+  barTrack: { width: 14, height: 100, backgroundColor: '#0f172a', borderRadius: 6, justifyContent: 'flex-end', overflow: 'hidden' },
   barFill: { width: '100%', borderRadius: 6 },
   barLabel: { color: '#64748b', fontSize: 9, marginTop: 6 },
+  chartFooter: { borderTopWidth: 1, borderTopColor: '#1e293b', paddingTop: 12, marginTop: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 
   // Insight Cards
   insightCard: { backgroundColor: '#151f30', padding: 14, borderRadius: 10, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: '#38bdf8' },
