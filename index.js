@@ -1,9 +1,6 @@
-import React from 'react';
-import { AppRegistry } from 'react-native';
+import { registerRootComponent } from 'expo';
 import App from './App';
 
-// Uygulamayı doğrudan web DOM'una kaydet
-AppRegistry.registerComponent('main', () => App);
-AppRegistry.runApplication('main', {
-  rootTag: document.getElementById('root') || document.getElementById('main'),
-});
+// registerRootComponent, hem Expo Go/Native hem de Web modunda
+// AppEntry ve registerWebModule çakışmalarını engelleyen en güvenli yöntemdir.
+registerRootComponent(App);
