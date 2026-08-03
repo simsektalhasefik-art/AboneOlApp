@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, SafeAreaView, ScrollView, TouchableOpacity, Modal, TextInput, Linking } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
-const STORAGE_KEY = '@cebin_subscriptions_v1';
+const STORAGE_KEY = '@cebin_subscriptions_v2';
 
 const CATEGORY_COLORS = {
   'Eğlence': '#ef4444',     // Kırmızı
@@ -13,20 +13,37 @@ const CATEGORY_COLORS = {
   'Diğer': '#64748b'        // Gri
 };
 
+const PAYMENT_METHODS = [
+  'Garanti Bonus', 'Enpara', 'Papara', 'İş Bankası', 'Yapı Kredi', 'Nays', 'QNB', 'Nakit/Diğer'
+];
+
+const CURRENCY_SYMBOLS = {
+  TRY: '₺',
+  USD: '$',
+  EUR: '€'
+};
+
+// Varsayılan Döviz Kurları (TL karşılığı)
+const DEFAULT_RATES = {
+  TRY: 1,
+  USD: 33.50,
+  EUR: 36.50
+};
+
 const DEFAULT_SUBSCRIPTIONS = [
-  { id: '1', name: 'Netflix', price: 345, category: 'Eğlence', billingDay: 7, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://www.netflix.com/youraccount', color: '#E50914' },
-  { id: '2', name: 'YouTube Premium', price: 79, category: 'Eğlence', billingDay: 15, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://www.youtube.com/paid_memberships', color: '#FF0000' },
-  { id: '3', name: 'ChatGPT Plus', price: 650, category: 'Yazılım & AI', billingDay: 12, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://chatgpt.com/#settings', color: '#10A37F' }
+  { id: '1', name: 'Netflix', price: 345, currency: 'TRY', category: 'Eğlence', paymentMethod: 'Garanti Bonus', billingDay: 7, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://www.netflix.com/youraccount', color: '#E50914' },
+  { id: '2', name: 'YouTube Premium', price: 79, currency: 'TRY', category: 'Eğlence', paymentMethod: 'Enpara', billingDay: 15, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://www.youtube.com/paid_memberships', color: '#FF0000' },
+  { id: '3', name: 'ChatGPT Plus', price: 20, currency: 'USD', category: 'Yazılım & AI', paymentMethod: 'Papara', billingDay: 12, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://chatgpt.com/#settings', color: '#10A37F' }
 ];
 
 const POPULAR_SERVICES = [
-  { name: 'Netflix', price: 345, category: 'Eğlence', color: '#E50914', cancelUrl: 'https://www.netflix.com/youraccount' },
-  { name: 'Exxen', price: 160, category: 'Eğlence', color: '#FACC15', cancelUrl: 'https://www.exxen.com/tr/account' },
-  { name: 'YouTube Premium', price: 79, category: 'Eğlence', color: '#FF0000', cancelUrl: 'https://www.youtube.com/paid_memberships' },
-  { name: 'Spotify', price: 59, category: 'Müzik', color: '#1DB954', cancelUrl: 'https://www.spotify.com/account/overview/' },
-  { name: 'Prime Video', price: 39, category: 'Eğlence', color: '#00A8E1', cancelUrl: 'https://www.amazon.com.tr/mc/manage' },
-  { name: 'iCloud', price: 30, category: 'Depolama', color: '#38BDF8', cancelUrl: 'https://support.apple.com/HT207594' },
-  { name: 'ChatGPT Plus', price: 650, category: 'Yazılım & AI', color: '#10A37F', cancelUrl: 'https://chatgpt.com/#settings' },
+  { name: 'Netflix', price: 345, currency: 'TRY', category: 'Eğlence', color: '#E50914', cancelUrl: 'https://www.netflix.com/youraccount' },
+  { name: 'Exxen', price: 160, currency: 'TRY', category: 'Eğlence', color: '#FACC15', cancelUrl: 'https://www.exxen.com/tr/account' },
+  { name: 'YouTube Premium', price: 79, currency: 'TRY', category: 'Eğlence', color: '#FF0000', cancelUrl: 'https://www.youtube.com/paid_memberships' },
+  { name: 'Spotify', price: 59, currency: 'TRY', category: 'Müzik', color: '#1DB954', cancelUrl: 'https://www.spotify.com/account/overview/' },
+  { name: 'Prime Video', price: 39, currency: 'TRY', category: 'Eğlence', color: '#00A8E1', cancelUrl: 'https://www.amazon.com.tr/mc/manage' },
+  { name: 'iCloud', price: 2.99, currency: 'USD', category: 'Depolama', color: '#38BDF8', cancelUrl: 'https://support.apple.com/HT207594' },
+  { name: 'ChatGPT Plus', price: 20, currency: 'USD', category: 'Yazılım & AI', color: '#10A37F', cancelUrl: 'https://chatgpt.com/#settings' },
 ];
 
 const CATEGORIES = ['Eğlence', 'Müzik', 'Depolama', 'Yazılım & AI', 'Spor', 'Diğer'];
@@ -36,22 +53,31 @@ const MONTH_NAMES = [
   'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
 ];
 
+const WEEK_DAYS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+
 const YEARS = [2025, 2026, 2027, 2028, 2029, 2030];
 
 const getDaysInMonth = (monthIndex, year) => {
-  // JavaScript Date sınıfı ile ilgili ayın tam gün sayısını dinamik hesaplar
   return new Date(Number(year) || 2026, (Number(monthIndex) || 0) + 1, 0).getDate();
 };
 
-const formatTL = (amount) => {
-  const val = Number(amount) || 0;
-  return val.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
+// Ayın 1. gününün haftanın hangi günü olduğunu hesaplar (0: Pazartesi ... 6: Pazar)
+const getFirstDayOffset = (monthIndex, year) => {
+  const day = new Date(Number(year) || 2026, Number(monthIndex) || 0, 1).getDay();
+  return day === 0 ? 6 : day - 1; 
 };
 
-const formatShortTL = (amount) => {
+const formatCurrency = (amount, currency = 'TRY') => {
   const val = Number(amount) || 0;
-  if (val === 0) return '0 ₺';
-  return val.toLocaleString('tr-TR', { maximumFractionDigits: 0 }) + ' ₺';
+  const symbol = CURRENCY_SYMBOLS[currency] || '₺';
+  return `${val.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${symbol}`;
+};
+
+const formatShortCurrency = (amount, currency = 'TRY') => {
+  const val = Number(amount) || 0;
+  const symbol = CURRENCY_SYMBOLS[currency] || '₺';
+  if (val === 0) return `0 ${symbol}`;
+  return `${val.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ${symbol}`;
 };
 
 const getServiceColor = (name = '') => {
@@ -69,24 +95,31 @@ const getServiceColor = (name = '') => {
 export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [subscriptions, setSubscriptions] = useState([]);
+  const [exchangeRates, setExchangeRates] = useState(DEFAULT_RATES);
   const [isLoaded, setIsLoaded] = useState(false);
 
   const [activeTab, setActiveTab] = useState('list'); 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [duplicateWarning, setDuplicateWarning] = useState('');
 
-  const [calMonth, setCalMonth] = useState(7);
+  const [calMonth, setCalMonth] = useState(7); // Ağustos (0-indexed 7)
   const [calYear, setCalYear] = useState(2026);
   const [calendarViewMode, setCalendarViewMode] = useState('monthly');
   const [selectedAnalysisYear, setSelectedAnalysisYear] = useState(2026);
 
+  // Bildirim izni durumu
+  const [notificationPermission, setNotificationPermission] = useState('default');
+
   // Form State
   const [formName, setFormName] = useState('');
   const [formPrice, setFormPrice] = useState('');
+  const [formCurrency, setFormCurrency] = useState('TRY');
   const [formDay, setFormDay] = useState('1');
   const [formMonth, setFormMonth] = useState('8');
   const [formYear, setFormYear] = useState('2026');
   const [formCategory, setFormCategory] = useState('Eğlence');
+  const [formPaymentMethod, setFormPaymentMethod] = useState('Garanti Bonus');
   const [formPeriod, setFormPeriod] = useState('monthly');
   const [formCancelUrl, setFormCancelUrl] = useState('');
   const [formColor, setFormColor] = useState('#6366F1');
@@ -104,6 +137,11 @@ export default function App() {
         } else {
           setSubscriptions(DEFAULT_SUBSCRIPTIONS);
         }
+
+        // Web Notification Izni Kontrolu
+        if (typeof window !== 'undefined' && 'Notification' in window) {
+          setNotificationPermission(Notification.permission);
+        }
       } catch (error) {
         console.error('Veriler yüklenirken hata oluştu:', error);
         setSubscriptions(DEFAULT_SUBSCRIPTIONS);
@@ -116,7 +154,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!isLoaded) return; // İlk yükleme bitmeden kaydetme yapma
+    if (!isLoaded) return;
 
     const saveStoredData = async () => {
       try {
@@ -132,10 +170,29 @@ export default function App() {
     saveStoredData();
   }, [subscriptions, isLoaded]);
 
+  const requestNotificationAccess = async () => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      const perm = await Notification.requestPermission();
+      setNotificationPermission(perm);
+      if (perm === 'granted') {
+        new Notification("Cebin Finance", {
+          body: "Hatırlatıcı bildirimleri başarıyla aktifleştirildi!",
+          icon: "https://fav.farm/💳"
+        });
+      }
+    }
+  };
+
   const safeList = Array.isArray(subscriptions) ? subscriptions : [];
 
+  // Tutar TL Çevirici Yardımcı Fonksiyon
+  const convertToTL = (price, currency) => {
+    const rate = exchangeRates[currency] || 1;
+    return (Number(price) || 0) * rate;
+  };
+
   const theme = {
-    bg: isDarkMode ? '#090d16' : '#f1f5f9', // Gündüz modunda göz yormayan yumuşak arka plan
+    bg: isDarkMode ? '#090d16' : '#f1f5f9',
     headerBg: isDarkMode ? '#0f172a' : '#ffffff',
     cardBg: isDarkMode ? '#151f30' : '#ffffff',
     summaryBg: isDarkMode ? '#1e1b4b' : '#4f46e5',
@@ -147,48 +204,62 @@ export default function App() {
     accent: isDarkMode ? '#38bdf8' : '#0284c7',
   };
 
-  const monthlyTotal = safeList.reduce((sum, item) => {
+  // Toplam Aylık Taahhüt (Tüm para birimleri TL'ye dönüştürülerek hesaplanır)
+  const monthlyTotalTL = safeList.reduce((sum, item) => {
     if (!item) return sum;
-    const cost = item.period === 'yearly' ? Number(item.price || 0) / 12 : Number(item.price || 0);
+    const priceTL = convertToTL(item.price, item.currency || 'TRY');
+    const cost = item.period === 'yearly' ? priceTL / 12 : priceTL;
     return sum + cost;
   }, 0);
 
-  const calculateMonthTotal = (monthIndex, year) => {
+  const calculateMonthTotalTL = (monthIndex, year) => {
     return safeList.reduce((sum, item) => {
+      const priceTL = convertToTL(item.price, item.currency || 'TRY');
       if (item.period === 'monthly') {
-        return sum + Number(item.price || 0);
+        return sum + priceTL;
       } else if (item.period === 'yearly') {
         const subMonth = Number(item.billingMonth || 1) - 1;
         const subYear = Number(item.billingYear || 2026);
         if (subMonth === monthIndex && subYear === year) {
-          return sum + Number(item.price || 0);
+          return sum + priceTL;
         }
       }
       return sum;
     }, 0);
   };
 
-  const currentCalMonthTotal = calculateMonthTotal(calMonth, calYear);
+  const currentCalMonthTotalTL = calculateMonthTotalTL(calMonth, calYear);
+
+  // Yaklaşan Ödemeler (Önümüzdeki 5 gün içindeki ödemeler)
+  const getUpcomingPayments = () => {
+    const todayDay = 8; // Örnek referans gün
+    return safeList.filter(s => {
+      const dayDiff = Number(s.billingDay) - todayDay;
+      return dayDiff >= 0 && dayDiff <= 5;
+    });
+  };
+
+  const upcomingPayments = getUpcomingPayments();
 
   const getDetailedMonthlyBreakdown = (targetYear) => {
     const monthlyCategoryData = Array(12).fill(null).map(() => ({}));
     const monthlyTotals = Array(12).fill(0);
 
     safeList.forEach(sub => {
-      const price = Number(sub.price || 0);
+      const priceTL = convertToTL(sub.price, sub.currency || 'TRY');
       const cat = sub.category || 'Diğer';
 
       if (sub.period === 'monthly') {
         for (let m = 0; m < 12; m++) {
-          monthlyCategoryData[m][cat] = (monthlyCategoryData[m][cat] || 0) + price;
-          monthlyTotals[m] += price;
+          monthlyCategoryData[m][cat] = (monthlyCategoryData[m][cat] || 0) + priceTL;
+          monthlyTotals[m] += priceTL;
         }
       } else if (sub.period === 'yearly') {
         const subMonthIndex = Number(sub.billingMonth || 1) - 1;
         const subYear = Number(sub.billingYear || 2026);
         if (subYear === targetYear) {
-          monthlyCategoryData[subMonthIndex][cat] = (monthlyCategoryData[subMonthIndex][cat] || 0) + price;
-          monthlyTotals[subMonthIndex] += price;
+          monthlyCategoryData[subMonthIndex][cat] = (monthlyCategoryData[subMonthIndex][cat] || 0) + priceTL;
+          monthlyTotals[subMonthIndex] += priceTL;
         }
       }
     });
@@ -202,11 +273,11 @@ export default function App() {
 
   const yearlyCategoryStats = safeList.reduce((acc, item) => {
     const cat = item.category || 'Diğer';
-    const price = Number(item.price || 0);
+    const priceTL = convertToTL(item.price, item.currency || 'TRY');
     if (item.period === 'monthly') {
-      acc[cat] = (acc[cat] || 0) + (price * 12);
+      acc[cat] = (acc[cat] || 0) + (priceTL * 12);
     } else if (item.period === 'yearly' && Number(item.billingYear || 2026) === selectedAnalysisYear) {
-      acc[cat] = (acc[cat] || 0) + price;
+      acc[cat] = (acc[cat] || 0) + priceTL;
     }
     return acc;
   }, {});
@@ -232,14 +303,17 @@ export default function App() {
   };
 
   const openForm = (item = null) => {
+    setDuplicateWarning('');
     if (item) {
       setEditingId(item.id);
       setFormName(item.name || '');
       setFormPrice(String(item.price || ''));
+      setFormCurrency(item.currency || 'TRY');
       setFormDay(String(item.billingDay || '1'));
       setFormMonth(String(item.billingMonth || '8'));
       setFormYear(String(item.billingYear || '2026'));
       setFormCategory(item.category || 'Eğlence');
+      setFormPaymentMethod(item.paymentMethod || 'Garanti Bonus');
       setFormPeriod(item.period || 'monthly');
       setFormCancelUrl(item.cancelUrl || '');
       setFormColor(item.color || getServiceColor(item.name));
@@ -247,10 +321,12 @@ export default function App() {
       setEditingId(null);
       setFormName('');
       setFormPrice('');
+      setFormCurrency('TRY');
       setFormDay('1');
       setFormMonth('8');
       setFormYear('2026');
       setFormCategory('Eğlence');
+      setFormPaymentMethod('Garanti Bonus');
       setFormPeriod('monthly');
       setFormCancelUrl('');
       setFormColor('#6366F1');
@@ -261,9 +337,22 @@ export default function App() {
   const selectPopularService = (service) => {
     setFormName(service.name);
     setFormPrice(String(service.price));
+    setFormCurrency(service.currency || 'TRY');
     setFormCategory(service.category);
     setFormCancelUrl(service.cancelUrl);
     setFormColor(service.color);
+    checkDuplicate(service.name);
+  };
+
+  const checkDuplicate = (name) => {
+    const exists = safeList.some(
+      s => s.name.toLowerCase().trim() === name.toLowerCase().trim() && s.id !== editingId
+    );
+    if (exists) {
+      setDuplicateWarning(`⚠️ "${name}" adında bir abonelik zaten mevcut! Tekrar eklemek istediğinize emin misiniz?`);
+    } else {
+      setDuplicateWarning('');
+    }
   };
 
   const handleSave = () => {
@@ -273,7 +362,6 @@ export default function App() {
     const parsedMonth = Math.min(Math.max(Number(formMonth) || 1, 1), 12);
     const parsedYear = Number(formYear) || 2026;
 
-    // Seçilen ayın kaç çektiğini hesapla ve günü buna göre sınırla
     const maxDaysInSelectedMonth = formPeriod === 'yearly' 
       ? getDaysInMonth(parsedMonth - 1, parsedYear)
       : 31;
@@ -282,12 +370,14 @@ export default function App() {
     const clampedDay = Math.min(Math.max(rawDay, 1), maxDaysInSelectedMonth);
 
     const subData = {
-      name: formName,
+      name: formName.trim(),
       price: isNaN(normalizedPrice) ? 0 : normalizedPrice,
+      currency: formCurrency,
       billingDay: clampedDay,
       billingMonth: parsedMonth,
       billingYear: parsedYear,
       category: formCategory,
+      paymentMethod: formPaymentMethod,
       period: formPeriod,
       cancelUrl: formCancelUrl || `https://www.google.com/search?q=${formName}+iptal+et`,
       color: formColor || getServiceColor(formName),
@@ -317,318 +407,400 @@ export default function App() {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
       <StatusBar style={isDarkMode ? 'light' : 'dark'} />
       
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: theme.headerBg, borderBottomColor: theme.cardBorder }]}>
-        <View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Cebin</Text>
-            <View style={styles.proBadge}>
-              <Text style={styles.proBadgeText}>FINANCE</Text>
+      {/* Desktop Responsive Kapsayıcı Container */}
+      <View style={styles.responsiveWrapper}>
+
+        {/* Header */}
+        <View style={[styles.header, { backgroundColor: theme.headerBg, borderBottomColor: theme.cardBorder }]}>
+          <View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Cebin</Text>
+              <View style={styles.proBadge}>
+                <Text style={styles.proBadgeText}>FINANCE 2.0</Text>
+              </View>
+            </View>
+            <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Akıllı Abonelik & Bütçe Asistanı</Text>
+          </View>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {/* Bildirim Aktifleştirme Butonu */}
+            <TouchableOpacity 
+              style={[
+                styles.iconBtn, 
+                { backgroundColor: notificationPermission === 'granted' ? '#10b98122' : theme.cardBg, borderColor: theme.cardBorder }
+              ]} 
+              onPress={requestNotificationAccess}
+              title="Bildirimleri Yönet"
+            >
+              <Text style={{ fontSize: 16 }}>{notificationPermission === 'granted' ? '🔔' : '🔕'}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.themeToggleBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+              onPress={() => setIsDarkMode(!isDarkMode)}
+            >
+              <Text style={{ fontSize: 16 }}>{isDarkMode ? '☀️' : '🌙'}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.addBtn} onPress={() => openForm()}>
+              <Text style={styles.addBtnText}>+ Yeni Ekle</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+
+          {/* DÖVİZ KURLARI BİLGİ BARI */}
+          <View style={[styles.currencyBar, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+            <Text style={[styles.currencyBarTitle, { color: theme.textSecondary }]}>Güncel Canlı Kurlar:</Text>
+            <View style={styles.currencyBadgeGroup}>
+              <View style={styles.currencyBadge}>
+                <Text style={styles.currencyBadgeText}>USD: {exchangeRates.USD} ₺</Text>
+              </View>
+              <View style={styles.currencyBadge}>
+                <Text style={styles.currencyBadgeText}>EUR: {exchangeRates.EUR} ₺</Text>
+              </View>
             </View>
           </View>
-          <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Abonelik & Ödeme Asistanı</Text>
-        </View>
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <TouchableOpacity 
-            style={[styles.themeToggleBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
-            onPress={() => setIsDarkMode(!isDarkMode)}
-          >
-            <Text style={{ fontSize: 16 }}>{isDarkMode ? '☀️' : '🌙'}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.addBtn} onPress={() => openForm()}>
-            <Text style={styles.addBtnText}>+ Ekle</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        
-        {/* TAB 1: ABONELİKLER LİSTESİ */}
-        {activeTab === 'list' && (
-          <>
-            {/* YENİLENMİŞ GÜNDÜZ/GECE UYUMLU ÖZET KARTI */}
-            <View style={[styles.summaryCard, { backgroundColor: theme.summaryBg, borderColor: theme.summaryBorder }]}>
-              <Text style={styles.summaryLabel}>Toplam Aylık Taahhüt</Text>
-              <Text style={styles.summaryValue}>{formatTL(monthlyTotal)}</Text>
-              
-              <View style={styles.statsRow}>
-                <View style={styles.statBox}>
-                  <Text style={styles.statLabel}>Günlük Maliyet</Text>
-                  <Text style={styles.statValue}>{formatTL(monthlyTotal / 30)}</Text>
-                </View>
-                <View style={styles.statBox}>
-                  <Text style={styles.statLabel}>Yıllık Toplam Maliyet</Text>
-                  <Text style={styles.statValue}>{formatTL(monthlyTotal * 12)}</Text>
+          {/* YAKLAŞAN ÖDEMELER / BİLDİRİM BANNER'I */}
+          {upcomingPayments.length > 0 && (
+            <View style={[styles.reminderBanner, { backgroundColor: '#f59e0b15', borderColor: '#f59e0b' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={{ fontSize: 20 }}>⏰</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: '#f59e0b', fontWeight: 'bold', fontSize: 13 }}>Yaklaşan Ödemeleriniz Var!</Text>
+                  <Text style={{ color: theme.textSecondary, fontSize: 12 }}>
+                    {upcomingPayments.map(p => `${p.name} (${p.billingDay} Ağs)`).join(', ')} için son gün yaklaşıyor.
+                  </Text>
                 </View>
               </View>
             </View>
-
-            <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Aktif Abonelikler ({safeList.length})</Text>
-
-            {safeList.length === 0 ? (
-              <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-                <Text style={{ color: theme.textSecondary, textAlign: 'center' }}>Henüz kayıtlı aboneliğiniz yok.</Text>
-              </View>
-            ) : (
-              safeList.map((item) => {
-                const isYearly = item.period === 'yearly';
-                const serviceColor = item.color || getServiceColor(item.name);
-
-                return (
-                  <View key={item.id} style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-                    <View style={styles.leftSection}>
-                      <View style={[styles.brandIconBox, { backgroundColor: serviceColor }]}>
-                        <Text style={styles.brandIconText}>{item.name ? item.name.charAt(0).toUpperCase() : 'C'}</Text>
-                      </View>
-                      <View>
-                        <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>{item.name}</Text>
-                        <Text style={[styles.cardSubtitle, { color: theme.textSecondary }]}>
-                          {item.category} • {isYearly ? `${item.billingDay}/${item.billingMonth}/${item.billingYear}` : `Her ayın ${item.billingDay}. günü`}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.rightSection}>
-                      <Text style={[styles.price, { color: theme.textPrimary }]}>{formatTL(item.price)} {isYearly ? '/yıl' : '/ay'}</Text>
-                      <View style={styles.actionButtons}>
-                        <TouchableOpacity style={[styles.editBtn, { backgroundColor: theme.inputBg }]} onPress={() => openForm(item)}>
-                          <Text style={{ color: theme.textSecondary, fontSize: 11 }}>Düzenle</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={[styles.cancelBtn, { backgroundColor: theme.inputBg }]} onPress={() => item.cancelUrl && Linking.openURL(item.cancelUrl)}>
-                          <Text style={styles.cancelText}>İptal 🔗</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => handleDelete(item.id)} style={[styles.deleteBtn, { backgroundColor: theme.inputBg }]}>
-                          <Text style={{ color: '#ef4444', fontSize: 11 }}>🗑️</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
+          )}
+          
+          {/* TAB 1: ABONELİKLER LİSTESİ */}
+          {activeTab === 'list' && (
+            <>
+              {/* ÖZET KARTI */}
+              <View style={[styles.summaryCard, { backgroundColor: theme.summaryBg, borderColor: theme.summaryBorder }]}>
+                <Text style={styles.summaryLabel}>Toplam Aylık Taahhüt (TL Karşılığı)</Text>
+                <Text style={styles.summaryValue}>{formatCurrency(monthlyTotalTL, 'TRY')}</Text>
+                
+                <View style={styles.statsRow}>
+                  <View style={styles.statBox}>
+                    <Text style={styles.statLabel}>Günlük Tahmini</Text>
+                    <Text style={styles.statValue}>{formatCurrency(monthlyTotalTL / 30, 'TRY')}</Text>
                   </View>
-                );
-              })
-            )}
-          </>
-        )}
-
-        {/* TAB 2: ÖDEME TAKVİMİ */}
-        {}
-        {activeTab === 'calendar' && (
-          <View style={{ marginTop: 10 }}>
-            <View style={styles.calendarHeaderNav}>
-              <TouchableOpacity style={[styles.arrowBtn, { backgroundColor: theme.cardBg }]} onPress={handlePrevMonth}>
-                <Text style={styles.arrowText}>◀</Text>
-              </TouchableOpacity>
-              <Text style={[styles.calendarTitleText, { color: theme.textPrimary }]}>
-                {MONTH_NAMES[calMonth]} {calYear}
-              </Text>
-              <TouchableOpacity style={[styles.arrowBtn, { backgroundColor: theme.cardBg }]} onPress={handleNextMonth}>
-                <Text style={styles.arrowText}>▶</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.viewModeContainer}>
-              <TouchableOpacity
-                style={[styles.viewModeBtn, { backgroundColor: theme.cardBg }, calendarViewMode === 'daily' && styles.viewModeBtnActive]}
-                onPress={() => setCalendarViewMode('daily')}
-              >
-                <Text style={[styles.viewModeText, { color: theme.textSecondary }, calendarViewMode === 'daily' && styles.viewModeTextActive]}>Günlük Akış</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.viewModeBtn, { backgroundColor: theme.cardBg }, calendarViewMode === 'monthly' && styles.viewModeBtnActive]}
-                onPress={() => setCalendarViewMode('monthly')}
-              >
-                <Text style={[styles.viewModeText, { color: theme.textSecondary }, calendarViewMode === 'monthly' && styles.viewModeTextActive]}>Aylık Matris</Text>
-              </TouchableOpacity>
-            </View>
-
-            {calendarViewMode === 'daily' && (
-              <View style={{ gap: 8 }}>
-                {}
-                {Array.from({ length: getDaysInMonth(calMonth, calYear) }, (_, i) => i + 1).map((day) => {
-                  const daySubs = safeList.filter(s => isSubActiveOnDay(s, day));
-
-                  return (
-                    <View key={day} style={[styles.dailyRow, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-                      <Text style={[styles.dailyDayText, { color: theme.textSecondary }]}>{day} {MONTH_NAMES[calMonth]}</Text>
-                      <View style={{ flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-                        {daySubs.length > 0 ? daySubs.map(s => {
-                          const sColor = s.color || getServiceColor(s.name);
-                          return (
-                            <View key={s.id} style={[styles.brandBadge, { backgroundColor: sColor }]}>
-                              <Text style={styles.brandBadgeText}>{s.name} ({formatTL(s.price)})</Text>
-                            </View>
-                          );
-                        }) : (
-                          <Text style={{ color: theme.textSecondary, fontSize: 12 }}>Ödeme planı yok</Text>
-                        )}
-                      </View>
-                    </View>
-                  );
-                })}
+                  <View style={styles.statBox}>
+                    <Text style={styles.statLabel}>Yıllık Toplam Projeksiyon</Text>
+                    <Text style={styles.statValue}>{formatCurrency(monthlyTotalTL * 12, 'TRY')}</Text>
+                  </View>
+                </View>
               </View>
-            )}
 
-            {calendarViewMode === 'monthly' && (
-              <View style={styles.calendarGrid}>
-                {}
-                {Array.from({ length: getDaysInMonth(calMonth, calYear) }, (_, i) => i + 1).map((day) => {
-                  const daySubs = safeList.filter(s => isSubActiveOnDay(s, day));
+              <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Aktif Abonelikler ({safeList.length})</Text>
+
+              {safeList.length === 0 ? (
+                <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                  <Text style={{ color: theme.textSecondary, textAlign: 'center' }}>Henüz kayıtlı aboneliğiniz yok.</Text>
+                </View>
+              ) : (
+                safeList.map((item) => {
+                  const isYearly = item.period === 'yearly';
+                  const serviceColor = item.color || getServiceColor(item.name);
+                  const priceInTL = convertToTL(item.price, item.currency || 'TRY');
+
                   return (
-                    <View key={day} style={[styles.calendarDayBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }, daySubs.length > 0 && styles.activeDayBox]}>
-                      <Text style={[styles.dayNumber, { color: theme.textSecondary }]}>{day}</Text>
-                      {daySubs.map(s => {
-                        const sColor = s.color || getServiceColor(s.name);
-                        return (
-                          <View key={s.id} style={[styles.daySubBadge, { backgroundColor: sColor }]}>
-                            <Text style={styles.daySubText} numberOfLines={1}>{s.name}</Text>
-                            <Text style={styles.daySubPrice}>{formatTL(s.price)}</Text>
+                    <View key={item.id} style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                      <View style={styles.leftSection}>
+                        <View style={[styles.brandIconBox, { backgroundColor: serviceColor }]}>
+                          <Text style={styles.brandIconText}>{item.name ? item.name.charAt(0).toUpperCase() : 'C'}</Text>
+                        </View>
+                        <View>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>{item.name}</Text>
+                            {item.paymentMethod && (
+                              <View style={[styles.cardTag, { backgroundColor: theme.inputBg }]}>
+                                <Text style={[styles.cardTagText, { color: theme.textSecondary }]}>💳 {item.paymentMethod}</Text>
+                              </View>
+                            )}
                           </View>
-                        );
-                      })}
-                    </View>
-                  );
-                })}
-              </View>
-            )}
-
-            <View style={[styles.monthTotalFooterCard, { backgroundColor: theme.headerBg, borderColor: theme.cardBorder }]}>
-              <Text style={{ color: theme.textSecondary, fontSize: 14, fontWeight: '600' }}>
-                {MONTH_NAMES[calMonth]} {calYear} Dönemi Toplam Ödeme:
-              </Text>
-              <Text style={{ color: theme.accent, fontSize: 24, fontWeight: 'bold', marginTop: 4 }}>
-                {formatTL(currentCalMonthTotal)}
-              </Text>
-            </View>
-
-          </View>
-        )}
-
-        {/* TAB 3: FİNANS & ANALİZ */}
-        {}
-        {activeTab === 'analytics' && (
-          <View style={{ marginTop: 10 }}>
-            <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.textPrimary, marginBottom: 4 }}>Finansal Analiz & Grafikler</Text>
-            <Text style={{ color: theme.textSecondary, fontSize: 13, marginBottom: 16 }}>Aylık harcama dağılımları</Text>
-
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
-              {YEARS.map(y => (
-                <TouchableOpacity 
-                  key={y} 
-                  style={[styles.yearChip, { backgroundColor: theme.cardBg }, selectedAnalysisYear === y && styles.yearChipActive]}
-                  onPress={() => setSelectedAnalysisYear(y)}
-                >
-                  <Text style={[styles.yearChipText, { color: theme.textSecondary }, selectedAnalysisYear === y && styles.yearChipTextActive]}>{y}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-
-            <View style={[styles.chartContainer, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-              <Text style={{ color: theme.textPrimary, fontWeight: 'bold', fontSize: 16, marginBottom: 14 }}>
-                Aylık Harcama Grafiği ({selectedAnalysisYear})
-              </Text>
-              
-              <View style={styles.legendContainer}>
-                {Object.keys(CATEGORY_COLORS).map(cat => (
-                  <View key={cat} style={styles.legendItem}>
-                    <View style={[styles.legendColorBox, { backgroundColor: CATEGORY_COLORS[cat] }]} />
-                    <Text style={[styles.legendText, { color: theme.textSecondary }]}>{cat}</Text>
-                  </View>
-                ))}
-              </View>
-
-              <View style={styles.barsAreaContainer}>
-                {MONTH_NAMES.map((mName, idx) => {
-                  const totalVal = monthlyTotals[idx];
-                  const catBreakdown = monthlyCategoryData[idx];
-                  const heightPercent = maxMonthlyExpense > 0 ? (totalVal / maxMonthlyExpense) * 100 : 0;
-                  const finalBarHeight = Math.max(heightPercent, totalVal > 0 ? 8 : 2);
-
-                  return (
-                    <View key={mName} style={styles.barColumn}>
-                      <View style={[styles.barTrack, { backgroundColor: isDarkMode ? '#0f172a' : '#e2e8f0' }]}>
-                        <View style={{ width: '100%', height: `${finalBarHeight}%`, borderRadius: 6, overflow: 'hidden', flexDirection: 'column-reverse' }}>
-                          {Object.keys(catBreakdown).map(cat => {
-                            const catAmount = catBreakdown[cat];
-                            const catRatio = totalVal > 0 ? (catAmount / totalVal) * 100 : 0;
-                            return (
-                              <View 
-                                key={cat} 
-                                style={{ 
-                                  width: '100%', 
-                                  height: `${catRatio}%`, 
-                                  backgroundColor: CATEGORY_COLORS[cat] || '#64748b' 
-                                }} 
-                              />
-                            );
-                          })}
+                          <Text style={[styles.cardSubtitle, { color: theme.textSecondary }]}>
+                            {item.category} • {isYearly ? `${item.billingDay}/${item.billingMonth}/${item.billingYear}` : `Her ayın ${item.billingDay}. günü`}
+                          </Text>
                         </View>
                       </View>
 
-                      {/* Büyütülmüş Ay İsimleri */}
-                      <Text style={[styles.barLabel, { color: theme.textPrimary }]}>{mName.substr(0, 3)}</Text>
-                      
-                      {/* Büyütülmüş Tutar Rakamları */}
-                      <Text style={[styles.barAmountText, { color: totalVal > 0 ? theme.accent : theme.textSecondary }]}>
-                        {formatShortTL(totalVal)}
-                      </Text>
+                      <View style={styles.rightSection}>
+                        <Text style={[styles.price, { color: theme.textPrimary }]}>
+                          {formatCurrency(item.price, item.currency || 'TRY')} {isYearly ? '/yıl' : '/ay'}
+                        </Text>
+                        {item.currency !== 'TRY' && (
+                          <Text style={{ fontSize: 11, color: theme.accent, marginTop: 1 }}>
+                            ≈ {formatCurrency(priceInTL, 'TRY')}
+                          </Text>
+                        )}
+                        <View style={styles.actionButtons}>
+                          <TouchableOpacity style={[styles.editBtn, { backgroundColor: theme.inputBg }]} onPress={() => openForm(item)}>
+                            <Text style={{ color: theme.textSecondary, fontSize: 11 }}>Düzenle</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity style={[styles.cancelBtn, { backgroundColor: theme.inputBg }]} onPress={() => item.cancelUrl && Linking.openURL(item.cancelUrl)}>
+                            <Text style={styles.cancelText}>İptal 🔗</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity onPress={() => handleDelete(item.id)} style={[styles.deleteBtn, { backgroundColor: theme.inputBg }]}>
+                            <Text style={{ color: '#ef4444', fontSize: 11 }}>🗑️</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
                     </View>
                   );
-                })}
+                })
+              )}
+            </>
+          )}
+
+          {/* TAB 2: GERÇEK TAKVİM MİMARİSİ (PZT-PAZ) */}
+          {activeTab === 'calendar' && (
+            <View style={{ marginTop: 10 }}>
+              <View style={styles.calendarHeaderNav}>
+                <TouchableOpacity style={[styles.arrowBtn, { backgroundColor: theme.cardBg }]} onPress={handlePrevMonth}>
+                  <Text style={styles.arrowText}>◀</Text>
+                </TouchableOpacity>
+                <Text style={[styles.calendarTitleText, { color: theme.textPrimary }]}>
+                  {MONTH_NAMES[calMonth]} {calYear}
+                </Text>
+                <TouchableOpacity style={[styles.arrowBtn, { backgroundColor: theme.cardBg }]} onPress={handleNextMonth}>
+                  <Text style={styles.arrowText}>▶</Text>
+                </TouchableOpacity>
               </View>
 
-              <View style={[styles.chartFooter, { borderTopColor: theme.cardBorder }]}>
-                <Text style={{ color: theme.textSecondary, fontSize: 14 }}>Yıllık Toplam:</Text>
-                <Text style={{ color: theme.accent, fontSize: 22, fontWeight: 'bold' }}>{formatTL(totalYearlyExpenseForSelectedYear)}</Text>
+              <View style={styles.viewModeContainer}>
+                <TouchableOpacity
+                  style={[styles.viewModeBtn, { backgroundColor: theme.cardBg }, calendarViewMode === 'daily' && styles.viewModeBtnActive]}
+                  onPress={() => setCalendarViewMode('daily')}
+                >
+                  <Text style={[styles.viewModeText, { color: theme.textSecondary }, calendarViewMode === 'daily' && styles.viewModeTextActive]}>Günlük Akış</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.viewModeBtn, { backgroundColor: theme.cardBg }, calendarViewMode === 'monthly' && styles.viewModeBtnActive]}
+                  onPress={() => setCalendarViewMode('monthly')}
+                >
+                  <Text style={[styles.viewModeText, { color: theme.textSecondary }, calendarViewMode === 'monthly' && styles.viewModeTextActive]}>Aylık Matris</Text>
+                </TouchableOpacity>
               </View>
-            </View>
 
-            <Text style={{ color: theme.textPrimary, fontSize: 16, fontWeight: 'bold', marginTop: 16, marginBottom: 12 }}>
-              🏷️ Kategori Bazlı Dağılım
-            </Text>
-            {Object.keys(yearlyCategoryStats).map((cat) => {
-              const amount = yearlyCategoryStats[cat];
-              const percentage = totalYearlyExpenseForSelectedYear > 0 ? ((amount / totalYearlyExpenseForSelectedYear) * 100).toFixed(1) : 0;
-              const catColor = CATEGORY_COLORS[cat] || '#38bdf8';
+              {calendarViewMode === 'daily' && (
+                <View style={{ gap: 8 }}>
+                  {Array.from({ length: getDaysInMonth(calMonth, calYear) }, (_, i) => i + 1).map((day) => {
+                    const daySubs = safeList.filter(s => isSubActiveOnDay(s, day));
 
-              return (
-                <View key={cat} style={[styles.categoryCard, { backgroundColor: theme.cardBg }]}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: catColor }} />
-                      <Text style={{ color: theme.textPrimary, fontWeight: 'bold' }}>{cat}</Text>
-                    </View>
-                    <Text style={{ color: theme.accent, fontWeight: 'bold' }}>{formatTL(amount)} (%{percentage})</Text>
+                    return (
+                      <View key={day} style={[styles.dailyRow, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                        <Text style={[styles.dailyDayText, { color: theme.textSecondary }]}>{day} {MONTH_NAMES[calMonth]}</Text>
+                        <View style={{ flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                          {daySubs.length > 0 ? daySubs.map(s => {
+                            const sColor = s.color || getServiceColor(s.name);
+                            return (
+                              <View key={s.id} style={[styles.brandBadge, { backgroundColor: sColor }]}>
+                                <Text style={styles.brandBadgeText}>{s.name} ({formatCurrency(s.price, s.currency)})</Text>
+                              </View>
+                            );
+                          }) : (
+                            <Text style={{ color: theme.textSecondary, fontSize: 12 }}>Ödeme planı yok</Text>
+                          )}
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+
+              {calendarViewMode === 'monthly' && (
+                <View style={styles.calendarWrapper}>
+                  {/* HAFTANIN GÜNLERİ BAŞLIKLARI (PZT-PAZ) */}
+                  <View style={styles.weekHeaderRow}>
+                    {WEEK_DAYS.map(wd => (
+                      <View key={wd} style={styles.weekHeaderCell}>
+                        <Text style={[styles.weekHeaderText, { color: theme.textSecondary }]}>{wd}</Text>
+                      </View>
+                    ))}
                   </View>
-                  <View style={[styles.progressBarBg, { backgroundColor: theme.inputBg }]}>
-                    <View style={[styles.progressBarFill, { width: `${percentage}%`, backgroundColor: catColor }]} />
+
+                  {/* TAKVİM IZGARASI */}
+                  <View style={styles.calendarGrid}>
+                    {/* Ayın 1. Gününden Önceki Boş Kutular (Offset) */}
+                    {Array.from({ length: getFirstDayOffset(calMonth, calYear) }).map((_, idx) => (
+                      <View key={`offset-${idx}`} style={[styles.calendarDayBox, styles.emptyDayBox, { backgroundColor: 'transparent' }]} />
+                    ))}
+
+                    {/* Ayın Gerçek Gün Kutuları */}
+                    {Array.from({ length: getDaysInMonth(calMonth, calYear) }, (_, i) => i + 1).map((day) => {
+                      const daySubs = safeList.filter(s => isSubActiveOnDay(s, day));
+                      return (
+                        <View key={day} style={[styles.calendarDayBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }, daySubs.length > 0 && styles.activeDayBox]}>
+                          <Text style={[styles.dayNumber, { color: theme.textSecondary }]}>{day}</Text>
+                          {daySubs.map(s => {
+                            const sColor = s.color || getServiceColor(s.name);
+                            return (
+                              <View key={s.id} style={[styles.daySubBadge, { backgroundColor: sColor }]}>
+                                <Text style={styles.daySubText} numberOfLines={1}>{s.name}</Text>
+                                <Text style={styles.daySubPrice}>{formatShortCurrency(s.price, s.currency)}</Text>
+                              </View>
+                            );
+                          })}
+                        </View>
+                      );
+                    })}
                   </View>
                 </View>
-              );
-            })}
-          </View>
-        )}
+              )}
 
-      </ScrollView>
+              <View style={[styles.monthTotalFooterCard, { backgroundColor: theme.headerBg, borderColor: theme.cardBorder }]}>
+                <Text style={{ color: theme.textSecondary, fontSize: 14, fontWeight: '600' }}>
+                  {MONTH_NAMES[calMonth]} {calYear} Dönemi Toplam Ödeme (TL):
+                </Text>
+                <Text style={{ color: theme.accent, fontSize: 24, fontWeight: 'bold', marginTop: 4 }}>
+                  {formatCurrency(currentCalMonthTotalTL, 'TRY')}
+                </Text>
+              </View>
 
-      {}
-      <View style={[styles.bottomNav, { backgroundColor: theme.headerBg, borderTopColor: theme.cardBorder }]}>
-        <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('list')}>
-          <Text style={[styles.navText, { color: theme.textSecondary }, activeTab === 'list' && styles.navTextActive]}>💳 Abonelikler</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('calendar')}>
-          <Text style={[styles.navText, { color: theme.textSecondary }, activeTab === 'calendar' && styles.navTextActive]}>📅 Takvim</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('analytics')}>
-          <Text style={[styles.navText, { color: theme.textSecondary }, activeTab === 'analytics' && styles.navTextActive]}>📊 Analiz</Text>
-        </TouchableOpacity>
+            </View>
+          )}
+
+          {/* TAB 3: FİNANS & ANALİZ */}
+          {activeTab === 'analytics' && (
+            <View style={{ marginTop: 10 }}>
+              <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.textPrimary, marginBottom: 4 }}>Finansal Analiz & Grafikler</Text>
+              <Text style={{ color: theme.textSecondary, fontSize: 13, marginBottom: 16 }}>Aylık harcama dağılımları ve yıllık trendler</Text>
+
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+                {YEARS.map(y => (
+                  <TouchableOpacity 
+                    key={y} 
+                    style={[styles.yearChip, { backgroundColor: theme.cardBg }, selectedAnalysisYear === y && styles.yearChipActive]}
+                    onPress={() => setSelectedAnalysisYear(y)}
+                  >
+                    <Text style={[styles.yearChipText, { color: theme.textSecondary }, selectedAnalysisYear === y && styles.yearChipTextActive]}>{y}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              <View style={[styles.chartContainer, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                <Text style={{ color: theme.textPrimary, fontWeight: 'bold', fontSize: 16, marginBottom: 14 }}>
+                  Aylık Harcama Grafiği ({selectedAnalysisYear})
+                </Text>
+                
+                <View style={styles.legendContainer}>
+                  {Object.keys(CATEGORY_COLORS).map(cat => (
+                    <View key={cat} style={styles.legendItem}>
+                      <View style={[styles.legendColorBox, { backgroundColor: CATEGORY_COLORS[cat] }]} />
+                      <Text style={[styles.legendText, { color: theme.textSecondary }]}>{cat}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                {/* YENİLENMİŞ OKUNABİLİR BAR GRAFİK ALANI */}
+                <View style={styles.barsAreaContainer}>
+                  {MONTH_NAMES.map((mName, idx) => {
+                    const totalVal = monthlyTotals[idx];
+                    const catBreakdown = monthlyCategoryData[idx];
+                    const heightPercent = maxMonthlyExpense > 0 ? (totalVal / maxMonthlyExpense) * 100 : 0;
+                    const finalBarHeight = Math.max(heightPercent, totalVal > 0 ? 8 : 2);
+
+                    return (
+                      <View key={mName} style={styles.barColumn}>
+                        <View style={[styles.barTrack, { backgroundColor: isDarkMode ? '#0f172a' : '#e2e8f0' }]}>
+                          <View style={{ width: '100%', height: `${finalBarHeight}%`, borderRadius: 6, overflow: 'hidden', flexDirection: 'column-reverse' }}>
+                            {Object.keys(catBreakdown).map(cat => {
+                              const catAmount = catBreakdown[cat];
+                              const catRatio = totalVal > 0 ? (catAmount / totalVal) * 100 : 0;
+                              return (
+                                <View 
+                                  key={cat} 
+                                  style={{ 
+                                    width: '100%', 
+                                    height: `${catRatio}%`, 
+                                    backgroundColor: CATEGORY_COLORS[cat] || '#64748b' 
+                                  }} 
+                                />
+                              );
+                            })}
+                          </View>
+                        </View>
+
+                        {/* Büyütülmüş Ay İsimleri */}
+                        <Text style={[styles.barLabel, { color: theme.textPrimary }]}>{mName.substr(0, 3)}</Text>
+                        
+                        {/* Büyütülmüş Tutar Rakamları */}
+                        <Text style={[styles.barAmountText, { color: totalVal > 0 ? theme.accent : theme.textSecondary }]}>
+                          {formatShortCurrency(totalVal, 'TRY')}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
+
+                <View style={[styles.chartFooter, { borderTopColor: theme.cardBorder }]}>
+                  <Text style={{ color: theme.textSecondary, fontSize: 14 }}>Yıllık Toplam Harcama:</Text>
+                  <Text style={{ color: theme.accent, fontSize: 22, fontWeight: 'bold' }}>{formatCurrency(totalYearlyExpenseForSelectedYear, 'TRY')}</Text>
+                </View>
+              </View>
+
+              <Text style={{ color: theme.textPrimary, fontSize: 16, fontWeight: 'bold', marginTop: 16, marginBottom: 12 }}>
+                🏷️ Kategori Bazlı Dağılım
+              </Text>
+              {Object.keys(yearlyCategoryStats).map((cat) => {
+                const amountTL = yearlyCategoryStats[cat];
+                const percentage = totalYearlyExpenseForSelectedYear > 0 ? ((amountTL / totalYearlyExpenseForSelectedYear) * 100).toFixed(1) : 0;
+                const catColor = CATEGORY_COLORS[cat] || '#38bdf8';
+
+                return (
+                  <View key={cat} style={[styles.categoryCard, { backgroundColor: theme.cardBg }]}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: catColor }} />
+                        <Text style={{ color: theme.textPrimary, fontWeight: 'bold' }}>{cat}</Text>
+                      </View>
+                      <Text style={{ color: theme.accent, fontWeight: 'bold' }}>{formatCurrency(amountTL, 'TRY')} (%{percentage})</Text>
+                    </View>
+                    <View style={[styles.progressBarBg, { backgroundColor: theme.inputBg }]}>
+                      <View style={[styles.progressBarFill, { width: `${percentage}%`, backgroundColor: catColor }]} />
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+
+        </ScrollView>
+
+        {/* MASAÜSTÜ İLE UYUMLU ALT NAVİGASYON BAR */}
+        <View style={[styles.bottomNav, { backgroundColor: theme.headerBg, borderTopColor: theme.cardBorder }]}>
+          <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('list')}>
+            <Text style={[styles.navText, { color: theme.textSecondary }, activeTab === 'list' && styles.navTextActive]}>💳 Abonelikler</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('calendar')}>
+            <Text style={[styles.navText, { color: theme.textSecondary }, activeTab === 'calendar' && styles.navTextActive]}>📅 Takvim</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('analytics')}>
+            <Text style={[styles.navText, { color: theme.textSecondary }, activeTab === 'analytics' && styles.navTextActive]}>📊 Analiz</Text>
+          </TouchableOpacity>
+        </View>
+
       </View>
 
-      {}
+      {/* FORM VE DÜZENLEME MODALI */}
       <Modal visible={isModalOpen} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <ScrollView contentContainerStyle={[styles.modalContent, { backgroundColor: theme.cardBg }]}>
             <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>{editingId ? 'Abonelik Bilgilerini Düzenle' : 'Yeni Abonelik Tanımla'}</Text>
+
+            {/* MÜKERRER KAYIT UYARISI BANNER'I */}
+            {duplicateWarning ? (
+              <View style={styles.warningBox}>
+                <Text style={styles.warningText}>{duplicateWarning}</Text>
+              </View>
+            ) : null}
 
             {!editingId && (
               <View style={{ marginBottom: 16 }}>
@@ -652,6 +824,7 @@ export default function App() {
               onChangeText={(txt) => {
                 setFormName(txt);
                 setFormColor(getServiceColor(txt));
+                checkDuplicate(txt);
               }}
             />
 
@@ -664,6 +837,19 @@ export default function App() {
                   onPress={() => setFormCategory(cat)}
                 >
                   <Text style={[styles.categoryText, { color: theme.textSecondary }, formCategory === cat && styles.categoryTextActive]}>{cat}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Ödeme Yapılan Kart / Yöntem:</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+              {PAYMENT_METHODS.map((method) => (
+                <TouchableOpacity 
+                  key={method} 
+                  style={[styles.categoryChip, { backgroundColor: theme.inputBg }, formPaymentMethod === method && styles.categoryChipActive]}
+                  onPress={() => setFormPaymentMethod(method)}
+                >
+                  <Text style={[styles.categoryText, { color: theme.textSecondary }, formPaymentMethod === method && styles.categoryTextActive]}>💳 {method}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -684,15 +870,32 @@ export default function App() {
               </TouchableOpacity>
             </View>
 
-            <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>{formPeriod === 'yearly' ? "Yıllık Tutar (₺):" : "Aylık Tutar (₺):"}</Text>
-            <TextInput 
-              placeholder="0,00" 
-              placeholderTextColor="#64748b" 
-              keyboardType="numeric"
-              style={[styles.input, { backgroundColor: theme.inputBg, color: theme.textPrimary }]}
-              value={formPrice}
-              onChangeText={(txt) => setFormPrice(txt.replace(/[^0-9,.]/g, ''))}
-            />
+            <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Tutar ve Para Birimi:</Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+              <TextInput 
+                placeholder="0,00" 
+                placeholderTextColor="#64748b" 
+                keyboardType="numeric"
+                style={[styles.input, { backgroundColor: theme.inputBg, color: theme.textPrimary, flex: 2, marginBottom: 0 }]}
+                value={formPrice}
+                onChangeText={(txt) => setFormPrice(txt.replace(/[^0-9,.]/g, ''))}
+              />
+              {['TRY', 'USD', 'EUR'].map(curr => (
+                <TouchableOpacity 
+                  key={curr} 
+                  style={[
+                    styles.currencySelectorBtn, 
+                    { backgroundColor: theme.inputBg },
+                    formCurrency === curr && styles.currencySelectorBtnActive
+                  ]}
+                  onPress={() => setFormCurrency(curr)}
+                >
+                  <Text style={[styles.currencySelectorText, { color: theme.textSecondary }, formCurrency === curr && styles.currencySelectorTextActive]}>
+                    {CURRENCY_SYMBOLS[curr]} {curr}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
 
             {formPeriod === 'monthly' ? (
               <>
@@ -735,7 +938,6 @@ export default function App() {
                     onChangeText={(txt) => setFormYear(txt.replace(/[^0-9]/g, ''))}
                   />
                 </View>
-                {}
                 {(() => {
                   const m = Math.min(Math.max(Number(formMonth) || 1, 1), 12);
                   const y = Number(formYear) || 2026;
@@ -767,16 +969,33 @@ export default function App() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  // Masaüstü ekranlarda kartların aşırı yayılmasını önleyen duyarlı genişlik sınırı
+  responsiveWrapper: {
+    maxWidth: 1000,
+    width: '100%',
+    marginHorizontal: 'auto',
+    alignSelf: 'center',
+    flex: 1,
+  },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 40, paddingBottom: 16, borderBottomWidth: 1 },
   headerTitle: { fontSize: 26, fontWeight: 'bold', letterSpacing: 0.5 },
   headerSubtitle: { fontSize: 11, marginTop: 2 },
   proBadge: { backgroundColor: '#6366f1', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   proBadgeText: { color: '#ffffff', fontSize: 9, fontWeight: 'bold' },
+  iconBtn: { padding: 8, borderRadius: 8, borderWidth: 1 },
   themeToggleBtn: { padding: 8, borderRadius: 8, borderWidth: 1 },
   addBtn: { backgroundColor: '#6366f1', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
   addBtnText: { color: '#ffffff', fontWeight: 'bold', fontSize: 13 },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 100, paddingTop: 16 },
   
+  currencyBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 10, borderRadius: 8, borderWidth: 1, marginBottom: 12 },
+  currencyBarTitle: { fontSize: 12, fontWeight: '600' },
+  currencyBadgeGroup: { flexDirection: 'row', gap: 8 },
+  currencyBadge: { backgroundColor: '#6366f122', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  currencyBadgeText: { color: '#6366f1', fontSize: 11, fontWeight: 'bold' },
+
+  reminderBanner: { borderRadius: 10, padding: 12, borderWidth: 1, marginBottom: 16 },
+
   emptyCard: { borderRadius: 12, padding: 20, borderWidth: 1, alignItems: 'center' },
   summaryCard: { borderRadius: 16, padding: 22, marginBottom: 16, borderWidth: 1 },
   summaryLabel: { color: '#ffffff', fontSize: 13, fontWeight: '600', opacity: 0.9 },
@@ -788,10 +1007,12 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 14, fontWeight: '600', marginBottom: 12 },
   
   card: { borderRadius: 12, padding: 16, marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1 },
-  leftSection: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  leftSection: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   brandIconBox: { width: 42, height: 42, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
   brandIconText: { color: '#ffffff', fontSize: 18, fontWeight: 'bold' },
   cardTitle: { fontSize: 16, fontWeight: 'bold' },
+  cardTag: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  cardTagText: { fontSize: 10, fontWeight: 'bold' },
   cardSubtitle: { fontSize: 12, marginTop: 2 },
   rightSection: { alignItems: 'flex-end' },
   price: { fontSize: 15, fontWeight: 'bold' },
@@ -801,7 +1022,7 @@ const styles = StyleSheet.create({
   cancelText: { color: '#38bdf8', fontSize: 11, fontWeight: '600' },
   deleteBtn: { padding: 4, borderRadius: 6 },
 
-  // Calendar
+  // Real Calendar Grid
   calendarHeaderNav: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   calendarTitleText: { fontSize: 18, fontWeight: 'bold' },
   arrowBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
@@ -812,19 +1033,25 @@ const styles = StyleSheet.create({
   viewModeText: { fontSize: 12 },
   viewModeTextActive: { color: '#fff', fontWeight: 'bold' },
 
+  calendarWrapper: { width: '100%' },
+  weekHeaderRow: { flexDirection: 'row', marginBottom: 6 },
+  weekHeaderCell: { width: '14.28%', alignItems: 'center' },
+  weekHeaderText: { fontSize: 12, fontWeight: 'bold' },
+
   dailyRow: { padding: 12, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1 },
   dailyDayText: { fontSize: 12, width: 85, fontWeight: '600' },
   brandBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
   brandBadgeText: { color: '#ffffff', fontSize: 11, fontWeight: 'bold' },
   monthTotalFooterCard: { borderWidth: 1, padding: 16, borderRadius: 12, marginTop: 12, alignItems: 'center' },
 
-  calendarGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  calendarDayBox: { width: '13.5%', minHeight: 82, borderRadius: 8, padding: 6, borderWidth: 1 },
+  calendarGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  calendarDayBox: { width: '14.28%', minHeight: 82, borderRadius: 8, padding: 4, borderWidth: 1, marginBottom: 4 },
+  emptyDayBox: { borderWidth: 0 },
   activeDayBox: { borderColor: '#6366f1', borderWidth: 1.5 },
-  dayNumber: { fontSize: 12, fontWeight: 'bold', marginBottom: 2 },
-  daySubBadge: { borderRadius: 4, padding: 4, marginTop: 3 },
-  daySubText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
-  daySubPrice: { color: '#ffffff', fontSize: 11, fontWeight: '600', marginTop: 1 },
+  dayNumber: { fontSize: 11, fontWeight: 'bold', marginBottom: 2 },
+  daySubBadge: { borderRadius: 4, padding: 3, marginTop: 2 },
+  daySubText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
+  daySubPrice: { color: '#ffffff', fontSize: 9, fontWeight: '600' },
 
   yearChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 8 },
   yearChipActive: { backgroundColor: '#6366f1' },
@@ -839,9 +1066,9 @@ const styles = StyleSheet.create({
 
   barsAreaContainer: { flexDirection: 'row', height: 180, alignItems: 'flex-end', justifyContent: 'space-between', paddingVertical: 10 },
   barColumn: { flex: 1, height: '100%', alignItems: 'center', justifyContent: 'flex-end' },
-  barTrack: { width: 16, height: 120, borderRadius: 6, justifyContent: 'flex-end', overflow: 'hidden' },
+  barTrack: { width: 18, height: 120, borderRadius: 6, justifyContent: 'flex-end', overflow: 'hidden' },
   barLabel: { fontSize: 12, marginTop: 6, fontWeight: 'bold' },
-  barAmountText: { fontSize: 9, marginTop: 2, fontWeight: 'bold' },
+  barAmountText: { fontSize: 10, marginTop: 2, fontWeight: 'bold' },
 
   chartFooter: { borderTopWidth: 1, paddingTop: 12, marginTop: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 
@@ -857,7 +1084,7 @@ const styles = StyleSheet.create({
 
   // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: 20 },
-  modalContent: { borderRadius: 16, padding: 20, marginVertical: 40 },
+  modalContent: { borderRadius: 16, padding: 20, marginVertical: 40, maxWidth: 600, width: '100%', alignSelf: 'center' },
   modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 16 },
   fieldLabel: { fontSize: 12, marginBottom: 4 },
   input: { padding: 12, borderRadius: 8, marginBottom: 12 },
@@ -871,6 +1098,15 @@ const styles = StyleSheet.create({
   periodActive: { backgroundColor: '#6366f1' },
   periodText: { fontSize: 12 },
   periodTextActive: { color: '#fff', fontWeight: 'bold' },
+  
+  currencySelectorBtn: { flex: 1, padding: 10, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  currencySelectorBtnActive: { backgroundColor: '#6366f1' },
+  currencySelectorText: { fontSize: 12, fontWeight: 'bold' },
+  currencySelectorTextActive: { color: '#fff' },
+
+  warningBox: { backgroundColor: '#ef444422', borderColor: '#ef4444', borderWidth: 1, padding: 10, borderRadius: 8, marginBottom: 12 },
+  warningText: { color: '#ef4444', fontSize: 12, fontWeight: 'bold' },
+
   modalButtons: { flexDirection: 'row', gap: 12, marginTop: 12 },
   cancelModalBtn: { flex: 1, backgroundColor: '#334155', padding: 12, borderRadius: 8, alignItems: 'center' },
   saveModalBtn: { flex: 1, backgroundColor: '#6366f1', padding: 12, borderRadius: 8, alignItems: 'center' }
