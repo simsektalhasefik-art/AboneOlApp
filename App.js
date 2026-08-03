@@ -38,6 +38,11 @@ const MONTH_NAMES = [
 
 const YEARS = [2025, 2026, 2027, 2028, 2029, 2030];
 
+const getDaysInMonth = (monthIndex, year) => {
+  // JavaScript Date sınıfı ile ilgili ayın tam gün sayısını dinamik hesaplar
+  return new Date(Number(year) || 2026, (Number(monthIndex) || 0) + 1, 0).getDate();
+};
+
 const formatTL = (amount) => {
   const val = Number(amount) || 0;
   return val.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
@@ -130,15 +135,15 @@ export default function App() {
   const safeList = Array.isArray(subscriptions) ? subscriptions : [];
 
   const theme = {
-    bg: isDarkMode ? '#090d16' : '#f8fafc',
+    bg: isDarkMode ? '#090d16' : '#f1f5f9', // Gündüz modunda göz yormayan yumuşak arka plan
     headerBg: isDarkMode ? '#0f172a' : '#ffffff',
     cardBg: isDarkMode ? '#151f30' : '#ffffff',
-    summaryBg: isDarkMode ? '#1e1b4b' : '#4f46e5', // Gündüz modunda göz yormayan açık indigo/mavi
+    summaryBg: isDarkMode ? '#1e1b4b' : '#4f46e5',
     summaryBorder: isDarkMode ? '#312e81' : '#4338ca',
-    cardBorder: isDarkMode ? '#1e293b' : '#e2e8f0',
+    cardBorder: isDarkMode ? '#1e293b' : '#cbd5e1',
     textPrimary: isDarkMode ? '#ffffff' : '#0f172a',
-    textSecondary: isDarkMode ? '#94a3b8' : '#475569',
-    inputBg: isDarkMode ? '#0f172a' : '#f1f5f9',
+    textSecondary: isDarkMode ? '#94a3b8' : '#64748b',
+    inputBg: isDarkMode ? '#0f172a' : '#f8fafc',
     accent: isDarkMode ? '#38bdf8' : '#0284c7',
   };
 
@@ -265,13 +270,23 @@ export default function App() {
     if (!formName || !formPrice) return;
 
     const normalizedPrice = Number(formPrice.replace(',', '.'));
+    const parsedMonth = Math.min(Math.max(Number(formMonth) || 1, 1), 12);
+    const parsedYear = Number(formYear) || 2026;
+
+    // Seçilen ayın kaç çektiğini hesapla ve günü buna göre sınırla
+    const maxDaysInSelectedMonth = formPeriod === 'yearly' 
+      ? getDaysInMonth(parsedMonth - 1, parsedYear)
+      : 31;
+    
+    const rawDay = Number(formDay) || 1;
+    const clampedDay = Math.min(Math.max(rawDay, 1), maxDaysInSelectedMonth);
 
     const subData = {
       name: formName,
       price: isNaN(normalizedPrice) ? 0 : normalizedPrice,
-      billingDay: Number(formDay) || 1,
-      billingMonth: Number(formMonth) || 1,
-      billingYear: Number(formYear) || 2026,
+      billingDay: clampedDay,
+      billingMonth: parsedMonth,
+      billingYear: parsedYear,
       category: formCategory,
       period: formPeriod,
       cancelUrl: formCancelUrl || `https://www.google.com/search?q=${formName}+iptal+et`,
@@ -429,7 +444,8 @@ export default function App() {
 
             {calendarViewMode === 'daily' && (
               <View style={{ gap: 8 }}>
-                {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
+                {}
+                {Array.from({ length: getDaysInMonth(calMonth, calYear) }, (_, i) => i + 1).map((day) => {
                   const daySubs = safeList.filter(s => isSubActiveOnDay(s, day));
 
                   return (
@@ -455,7 +471,8 @@ export default function App() {
 
             {calendarViewMode === 'monthly' && (
               <View style={styles.calendarGrid}>
-                {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
+                {}
+                {Array.from({ length: getDaysInMonth(calMonth, calYear) }, (_, i) => i + 1).map((day) => {
                   const daySubs = safeList.filter(s => isSubActiveOnDay(s, day));
                   return (
                     <View key={day} style={[styles.calendarDayBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }, daySubs.length > 0 && styles.activeDayBox]}>
@@ -718,6 +735,17 @@ export default function App() {
                     onChangeText={(txt) => setFormYear(txt.replace(/[^0-9]/g, ''))}
                   />
                 </View>
+                {}
+                {(() => {
+                  const m = Math.min(Math.max(Number(formMonth) || 1, 1), 12);
+                  const y = Number(formYear) || 2026;
+                  const maxDays = getDaysInMonth(m - 1, y);
+                  return (
+                    <Text style={{ fontSize: 11, color: theme.accent, marginTop: -4, marginBottom: 10 }}>
+                      ℹ️ {MONTH_NAMES[m - 1]} {y} dönemi {maxDays} gün çekmektedir.
+                    </Text>
+                  );
+                })()}
               </>
             )}
 
