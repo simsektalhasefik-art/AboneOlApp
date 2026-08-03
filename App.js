@@ -340,19 +340,19 @@ export default function App() {
               
               <View style={styles.statsRow}>
                 <View style={styles.statBox}>
-                  <Text style={styles.statLabel}>Günlük Yük</Text>
+                  <Text style={styles.statLabel}>Günlük Maliyet</Text>
                   <Text style={styles.statValue}>{formatTL(monthlyTotal / 30)}</Text>
                 </View>
                 <View style={styles.statBox}>
-                  <Text style={styles.statLabel}>Yıllık Tahmini</Text>
+                  <Text style={styles.statLabel}>Yıllık Toplam Maliyet</Text>
                   <Text style={styles.statValue}>{formatTL(monthlyTotal * 12)}</Text>
                 </View>
               </View>
             </View>
 
-            <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Aktif Servisler ({safeList.length})</Text>
+            <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Aktif Abonelikler ({safeList.length})</Text>
 
-            {            safeList.length === 0 ? (
+            {safeList.length === 0 ? (
               <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
                 <Text style={{ color: theme.textSecondary, textAlign: 'center' }}>Henüz kayıtlı aboneliğiniz yok.</Text>
               </View>
