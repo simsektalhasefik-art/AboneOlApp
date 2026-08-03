@@ -30,7 +30,6 @@ const MONTH_NAMES = [
 
 const YEARS = [2025, 2026, 2027, 2028, 2029, 2030];
 
-// Türkçe Para Formatlayıcı (Örn: 135.125,76)
 const formatTL = (amount) => {
   const val = Number(amount) || 0;
   return val.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
@@ -60,17 +59,16 @@ export default function App() {
   const [subscriptions, setSubscriptions] = useState([
     { id: '1', name: 'Netflix', price: 345, category: 'Eğlence', billingDay: 7, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://www.netflix.com/youraccount', color: '#E50914' },
     { id: '2', name: 'YouTube Premium', price: 79, category: 'Eğlence', billingDay: 15, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://www.youtube.com/paid_memberships', color: '#FF0000' },
-    { id: '3', name: 'ChatGPT Plus', price: 650, category: 'Yazılım & AI', billingDay: 12, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://chatgpt.com/#settings', color: '#10A37F' },
-    { id: '4', name: 'Spotify', price: 59, category: 'Müzik', billingDay: 1, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://www.spotify.com/account/overview/', color: '#1DB954' }
+    { id: '3', name: 'ChatGPT Plus', price: 650, category: 'Yazılım & AI', billingDay: 12, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://chatgpt.com/#settings', color: '#10A37F' }
   ]);
 
-  const [activeTab, setActiveTab] = useState('analytics'); 
+  const [activeTab, setActiveTab] = useState('list'); 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
-  const [calMonth, setCalMonth] = useState(7); // Ağustos
+  const [calMonth, setCalMonth] = useState(7);
   const [calYear, setCalYear] = useState(2026);
-  const [calendarViewMode, setCalendarViewMode] = useState('daily');
+  const [calendarViewMode, setCalendarViewMode] = useState('monthly');
 
   const [selectedAnalysisYear, setSelectedAnalysisYear] = useState(2026);
 
@@ -87,16 +85,18 @@ export default function App() {
 
   const safeList = Array.isArray(subscriptions) ? subscriptions : [];
 
-  // TEMA DİNAMİK RENKLERİ
+  // TEMA RENKLERİ (Gündüz modundaki lacivert kart yumuşatıldı)
   const theme = {
     bg: isDarkMode ? '#090d16' : '#f8fafc',
     headerBg: isDarkMode ? '#0f172a' : '#ffffff',
     cardBg: isDarkMode ? '#151f30' : '#ffffff',
+    summaryBg: isDarkMode ? '#1e1b4b' : '#4f46e5', // Gündüz modunda çok daha canlı ve açık indigo/mavi
+    summaryBorder: isDarkMode ? '#312e81' : '#4338ca',
     cardBorder: isDarkMode ? '#1e293b' : '#e2e8f0',
     textPrimary: isDarkMode ? '#ffffff' : '#0f172a',
-    textSecondary: isDarkMode ? '#94a3b8' : '#64748b',
+    textSecondary: isDarkMode ? '#94a3b8' : '#475569',
     inputBg: isDarkMode ? '#0f172a' : '#f1f5f9',
-    accent: '#38bdf8',
+    accent: isDarkMode ? '#38bdf8' : '#0284c7',
   };
 
   const monthlyTotal = safeList.reduce((sum, item) => {
@@ -122,7 +122,6 @@ export default function App() {
 
   const currentCalMonthTotal = calculateMonthTotal(calMonth, calYear);
 
-  // Kategori Bazlı Aylık Detaylı Hesaplama (Stacked Bar İçin)
   const getDetailedMonthlyBreakdown = (targetYear) => {
     const monthlyCategoryData = Array(12).fill(null).map(() => ({}));
     const monthlyTotals = Array(12).fill(0);
@@ -163,32 +162,6 @@ export default function App() {
     }
     return acc;
   }, {});
-
-  const generateInsights = () => {
-    const insights = [];
-    const monthlySubs = safeList.filter(s => s.period === 'monthly');
-    if (monthlySubs.length > 0) {
-      const potentialSavings = monthlySubs.reduce((sum, s) => sum + (Number(s.price) * 12 * 0.15), 0);
-      insights.push({
-        type: 'warning',
-        title: '💡 Yıllık Plan İndirimi Fırsatı',
-        desc: `Aylık ödediğiniz abonelikleri yıllık plana geçirerek yılda yaklaşık ${formatTL(potentialSavings)} (%15) tasarruf edebilirsiniz.`
-      });
-    }
-
-    const eglenveSubs = safeList.filter(s => s.category === 'Eğlence');
-    if (eglenveSubs.length >= 2) {
-      insights.push({
-        type: 'info',
-        title: '🎬 Eğlence Harcaması Yüksek',
-        desc: `Şu an ${eglenveSubs.length} adet dijital yayın servisine (Netflix, Exxen vb.) abonesiniz. Aktif izlemediğinizi dondurarak ayda ${formatTL(eglenveSubs[0].price)} cebinizde kalabilir.`
-      });
-    }
-
-    return insights;
-  };
-
-  const insightsList = generateInsights();
 
   const handlePrevMonth = () => {
     if (calYear === 2025 && calMonth === 0) return;
@@ -297,7 +270,6 @@ export default function App() {
         </View>
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          {/* Gündüz / Gece Modu Butonu */}
           <TouchableOpacity 
             style={[styles.themeToggleBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
             onPress={() => setIsDarkMode(!isDarkMode)}
@@ -316,7 +288,8 @@ export default function App() {
         {/* TAB 1: ABONELİKLER */}
         {activeTab === 'list' && (
           <>
-            <View style={styles.summaryCard}>
+            {/* YUMUŞATILMIŞ / YENİLENMİŞ KART RENK TASARIMI */}
+            <View style={[styles.summaryCard, { backgroundColor: theme.summaryBg, borderColor: theme.summaryBorder }]}>
               <Text style={styles.summaryLabel}>Toplam Aylık Taahhüt</Text>
               <Text style={styles.summaryValue}>{formatTL(monthlyTotal)}</Text>
               
@@ -425,24 +398,16 @@ export default function App() {
                     </View>
                   );
                 })}
-
-                <View style={[styles.monthTotalFooterCard, { backgroundColor: theme.headerBg, borderColor: theme.cardBorder }]}>
-                  <Text style={{ color: theme.textSecondary, fontSize: 13, fontWeight: '600' }}>
-                    {MONTH_NAMES[calMonth]} {calYear} Dönemi Toplam Ödeme:
-                  </Text>
-                  <Text style={{ color: theme.accent, fontSize: 24, fontWeight: 'bold', marginTop: 4 }}>
-                    {formatTL(currentCalMonthTotal)}
-                  </Text>
-                </View>
               </View>
             )}
 
+            {/* BÜYÜTÜLMÜŞ ABONELİK İSİM VE TUTARLARI */}
             {calendarViewMode === 'monthly' && (
               <View style={styles.calendarGrid}>
                 {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
                   const daySubs = safeList.filter(s => isSubActiveOnDay(s, day));
                   return (
-                    <View key={day} style={[styles.calendarDayBox, { backgroundColor: theme.cardBg }, daySubs.length > 0 && styles.activeDayBox]}>
+                    <View key={day} style={[styles.calendarDayBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }, daySubs.length > 0 && styles.activeDayBox]}>
                       <Text style={[styles.dayNumber, { color: theme.textSecondary }]}>{day}</Text>
                       {daySubs.map(s => {
                         const sColor = s.color || getServiceColor(s.name);
@@ -459,6 +424,15 @@ export default function App() {
               </View>
             )}
 
+            <View style={[styles.monthTotalFooterCard, { backgroundColor: theme.headerBg, borderColor: theme.cardBorder }]}>
+              <Text style={{ color: theme.textSecondary, fontSize: 14, fontWeight: '600' }}>
+                {MONTH_NAMES[calMonth]} {calYear} Dönemi Toplam Ödeme:
+              </Text>
+              <Text style={{ color: theme.accent, fontSize: 24, fontWeight: 'bold', marginTop: 4 }}>
+                {formatTL(currentCalMonthTotal)}
+              </Text>
+            </View>
+
           </View>
         )}
 
@@ -466,9 +440,8 @@ export default function App() {
         {activeTab === 'analytics' && (
           <View style={{ marginTop: 10 }}>
             <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.textPrimary, marginBottom: 4 }}>Finansal Analiz & Grafikler</Text>
-            <Text style={{ color: theme.textSecondary, fontSize: 12, marginBottom: 16 }}>Aylık harcama dağılımları ve akıllı ipuçları</Text>
+            <Text style={{ color: theme.textSecondary, fontSize: 13, marginBottom: 16 }}>Aylık harcama dağılımları</Text>
 
-            {/* Yıl Seçimi */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
               {YEARS.map(y => (
                 <TouchableOpacity 
@@ -481,13 +454,12 @@ export default function App() {
               ))}
             </ScrollView>
 
-            {/* KATEGORİLİ YIĞILMIŞ (STACKED) GRAFİK BÖLÜMÜ */}
+            {/* BÜYÜTÜLMÜŞ AY VE RAKAM FONT BOYUTLARI */}
             <View style={[styles.chartContainer, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-              <Text style={{ color: theme.textPrimary, fontWeight: 'bold', fontSize: 16, marginBottom: 12 }}>
+              <Text style={{ color: theme.textPrimary, fontWeight: 'bold', fontSize: 16, marginBottom: 14 }}>
                 Aylık Harcama Grafiği ({selectedAnalysisYear})
               </Text>
               
-              {/* KATEGORİ RENK AÇIKLAMALARI (LEGEND) */}
               <View style={styles.legendContainer}>
                 {Object.keys(CATEGORY_COLORS).map(cat => (
                   <View key={cat} style={styles.legendItem}>
@@ -497,7 +469,6 @@ export default function App() {
                 ))}
               </View>
 
-              {/* BAR AREA */}
               <View style={styles.barsAreaContainer}>
                 {MONTH_NAMES.map((mName, idx) => {
                   const totalVal = monthlyTotals[idx];
@@ -507,7 +478,6 @@ export default function App() {
 
                   return (
                     <View key={mName} style={styles.barColumn}>
-                      {/* Çubuk (Stacked) */}
                       <View style={[styles.barTrack, { backgroundColor: isDarkMode ? '#0f172a' : '#e2e8f0' }]}>
                         <View style={{ width: '100%', height: `${finalBarHeight}%`, borderRadius: 6, overflow: 'hidden', flexDirection: 'column-reverse' }}>
                           {Object.keys(catBreakdown).map(cat => {
@@ -527,10 +497,10 @@ export default function App() {
                         </View>
                       </View>
 
-                      {/* Ay Kısaltması */}
-                      <Text style={[styles.barLabel, { color: theme.textSecondary }]}>{mName.substr(0, 3)}</Text>
+                      {/* Büyütülmüş Ay İsimleri */}
+                      <Text style={[styles.barLabel, { color: theme.textPrimary }]}>{mName.substr(0, 3)}</Text>
                       
-                      {/* AYLARIN ALTINDA HER KATEGORİ HARCAMASI (TUTAR GÖSTERİMİ) */}
+                      {/* Büyütülmüş Tutar Rakamları */}
                       <Text style={[styles.barAmountText, { color: totalVal > 0 ? theme.accent : theme.textSecondary }]}>
                         {formatShortTL(totalVal)}
                       </Text>
@@ -540,29 +510,10 @@ export default function App() {
               </View>
 
               <View style={[styles.chartFooter, { borderTopColor: theme.cardBorder }]}>
-                <Text style={{ color: theme.textSecondary, fontSize: 13 }}>Yıllık Toplam:</Text>
-                <Text style={{ color: theme.accent, fontSize: 20, fontWeight: 'bold' }}>{formatTL(totalYearlyExpenseForSelectedYear)}</Text>
+                <Text style={{ color: theme.textSecondary, fontSize: 14 }}>Yıllık Toplam:</Text>
+                <Text style={{ color: theme.accent, fontSize: 22, fontWeight: 'bold' }}>{formatTL(totalYearlyExpenseForSelectedYear)}</Text>
               </View>
             </View>
-
-            {/* CEBİN AKILLI TASARRUF ÖNERİLERİ */}
-            <Text style={{ color: theme.textPrimary, fontSize: 16, fontWeight: 'bold', marginTop: 16, marginBottom: 12 }}>
-              💡 Cebin Akıllı Tasarruf İpuçları
-            </Text>
-
-            {insightsList.length > 0 ? (
-              insightsList.map((insight, index) => (
-                <View key={index} style={[styles.insightCard, { backgroundColor: theme.cardBg }, insight.type === 'warning' && { borderLeftColor: '#f59e0b' }]}>
-                  <Text style={[styles.insightTitle, { color: theme.textPrimary }]}>{insight.title}</Text>
-                  <Text style={[styles.insightDesc, { color: theme.textSecondary }]}>{insight.desc}</Text>
-                </View>
-              ))
-            ) : (
-              <View style={[styles.insightCard, { backgroundColor: theme.cardBg }]}>
-                <Text style={[styles.insightTitle, { color: theme.textPrimary }]}>✅ Harcamalarınız İdeal Durumda</Text>
-                <Text style={[styles.insightDesc, { color: theme.textSecondary }]}>Şu anda aboneliklerinizde kritik bir tasarruf uyarısı bulunmuyor.</Text>
-              </View>
-            )}
 
             {/* KATEGORİ DAĞILIMI */}
             <Text style={{ color: theme.textPrimary, fontSize: 16, fontWeight: 'bold', marginTop: 16, marginBottom: 12 }}>
@@ -748,13 +699,14 @@ const styles = StyleSheet.create({
   addBtnText: { color: '#ffffff', fontWeight: 'bold', fontSize: 13 },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 100, paddingTop: 16 },
   
-  summaryCard: { backgroundColor: '#1e1b4b', borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#312e81' },
-  summaryLabel: { color: '#a5b4fc', fontSize: 13, fontWeight: '500' },
-  summaryValue: { color: '#ffffff', fontSize: 32, fontWeight: 'bold', marginVertical: 8 },
+  // Özet Kartı
+  summaryCard: { borderRadius: 16, padding: 22, marginBottom: 16, borderWidth: 1 },
+  summaryLabel: { color: '#ffffff', fontSize: 13, fontWeight: '600', opacity: 0.9 },
+  summaryValue: { color: '#ffffff', fontSize: 34, fontWeight: 'bold', marginVertical: 8 },
   statsRow: { flexDirection: 'row', gap: 12, marginTop: 12 },
-  statBox: { flex: 1, backgroundColor: 'rgba(255, 255, 255, 0.05)', padding: 10, borderRadius: 8 },
-  statLabel: { color: '#c7d2fe', fontSize: 11 },
-  statValue: { color: '#ffffff', fontSize: 14, fontWeight: 'bold', marginTop: 2 },
+  statBox: { flex: 1, backgroundColor: 'rgba(255, 255, 255, 0.15)', padding: 12, borderRadius: 10 },
+  statLabel: { color: '#ffffff', fontSize: 11, opacity: 0.9 },
+  statValue: { color: '#ffffff', fontSize: 15, fontWeight: 'bold', marginTop: 2 },
   sectionTitle: { fontSize: 14, fontWeight: '600', marginBottom: 12 },
   
   card: { borderRadius: 12, padding: 16, marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1 },
@@ -788,15 +740,16 @@ const styles = StyleSheet.create({
   brandBadgeText: { color: '#ffffff', fontSize: 11, fontWeight: 'bold' },
   monthTotalFooterCard: { borderWidth: 1, padding: 16, borderRadius: 12, marginTop: 12, alignItems: 'center' },
 
+  // Büyütülen Takvim Kartları ve İçerikleri
   calendarGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  calendarDayBox: { width: '13%', height: 70, borderRadius: 6, padding: 4 },
-  activeDayBox: { borderWidth: 1, borderColor: '#6366f1', backgroundColor: '#1e1b4b' },
-  dayNumber: { fontSize: 10, fontWeight: 'bold' },
-  daySubBadge: { borderRadius: 4, padding: 2, marginTop: 2 },
-  daySubText: { color: '#fff', fontSize: 8, fontWeight: 'bold' },
-  daySubPrice: { color: '#ffffff', fontSize: 8, opacity: 0.9 },
+  calendarDayBox: { width: '13.5%', minHeight: 82, borderRadius: 8, padding: 6, borderWidth: 1 },
+  activeDayBox: { borderColor: '#6366f1', borderWidth: 1.5 },
+  dayNumber: { fontSize: 12, fontWeight: 'bold', marginBottom: 2 },
+  daySubBadge: { borderRadius: 4, padding: 4, marginTop: 3 },
+  daySubText: { color: '#fff', fontSize: 12, fontWeight: 'bold' }, // Büyütüldü (10 -> 12)
+  daySubPrice: { color: '#ffffff', fontSize: 11, fontWeight: '600', marginTop: 1 }, // Büyütüldü (9 -> 11)
 
-  // Visual Chart Styles Fixed
+  // Büyütülen Grafik Boyutları
   yearChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 8 },
   yearChipActive: { backgroundColor: '#6366f1' },
   yearChipText: { fontWeight: '600' },
@@ -806,20 +759,15 @@ const styles = StyleSheet.create({
   legendContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   legendColorBox: { width: 10, height: 10, borderRadius: 2 },
-  legendText: { fontSize: 10, fontWeight: '600' },
+  legendText: { fontSize: 11, fontWeight: '600' },
 
-  barsAreaContainer: { flexDirection: 'row', height: 160, alignItems: 'flex-end', justifyContent: 'space-between', paddingVertical: 10 },
+  barsAreaContainer: { flexDirection: 'row', height: 180, alignItems: 'flex-end', justifyContent: 'space-between', paddingVertical: 10 },
   barColumn: { flex: 1, height: '100%', alignItems: 'center', justifyContent: 'flex-end' },
-  barTrack: { width: 14, height: 110, borderRadius: 6, justifyContent: 'flex-end', overflow: 'hidden' },
-  barLabel: { fontSize: 9, marginTop: 4, fontWeight: 'bold' },
-  barAmountText: { fontSize: 7, marginTop: 2, fontWeight: 'bold' },
+  barTrack: { width: 16, height: 120, borderRadius: 6, justifyContent: 'flex-end', overflow: 'hidden' },
+  barLabel: { fontSize: 12, marginTop: 6, fontWeight: 'bold' }, // Büyütüldü (9 -> 12)
+  barAmountText: { fontSize: 9, marginTop: 2, fontWeight: 'bold' }, // Büyütüldü (7 -> 9)
 
   chartFooter: { borderTopWidth: 1, paddingTop: 12, marginTop: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-
-  // Insight Cards
-  insightCard: { padding: 14, borderRadius: 10, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: '#38bdf8' },
-  insightTitle: { fontWeight: 'bold', fontSize: 13, marginBottom: 4 },
-  insightDesc: { fontSize: 12, lineHeight: 16 },
 
   categoryCard: { padding: 12, borderRadius: 10, marginBottom: 8 },
   progressBarBg: { height: 6, borderRadius: 3, overflow: 'hidden' },
