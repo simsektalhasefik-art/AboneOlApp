@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, SafeAreaView, ScrollView, TouchableOpacity, Modal, TextInput, Linking } from 'react-native';
+import { StyleSheet, Text, View, SafeAreaView, ScrollView, TouchableOpacity, Modal, TextInput, Linking, useWindowDimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
 const STORAGE_KEY = '@cebin_subscriptions_v2';
@@ -31,13 +31,13 @@ const DEFAULT_RATES = {
 };
 
 const NOTIFICATION_OPTIONS = [
-  { label: '🚫 Bildirim Yok', value: -1 },
-  { label: '⚡ Ödeme Günü (Aynı Gün)', value: 0 },
-  { label: '🔔 1 Gün Önce', value: 1 },
-  { label: '🔔 2 Gün Önce', value: 2 },
-  { label: '🔔 3 Gün Önce', value: 3 },
-  { label: '🔔 5 Gün Önce', value: 5 },
-  { label: '🔔 7 Gün (1 Hafta) Önce', value: 7 },
+  { label: '🚫 Bildirim Yok', badgeLabel: 'Bildirim Yok', value: -1 },
+  { label: '⚡ Ödeme Günü (Aynı Gün)', badgeLabel: '⚡ Aynı Gün', value: 0 },
+  { label: '🔔 Ödemeden 1 Gün Önce', badgeLabel: '🔔 Hatırlatma: 1 Gün Önce', value: 1 },
+  { label: '🔔 Ödemeden 2 Gün Önce', badgeLabel: '🔔 Hatırlatma: 2 Gün Önce', value: 2 },
+  { label: '🔔 Ödemeden 3 Gün Önce', badgeLabel: '🔔 Hatırlatma: 3 Gün Önce', value: 3 },
+  { label: '🔔 Ödemeden 5 Gün Önce', badgeLabel: '🔔 Hatırlatma: 5 Gün Önce', value: 5 },
+  { label: '🔔 Ödemeden 7 Gün Önce', badgeLabel: '🔔 Hatırlatma: 7 Gün Önce', value: 7 },
 ];
 
 const DEFAULT_SUBSCRIPTIONS = [
@@ -102,6 +102,9 @@ const getServiceColor = (name = '') => {
 };
 
 export default function App() {
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= 768;
+
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [subscriptions, setSubscriptions] = useState([]);
   const [exchangeRates, setExchangeRates] = useState(DEFAULT_RATES);
@@ -486,111 +489,111 @@ export default function App() {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
       <StatusBar style={isDarkMode ? 'light' : 'dark'} />
       
-      <View style={styles.responsiveWrapper}>
+      <View style={[styles.appWrapper, isDesktop && styles.appWrapperDesktop]}>
 
-        {/* Header */}
-        <View style={[styles.header, { backgroundColor: theme.headerBg, borderBottomColor: theme.cardBorder }]}>
-          <View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        {/* DİKEY SIDEBAR (Geniş Ekranlar / Masaüstü için) */}
+        {isDesktop && (
+          <View style={[styles.sidebarContainer, { backgroundColor: theme.headerBg, borderRightColor: theme.cardBorder }]}>
+            <View style={styles.sidebarHeader}>
               <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Cebin</Text>
               <View style={styles.proBadge}>
                 <Text style={styles.proBadgeText}>FINANCE 2.0</Text>
               </View>
             </View>
-            <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Akıllı Abonelik & Bütçe Asistanı</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textSecondary, marginBottom: 24 }]}>
+              Akıllı Abonelik & Bütçe Asistanı
+            </Text>
+
+            <View style={styles.sidebarNavGroup}>
+              <TouchableOpacity 
+                style={[styles.sidebarNavBtn, activeTab === 'list' && styles.sidebarNavBtnActive]} 
+                onPress={() => setActiveTab('list')}
+              >
+                <Text style={{ fontSize: 18 }}>💳</Text>
+                <Text style={[styles.sidebarNavText, { color: activeTab === 'list' ? '#6366f1' : theme.textSecondary }]}>
+                  Abonelikler
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.sidebarNavBtn, activeTab === 'calendar' && styles.sidebarNavBtnActive]} 
+                onPress={() => setActiveTab('calendar')}
+              >
+                <Text style={{ fontSize: 18 }}>📅</Text>
+                <Text style={[styles.sidebarNavText, { color: activeTab === 'calendar' ? '#6366f1' : theme.textSecondary }]}>
+                  Takvim
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.sidebarNavBtn, activeTab === 'analytics' && styles.sidebarNavBtnActive]} 
+                onPress={() => setActiveTab('analytics')}
+              >
+                <Text style={{ fontSize: 18 }}>📊</Text>
+                <Text style={[styles.sidebarNavText, { color: activeTab === 'analytics' ? '#6366f1' : theme.textSecondary }]}>
+                  Analiz
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ marginTop: 'auto' }}>
+              <TouchableOpacity style={styles.addBtn} onPress={() => openForm()}>
+                <Text style={styles.addBtnText}>+ Yeni Abonelik Ekle</Text>
+              </TouchableOpacity>
+            </View>
           </View>
+        )}
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <TouchableOpacity 
-              style={[
-                styles.iconBtn, 
-                { backgroundColor: notificationPermission === 'granted' ? '#10b98122' : theme.cardBg, borderColor: theme.cardBorder }
-              ]} 
-              onPress={requestNotificationAccess}
-            >
-              <Text style={{ fontSize: 16 }}>{notificationPermission === 'granted' ? '🔔' : '🔕'}</Text>
-            </TouchableOpacity>
+        {/* ANA İÇERİK KONTROL ALANI */}
+        <View style={styles.responsiveWrapper}>
 
-            <TouchableOpacity 
-              style={[styles.themeToggleBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
-              onPress={() => setIsDarkMode(!isDarkMode)}
-            >
-              <Text style={{ fontSize: 16 }}>{isDarkMode ? '☀️' : '🌙'}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.addBtn} onPress={() => openForm()}>
-              <Text style={styles.addBtnText}>+ Yeni Ekle</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-
-          {/* DÖVİZ KURLARI BİLGİ BARI */}
-          <View style={[styles.currencyBar, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-            <Text style={[styles.currencyBarTitle, { color: theme.textSecondary }]}>Güncel Canlı Kurlar (TL):</Text>
-            <View style={styles.currencyBadgeGroup}>
-              <View style={styles.currencyBadge}>
-                <Text style={styles.currencyBadgeText}>USD: {exchangeRates.USD} ₺</Text>
+          {/* Header */}
+          <View style={[styles.header, { backgroundColor: theme.headerBg, borderBottomColor: theme.cardBorder }]}>
+            {!isDesktop ? (
+              <View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Cebin</Text>
+                  <View style={styles.proBadge}>
+                    <Text style={styles.proBadgeText}>FINANCE 2.0</Text>
+                  </View>
+                </View>
+                <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Akıllı Abonelik & Bütçe Asistanı</Text>
               </View>
-              <View style={styles.currencyBadge}>
-                <Text style={styles.currencyBadgeText}>EUR: {exchangeRates.EUR} ₺</Text>
-              </View>
+            ) : (
+              <Text style={[styles.headerTitle, { color: theme.textPrimary, fontSize: 20 }]}>
+                {activeTab === 'list' ? 'Abonelik Yönetimi' : activeTab === 'calendar' ? 'Ödeme Takvimi' : 'Finansal Analiz & Raporlar'}
+              </Text>
+            )}
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
+              <TouchableOpacity 
+                style={[
+                  styles.iconBtn, 
+                  { backgroundColor: notificationPermission === 'granted' ? '#10b98122' : theme.cardBg, borderColor: theme.cardBorder }
+                ]} 
+                onPress={requestNotificationAccess}
+              >
+                <Text style={{ fontSize: 16 }}>{notificationPermission === 'granted' ? '🔔' : '🔕'}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.themeToggleBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+                onPress={() => setIsDarkMode(!isDarkMode)}
+              >
+                <Text style={{ fontSize: 16 }}>{isDarkMode ? '☀️' : '🌙'}</Text>
+              </TouchableOpacity>
+
+              {!isDesktop && (
+                <TouchableOpacity style={styles.addBtn} onPress={() => openForm()}>
+                  <Text style={styles.addBtnText}>+ Yeni Ekle</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
 
-          {/* YAKLAŞAN ÖDEMELER BANNER'I */}
-          {upcomingPayments.length > 0 && (
-            <View style={[styles.reminderBanner, { backgroundColor: '#f59e0b15', borderColor: '#f59e0b' }]}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Text style={{ fontSize: 20 }}>⏰</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: '#f59e0b', fontWeight: 'bold', fontSize: 13 }}>Hatırlatma: Yaklaşan Ödemeleriniz Var!</Text>
-                  <Text style={{ color: theme.textSecondary, fontSize: 12 }}>
-                    {upcomingPayments.map(p => {
-                      const notifText = p.notificationDays === 0 ? 'Bugün' : `${p.notificationDays || 2} gün içinde`;
-                      return `${p.name} (${p.billingDay} Ağs - ${notifText})`;
-                    }).join(', ')} için son ödeme yaklaşıyor.
-                  </Text>
-                </View>
-              </View>
-            </View>
-          )}
+          <ScrollView contentContainerStyle={[styles.scrollContent, isDesktop && { paddingBottom: 40 }]}>
 
-          {/* TAB 1: LISTE GÖRÜNÜMÜ */}
-          {activeTab === 'list' && (
-            <>
-              {/* ÖZET KARTI */}
-              <View style={[styles.summaryCard, { backgroundColor: theme.summaryBg, borderColor: theme.summaryBorder }]}>
-                <Text style={styles.summaryLabel}>Toplam Aylık Taahhüt (TL Karşılığı)</Text>
-                <Text style={styles.summaryValue}>{formatCurrency(monthlyTotalTL, 'TRY')}</Text>
-                
-                <View style={styles.statsRow}>
-                  <View style={styles.statBox}>
-                    <Text style={styles.statLabel}>Günlük Tahmini</Text>
-                    <Text style={styles.statValue}>{formatCurrency(monthlyTotalTL / 30, 'TRY')}</Text>
-                  </View>
-                  <View style={styles.statBox}>
-                    <Text style={styles.statLabel}>Yıllık Toplam Projeksiyon</Text>
-                    <Text style={styles.statValue}>{formatCurrency(monthlyTotalTL * 12, 'TRY')}</Text>
-                  </View>
-                </View>
-              </View>
-
-              <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Aktif Abonelikler ({safeList.length})</Text>
-
-              {safeList.length === 0 ? (
-                <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-                  <Text style={{ color: theme.textSecondary, textAlign: 'center' }}>Henüz kayıtlı aboneliğiniz yok.</Text>
-                </View>
-              ) : (
-                safeList.map((item) => {
-                  const isYearly = item.period === 'yearly';
-                  const serviceColor = item.color || getServiceColor(item.name);
-                  const priceInTL = convertToTL(item.price, item.currency || 'TRY');
-                  const notifOpt = NOTIFICATION_OPTIONS.find(o => o.value === item.notificationDays) || NOTIFICATION_OPTIONS[2];
-
-                  return (
+            {/* DÖVİZ KURLARI BİLGİ BARI */}
                     <View key={item.id} style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
                       <View style={styles.leftSection}>
                         <View style={[styles.brandIconBox, { backgroundColor: serviceColor }]}>
@@ -604,9 +607,13 @@ export default function App() {
                                 <Text style={[styles.cardTagText, { color: theme.textSecondary }]}>💳 {item.paymentMethod}</Text>
                               </View>
                             )}
-                            <View style={[styles.cardTag, { backgroundColor: theme.inputBg }]}>
-                              <Text style={[styles.cardTagText, { color: theme.accent }]}>{notifOpt.label}</Text>
-                            </View>
+                            {notifOpt.value !== -1 && (
+                              <View style={[styles.cardTag, { backgroundColor: theme.inputBg }]}>
+                                <Text style={[styles.cardTagText, { color: theme.accent }]}>
+                                  {notifOpt.badgeLabel || notifOpt.label}
+                                </Text>
+                              </View>
+                            )}
                           </View>
                           <Text style={[styles.cardSubtitle, { color: theme.textSecondary }]}>
                             {item.category} • {isYearly ? `${item.billingDay}/${item.billingMonth}/${item.billingYear}` : `Her ayın ${item.billingDay}. günü`}
@@ -723,131 +730,50 @@ export default function App() {
                 ))}
               </ScrollView>
 
-              <View style={[styles.chartContainer, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-                <Text style={{ color: theme.textPrimary, fontWeight: 'bold', fontSize: 16, marginBottom: 14 }}>
-                  Aylık Harcama Grafiği ({selectedAnalysisYear})
+          {/* BOTTOM NAVIGATION BAR (Sadece Mobil / Dar Ekranlarda Görünür) */}
+          {!isDesktop && (
+            <View style={[styles.bottomNavContainer, { backgroundColor: theme.headerBg, borderTopColor: theme.cardBorder }]}>
+              <TouchableOpacity 
+                style={[styles.navTabBtn, activeTab === 'list' && styles.navTabBtnActive]} 
+                onPress={() => setActiveTab('list')}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.navIconCircle, activeTab === 'list' && styles.navIconCircleActive]}>
+                  <Text style={{ fontSize: 22 }}>💳</Text>
+                </View>
+                <Text style={[styles.navTabText, { color: activeTab === 'list' ? '#6366f1' : theme.textSecondary }]}>
+                  Abonelikler
                 </Text>
-                
-                <View style={styles.legendContainer}>
-                  {Object.keys(CATEGORY_COLORS).map(cat => (
-                    <View key={cat} style={styles.legendItem}>
-                      <View style={[styles.legendColorBox, { backgroundColor: CATEGORY_COLORS[cat] }]} />
-                      <Text style={[styles.legendText, { color: theme.textSecondary }]}>{cat}</Text>
-                    </View>
-                  ))}
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.navTabBtn, activeTab === 'calendar' && styles.navTabBtnActive]} 
+                onPress={() => setActiveTab('calendar')}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.navIconCircle, activeTab === 'calendar' && styles.navIconCircleActive]}>
+                  <Text style={{ fontSize: 22 }}>📅</Text>
                 </View>
+                <Text style={[styles.navTabText, { color: activeTab === 'calendar' ? '#6366f1' : theme.textSecondary }]}>
+                  Takvim
+                </Text>
+              </TouchableOpacity>
 
-                <View style={styles.barsAreaContainer}>
-                  {MONTH_NAMES.map((mName, idx) => {
-                    const totalVal = monthlyTotals[idx];
-                    const catBreakdown = monthlyCategoryData[idx];
-                    const heightPercent = maxMonthlyExpense > 0 ? (totalVal / maxMonthlyExpense) * 100 : 0;
-                    const finalBarHeight = Math.max(heightPercent, totalVal > 0 ? 8 : 2);
-
-                    return (
-                      <View key={mName} style={styles.barColumn}>
-                        <View style={[styles.barTrack, { backgroundColor: isDarkMode ? '#0f172a' : '#e2e8f0' }]}>
-                          <View style={{ width: '100%', height: `${finalBarHeight}%`, borderRadius: 6, overflow: 'hidden', flexDirection: 'column-reverse' }}>
-                            {Object.keys(catBreakdown).map(cat => {
-                              const catAmount = catBreakdown[cat];
-                              const catRatio = totalVal > 0 ? (catAmount / totalVal) * 100 : 0;
-                              return (
-                                <View 
-                                  key={cat} 
-                                  style={{ 
-                                    width: '100%', 
-                                    height: `${catRatio}%`, 
-                                    backgroundColor: CATEGORY_COLORS[cat] || '#64748b' 
-                                  }} 
-                                />
-                              );
-                            })}
-                          </View>
-                        </View>
-
-                        <Text style={[styles.barLabel, { color: theme.textPrimary }]}>{mName.substr(0, 3)}</Text>
-                        <Text style={[styles.barAmountText, { color: totalVal > 0 ? theme.accent : theme.textSecondary }]}>
-                          {formatShortCurrency(totalVal, 'TRY')}
-                        </Text>
-                      </View>
-                    );
-                  })}
+              <TouchableOpacity 
+                style={[styles.navTabBtn, activeTab === 'analytics' && styles.navTabBtnActive]} 
+                onPress={() => setActiveTab('analytics')}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.navIconCircle, activeTab === 'analytics' && styles.navIconCircleActive]}>
+                  <Text style={{ fontSize: 22 }}>📊</Text>
                 </View>
-
-                <View style={[styles.chartFooter, { borderTopColor: theme.cardBorder }]}>
-                  <Text style={{ color: theme.textSecondary, fontSize: 14 }}>Yıllık Toplam Harcama:</Text>
-                  <Text style={{ color: theme.accent, fontSize: 22, fontWeight: 'bold' }}>{formatCurrency(totalYearlyExpenseForSelectedYear, 'TRY')}</Text>
-                </View>
-              </View>
-
-              <Text style={{ color: theme.textPrimary, fontSize: 16, fontWeight: 'bold', marginTop: 16, marginBottom: 12 }}>
-                🏷️ Kategori Bazlı Dağılım
-              </Text>
-              {Object.keys(yearlyCategoryStats).map((cat) => {
-                const amountTL = yearlyCategoryStats[cat];
-                const percentage = totalYearlyExpenseForSelectedYear > 0 ? ((amountTL / totalYearlyExpenseForSelectedYear) * 100).toFixed(1) : 0;
-                const catColor = CATEGORY_COLORS[cat] || '#38bdf8';
-
-                return (
-                  <View key={cat} style={[styles.categoryCard, { backgroundColor: theme.cardBg }]}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: catColor }} />
-                        <Text style={{ color: theme.textPrimary, fontWeight: 'bold' }}>{cat}</Text>
-                      </View>
-                      <Text style={{ color: theme.accent, fontWeight: 'bold' }}>{formatCurrency(amountTL, 'TRY')} (%{percentage})</Text>
-                    </View>
-                    <View style={[styles.progressBarBg, { backgroundColor: theme.inputBg }]}>
-                      <View style={[styles.progressBarFill, { width: `${percentage}%`, backgroundColor: catColor }]} />
-                    </View>
-                  </View>
-                );
-              })}
+                <Text style={[styles.navTabText, { color: activeTab === 'analytics' ? '#6366f1' : theme.textSecondary }]}>
+                  Analiz
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
 
-        </ScrollView>
-
-        {/* BOTTOM NAVIGATION BAR */}
-        <View style={[styles.bottomNavContainer, { backgroundColor: theme.headerBg, borderTopColor: theme.cardBorder }]}>
-          <TouchableOpacity 
-            style={[styles.navTabBtn, activeTab === 'list' && styles.navTabBtnActive]} 
-            onPress={() => setActiveTab('list')}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.navIconCircle, activeTab === 'list' && styles.navIconCircleActive]}>
-              <Text style={{ fontSize: 22 }}>💳</Text>
-            </View>
-            <Text style={[styles.navTabText, { color: activeTab === 'list' ? '#6366f1' : theme.textSecondary }]}>
-              Abonelikler
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.navTabBtn, activeTab === 'calendar' && styles.navTabBtnActive]} 
-            onPress={() => setActiveTab('calendar')}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.navIconCircle, activeTab === 'calendar' && styles.navIconCircleActive]}>
-              <Text style={{ fontSize: 22 }}>📅</Text>
-            </View>
-            <Text style={[styles.navTabText, { color: activeTab === 'calendar' ? '#6366f1' : theme.textSecondary }]}>
-              Takvim
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.navTabBtn, activeTab === 'analytics' && styles.navTabBtnActive]} 
-            onPress={() => setActiveTab('analytics')}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.navIconCircle, activeTab === 'analytics' && styles.navIconCircleActive]}>
-              <Text style={{ fontSize: 22 }}>📊</Text>
-            </View>
-            <Text style={[styles.navTabText, { color: activeTab === 'analytics' ? '#6366f1' : theme.textSecondary }]}>
-              Analiz
-            </Text>
-          </TouchableOpacity>
         </View>
 
       </View>
@@ -1142,8 +1068,33 @@ export default function App() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  appWrapper: { flex: 1 },
+  appWrapperDesktop: { flexDirection: 'row' },
+  sidebarContainer: {
+    width: 250,
+    borderRightWidth: 1,
+    padding: 20,
+    justifyContent: 'flex-start',
+  },
+  sidebarHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
+  sidebarNavGroup: { gap: 8 },
+  sidebarNavBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  sidebarNavBtnActive: {
+    backgroundColor: '#6366f120',
+  },
+  sidebarNavText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
   responsiveWrapper: {
-    maxWidth: 1000,
+    maxWidth: 850,
     width: '100%',
     marginHorizontal: 'auto',
     alignSelf: 'center',
