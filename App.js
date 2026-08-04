@@ -695,7 +695,6 @@ const getSubscriptionCostForMonth = (
       : 0
   );
 };
-
 export default function App() {
   const { width } =
     useWindowDimensions();
@@ -706,8 +705,16 @@ export default function App() {
   const isMobile =
     width < 480;
 
+  /*
+    Ana sayfanın kaydırma alanı.
+    Kayıt ekleme ve düzenleme sonrasında
+    mevcut sayfa konumu korunur.
+  */
   const mainScrollRef =
     useRef(null);
+
+  const mainScrollPositionRef =
+    useRef(0);
 
   const scrollMainToTop = (
     animated = false
@@ -719,9 +726,27 @@ export default function App() {
             y: 0,
             animated
           });
+
+        mainScrollPositionRef.current =
+          0;
       });
     });
   };
+
+  const restoreMainScrollPosition =
+    position => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          mainScrollRef.current
+            ?.scrollTo?.({
+              y:
+                Number(position) ||
+                0,
+              animated: false
+            });
+        });
+      });
+    };
 
   const [
     subscriptions,
@@ -830,6 +855,10 @@ export default function App() {
     clampedYear
   );
 
+  /* ---------------------------------------------------------------------- */
+  /*                              FORM STATES                               */
+  /* ---------------------------------------------------------------------- */
+
   const [
     formName,
     setFormName
@@ -932,7 +961,12 @@ export default function App() {
     newPaymentMethodName,
     setNewPaymentMethodName
   ] = useState('');
-    useEffect(() => {
+
+  /* ---------------------------------------------------------------------- */
+  /*                         LOCALSTORAGE YÜKLEME                            */
+  /* ---------------------------------------------------------------------- */
+
+  useEffect(() => {
     try {
       const savedSubscriptions =
         localStorage.getItem(
@@ -1067,6 +1101,10 @@ export default function App() {
     setIsLoaded(true);
   }, []);
 
+  /* ---------------------------------------------------------------------- */
+  /*                         LOCALSTORAGE KAYIT                              */
+  /* ---------------------------------------------------------------------- */
+
   useEffect(() => {
     if (!isLoaded) {
       return;
@@ -1184,6 +1222,13 @@ export default function App() {
     isLoaded
   ]);
 
+  /*
+    Sadece sekme veya analiz yılı değiştiğinde
+    sayfa en üste alınır.
+
+    Abonelik ekleme/düzenleme subscriptions değerini
+    değiştirdiğinde sayfa artık otomatik yukarı çıkmaz.
+  */
   useEffect(() => {
     scrollMainToTop(false);
   }, [
@@ -1191,17 +1236,9 @@ export default function App() {
     selectedAnalysisYear
   ]);
 
-  useEffect(() => {
-    if (
-      activeTab ===
-      'analytics'
-    ) {
-      scrollMainToTop(false);
-    }
-  }, [
-    subscriptions,
-    activeTab
-  ]);
+  /* ---------------------------------------------------------------------- */
+  /*                               TEMA                                     */
+  /* ---------------------------------------------------------------------- */
 
   const selectedPreset =
     BACKGROUND_PRESETS[
@@ -1224,9 +1261,7 @@ export default function App() {
     ...selectedPreset,
 
     danger: '#f87171',
-
     success: '#34d399',
-
     warning: '#fbbf24',
 
     activeButton: '#6965e8',
@@ -1259,6 +1294,10 @@ export default function App() {
       ? paymentMethodsList
       : [];
 
+  /* ---------------------------------------------------------------------- */
+  /*                         ABONELİK FİLTRELEME                             */
+  /* ---------------------------------------------------------------------- */
+
   const todayForFiltering =
     new Date();
 
@@ -1287,15 +1326,13 @@ export default function App() {
       })
       .filter(subscription => {
         if (
-          viewFilter ===
-          'ALL'
+          viewFilter === 'ALL'
         ) {
           return true;
         }
 
         if (
-          viewFilter ===
-          'MONTHLY'
+          viewFilter === 'MONTHLY'
         ) {
           return (
             subscription.period ===
@@ -1304,8 +1341,7 @@ export default function App() {
         }
 
         if (
-          viewFilter ===
-          'YEARLY'
+          viewFilter === 'YEARLY'
         ) {
           return (
             subscription.period ===
@@ -1314,8 +1350,7 @@ export default function App() {
         }
 
         if (
-          viewFilter ===
-          'UPCOMING'
+          viewFilter === 'UPCOMING'
         ) {
           const nextRenewal =
             getNextRenewal(
@@ -1417,6 +1452,10 @@ export default function App() {
     )?.label ||
     'Tüm Abonelikler';
 
+  /* ---------------------------------------------------------------------- */
+  /*                         ÖZET HESAPLAMALARI                              */
+  /* ---------------------------------------------------------------------- */
+
   const monthlyTotalTL =
     safeList.reduce(
       (
@@ -1462,6 +1501,9 @@ export default function App() {
 
   const yearlyProjectionTL =
     monthlyTotalTL * 12;
+  /* ---------------------------------------------------------------------- */
+  /*                         ANALİZ HESAPLAMALARI                            */
+  /* ---------------------------------------------------------------------- */
 
   const getDetailedMonthlyBreakdown =
     targetYear => {
@@ -1828,6 +1870,10 @@ export default function App() {
           b.daysUntil
       );
 
+  /* ---------------------------------------------------------------------- */
+  /*                     ABONELİK FORMUNU AÇMA/KAPATMA                       */
+  /* ---------------------------------------------------------------------- */
+
   const openSubscriptionForm =
     (
       item = null
@@ -1994,8 +2040,15 @@ export default function App() {
       );
     };
 
+  /* ---------------------------------------------------------------------- */
+  /*                         ABONELİK KAYDETME                               */
+  /* ---------------------------------------------------------------------- */
+
   const handleSaveSubscription =
     () => {
+      const preservedScrollPosition =
+        mainScrollPositionRef.current;
+
       const normalizedPrice =
         String(
           formPrice
@@ -2110,36 +2163,51 @@ export default function App() {
         return;
       }
 
-     const duplicateSubscription =
-  safeList.find(
-    subscription =>
-      subscription.id !== editingId &&
-      normalizeText(subscription.name) ===
-        normalizeText(formName) &&
-      subscription.period === formPeriod &&
-      subscription.status !== 'cancelled'
-  );
+      /*
+        Aynı isim ve aynı ödeme periyoduna sahip
+        aktif bir kayıt bulunursa kullanıcı uyarılır.
+      */
+      const duplicateSubscription =
+        safeList.find(
+          subscription =>
+            subscription.id !==
+              editingId &&
+            normalizeText(
+              subscription.name
+            ) ===
+              normalizeText(
+                formName
+              ) &&
+            subscription.period ===
+              formPeriod &&
+            subscription.status !==
+              'cancelled'
+        );
 
-if (duplicateSubscription) {
-  const continueAnyway =
-    confirmAction(
-      `“${duplicateSubscription.name}” isimli ${
-        duplicateSubscription.period === 'yearly'
-          ? 'yıllık'
-          : 'aylık'
-      } bir kayıt zaten bulunuyor.\n\nYine de mükerrer kayıt oluşturulsun mu?`
-    );
+      if (
+        duplicateSubscription
+      ) {
+        const continueAnyway =
+          confirmAction(
+            `“${duplicateSubscription.name}” isimli ${
+              duplicateSubscription.period ===
+              'yearly'
+                ? 'yıllık'
+                : 'aylık'
+            } bir kayıt zaten bulunuyor.\n\nYine de mükerrer kayıt oluşturulsun mu?`
+          );
 
-  if (!continueAnyway) {
-    return;
-  }
-}
+        if (!continueAnyway) {
+          return;
+        }
+      }
 
-const existingSubscription =
-  safeList.find(
-    subscription =>
-      subscription.id === editingId
-  );
+      const existingSubscription =
+        safeList.find(
+          subscription =>
+            subscription.id ===
+            editingId
+        );
 
       const payload = {
         ...existingSubscription,
@@ -2200,7 +2268,7 @@ const existingSubscription =
           'active'
       };
 
-      setSubscriptions(
+      const updatedSubscriptions =
         editingId
           ? safeList.map(
               subscription =>
@@ -2212,56 +2280,80 @@ const existingSubscription =
           : [
               ...safeList,
               payload
-            ]
+            ];
+
+      setSubscriptions(
+        updatedSubscriptions
       );
 
       closeSubscriptionForm();
 
-      if (
-        activeTab ===
-        'analytics'
-      ) {
-        scrollMainToTop(
-          false
-        );
-      }
+      /*
+        Modal kapandıktan ve liste yeniden render edildikten sonra
+        kullanıcının önceki kaydırma konumu geri yüklenir.
+      */
+      restoreMainScrollPosition(
+        preservedScrollPosition
+      );
     };
-   const handleDeleteSubscription = id => {
-    const targetSubscription =
-      safeList.find(
-        subscription =>
-          subscription.id === id
+
+  /* ---------------------------------------------------------------------- */
+  /*                         ABONELİK SİLME                                  */
+  /* ---------------------------------------------------------------------- */
+
+  const handleDeleteSubscription =
+    id => {
+      const preservedScrollPosition =
+        mainScrollPositionRef.current;
+
+      const targetSubscription =
+        safeList.find(
+          subscription =>
+            subscription.id === id
+        );
+
+      const confirmed =
+        confirmAction(
+          `“${
+            targetSubscription?.name ||
+            'Bu kayıt'
+          }” kalıcı olarak silinsin mi?`
+        );
+
+      if (!confirmed) {
+        return;
+      }
+
+      setSubscriptions(
+        safeList.filter(
+          subscription =>
+            subscription.id !== id
+        )
       );
 
-    const confirmed =
-      confirmAction(
-        `“${
-          targetSubscription?.name ||
-          'Bu kayıt'
-        }” kalıcı olarak silinsin mi?`
+      restoreMainScrollPosition(
+        preservedScrollPosition
       );
+    };
 
-    if (!confirmed) {
-      return;
-    }
-
-    setSubscriptions(
-      safeList.filter(
-        subscription =>
-          subscription.id !== id
-      )
-    );
-  };
+  /* ---------------------------------------------------------------------- */
+  /*                             ŞABLONLAR                                   */
+  /* ---------------------------------------------------------------------- */
 
   const addTemplate = () => {
     const numericPrice =
       Number(
         String(
           newTemplatePrice
-        ).replace(',', '.')
+        ).replace(
+          ',',
+          '.'
+        )
       );
 
-    if (!newTemplateName.trim()) {
+    if (
+      !newTemplateName.trim()
+    ) {
       alert(
         'Lütfen şablon adını giriniz.'
       );
@@ -2293,7 +2385,9 @@ const existingSubscription =
           )
       );
 
-    if (templateAlreadyExists) {
+    if (
+      templateAlreadyExists
+    ) {
       alert(
         'Bu isimde bir şablon zaten bulunuyor.'
       );
@@ -2304,7 +2398,7 @@ const existingSubscription =
     const templateColor =
       TEMPLATE_COLOR_PALETTE[
         safeTemplates.length %
-          TEMPLATE_COLOR_PALETTE.length
+        TEMPLATE_COLOR_PALETTE.length
       ];
 
     setTemplatesList([
@@ -2330,45 +2424,53 @@ const existingSubscription =
     ]);
 
     setNewTemplateName('');
+
     setNewTemplatePrice('');
+
     setNewTemplateCurrency(
       'TRY'
     );
+
     setNewTemplateCategory(
       'Diğer'
     );
+
     setShowTemplateForm(
       false
     );
   };
 
-  const removeTemplate = index => {
-    const targetTemplate =
-      safeTemplates[index];
+  const removeTemplate =
+    index => {
+      const targetTemplate =
+        safeTemplates[index];
 
-    const confirmed =
-      confirmAction(
-        `“${
-          targetTemplate?.name ||
-          'Bu şablon'
-        }” silinsin mi?`
+      const confirmed =
+        confirmAction(
+          `“${
+            targetTemplate?.name ||
+            'Bu şablon'
+          }” silinsin mi?`
+        );
+
+      if (!confirmed) {
+        return;
+      }
+
+      setTemplatesList(
+        safeTemplates.filter(
+          (
+            _,
+            currentIndex
+          ) =>
+            currentIndex !==
+            index
+        )
       );
-
-    if (!confirmed) {
-      return;
-    }
-
-    setTemplatesList(
-      safeTemplates.filter(
-        (
-          _,
-          currentIndex
-        ) =>
-          currentIndex !==
-          index
-      )
-    );
-  };
+    };
+   /* ---------------------------------------------------------------------- */
+  /*                         ÖDEME YÖNTEMLERİ                                */
+  /* ---------------------------------------------------------------------- */
 
   const addPaymentMethod = () => {
     const methodName =
@@ -2464,6 +2566,10 @@ const existingSubscription =
         );
       }
     };
+
+  /* ---------------------------------------------------------------------- */
+  /*                         CSV VE JSON İŞLEMLERİ                            */
+  /* ---------------------------------------------------------------------- */
 
   const handleExportCSV = () => {
     if (safeList.length === 0) {
@@ -2771,6 +2877,10 @@ const existingSubscription =
     fileInput.click();
   };
 
+  /* ---------------------------------------------------------------------- */
+  /*                         TAKVİM VE STİL HAZIRLIĞI                        */
+  /* ---------------------------------------------------------------------- */
+
   const daysInCurrentMonth =
     getDaysInMonth(
       calendarMonth,
@@ -2810,6 +2920,10 @@ const existingSubscription =
         tabKey
       );
     };
+
+  /* ---------------------------------------------------------------------- */
+  /*                                EKRAN                                   */
+  /* ---------------------------------------------------------------------- */
 
   return (
     <SafeAreaView
@@ -3178,7 +3292,13 @@ const existingSubscription =
             style={[
               styles.mainScroll,
 
-              {
+              isDesktop && {
+                overflowY:
+                  'scroll',
+
+                scrollbarGutter:
+                  'stable',
+
                 overflowAnchor:
                   'none'
               }
@@ -3186,7 +3306,17 @@ const existingSubscription =
             contentContainerStyle={
               styles.scrollContent
             }
-            showsVerticalScrollIndicator
+            showsVerticalScrollIndicator={
+              true
+            }
+            scrollEventThrottle={
+              16
+            }
+            onScroll={event => {
+              mainScrollPositionRef.current =
+                event.nativeEvent
+                  .contentOffset.y;
+            }}
           >
             {activeTab !==
               'analytics' && (
@@ -3401,7 +3531,6 @@ const existingSubscription =
                           }
                           style={[
                             styles.filterOption,
-
                             {
                               backgroundColor:
                                 theme.cardBg,
@@ -3423,7 +3552,6 @@ const existingSubscription =
                           <Text
                             style={[
                               styles.filterOptionText,
-
                               {
                                 color:
                                   theme.textSecondary
@@ -3470,8 +3598,7 @@ const existingSubscription =
                   >
                     {filteredSubscriptions.length} kayıt
                   </Text>
-                </View>
-
+                </View> 
                 {filteredSubscriptions.length ===
                 0 ? (
                   <View
@@ -3584,9 +3711,7 @@ const existingSubscription =
                                 }
                               >
                                 {subscription.name
-                                  ?.charAt(
-                                    0
-                                  )
+                                  ?.charAt(0)
                                   ?.toUpperCase() ||
                                   'C'}
                               </Text>
@@ -3829,7 +3954,9 @@ const existingSubscription =
                 )}
               </>
             )}
-            {activeTab === 'calendar' && (
+
+            {activeTab ===
+              'calendar' && (
               <View
                 style={
                   styles.calendarSection
@@ -4085,6 +4212,36 @@ const existingSubscription =
                                 return false;
                               }
 
+                              const targetMonthKey =
+                                calendarYear *
+                                  12 +
+                                calendarMonth;
+
+                              const billingMonthKey =
+                                (
+                                  Number(
+                                    subscription.billingYear
+                                  ) ||
+                                  calendarYear
+                                ) *
+                                  12 +
+                                (
+                                  (
+                                    Number(
+                                      subscription.billingMonth
+                                    ) ||
+                                    1
+                                  ) -
+                                  1
+                                );
+
+                              if (
+                                targetMonthKey <
+                                billingMonthKey
+                              ) {
+                                return false;
+                              }
+
                               if (
                                 subscription.period ===
                                 'monthly'
@@ -4152,58 +4309,72 @@ const existingSubscription =
                               {dayNumber}
                             </Text>
 
-                            {subscriptionsForDay.map(
-                              subscription => {
-                                const badgeColor =
-                                  subscription.color ||
-                                  CATEGORY_COLORS[
-                                    subscription.category
-                                  ] ||
-                                  CATEGORY_COLORS
-                                    .Diğer;
-
-                                return (
-                                  <View
-                                    key={
-                                      subscription.id
-                                    }
-                                    style={[
-                                      styles.calendarSubscriptionBadge,
-                                      {
-                                        backgroundColor:
-                                          badgeColor
-                                      }
-                                    ]}
-                                  >
-                                    <Text
-                                      style={
-                                        styles.calendarSubscriptionName
-                                      }
-                                      numberOfLines={
-                                        1
-                                      }
-                                    >
-                                      {subscription.name}
-                                    </Text>
-
-                                    <Text
-                                      style={
-                                        styles.calendarSubscriptionPrice
-                                      }
-                                    >
-                                      {formatShortCurrency(
-                                        convertToTL(
-                                          subscription.price,
-                                          subscription.currency,
-                                          exchangeRates
-                                        ),
-                                        'TRY'
-                                      )}
-                                    </Text>
-                                  </View>
-                                );
+                            <ScrollView
+                              style={
+                                styles.calendarDayScroll
                               }
-                            )}
+                              contentContainerStyle={
+                                styles.calendarDayScrollContent
+                              }
+                              nestedScrollEnabled
+                              showsVerticalScrollIndicator={
+                                subscriptionsForDay.length >
+                                3
+                              }
+                            >
+                              {subscriptionsForDay.map(
+                                subscription => {
+                                  const badgeColor =
+                                    subscription.color ||
+                                    CATEGORY_COLORS[
+                                      subscription.category
+                                    ] ||
+                                    CATEGORY_COLORS
+                                      .Diğer;
+
+                                  return (
+                                    <View
+                                      key={
+                                        subscription.id
+                                      }
+                                      style={[
+                                        styles.calendarSubscriptionBadge,
+                                        {
+                                          backgroundColor:
+                                            badgeColor
+                                        }
+                                      ]}
+                                    >
+                                      <Text
+                                        style={
+                                          styles.calendarSubscriptionName
+                                        }
+                                        numberOfLines={
+                                          1
+                                        }
+                                      >
+                                        {subscription.name}
+                                      </Text>
+
+                                      <Text
+                                        style={
+                                          styles.calendarSubscriptionPrice
+                                        }
+                                      >
+                                        {formatShortCurrency(
+                                          convertToTL(
+                                            subscription.price,
+                                            subscription.currency,
+                                            exchangeRates
+                                          ),
+                                          'TRY'
+                                        )}
+                                      </Text>
+                                    </View>
+                                  );
+                                }
+                              )}
+                            </ScrollView>
                           </View>
                         );
                       }
@@ -4212,7 +4383,6 @@ const existingSubscription =
                 </View>
               </View>
             )}
-
             {activeTab ===
               'analytics' && (
               <View
@@ -5481,7 +5651,6 @@ const existingSubscription =
           </View>
         </View>
       </Modal>
-
       <Modal
         visible={
           isSubscriptionModalOpen
@@ -5584,7 +5753,7 @@ const existingSubscription =
                 styles.subscriptionModalContent
               }
               showsVerticalScrollIndicator={
-                false
+                true
               }
             >
               {!editingId && (
@@ -5706,9 +5875,7 @@ const existingSubscription =
                               style={
                                 styles.templateOptionText
                               }
-                              numberOfLines={
-                                1
-                              }
+                              numberOfLines={1}
                             >
                               {template.name}
                             </Text>
@@ -5939,6 +6106,7 @@ const existingSubscription =
                   )}
                 </View>
               )}
+
               <View
                 style={
                   styles.formSection
@@ -6351,9 +6519,7 @@ const existingSubscription =
                                     : theme.textSecondary
                               }
                             ]}
-                            numberOfLines={
-                              1
-                            }
+                            numberOfLines={1}
                           >
                             {paymentMethod}
                           </Text>
@@ -6879,7 +7045,6 @@ const existingSubscription =
     </SafeAreaView>
   );
 }
-
 function createStyles(
   theme,
   isMobile,
@@ -6892,19 +7057,27 @@ function createStyles(
 
   return StyleSheet.create({
     container: {
-      flex: 1
+      flex: 1,
+      width: '100%',
+      minHeight: 0
     },
 
     appWrapper: {
-      flex: 1
+      flex: 1,
+      width: '100%',
+      minHeight: 0
     },
 
     appWrapperDesktop: {
-      flexDirection: 'row'
+      flexDirection: 'row',
+      width: '100%',
+      minHeight: 0
     },
 
     sidebarContainer: {
       width: 250,
+      minWidth: 250,
+      flexShrink: 0,
       padding: 20,
       borderRightWidth: 1
     },
@@ -7002,6 +7175,8 @@ function createStyles(
 
     contentWrapper: {
       flex: 1,
+      minWidth: 0,
+      minHeight: 0,
       width: '100%',
       maxWidth: 980,
       marginHorizontal: 'auto',
@@ -7013,6 +7188,7 @@ function createStyles(
       alignItems: 'center',
       justifyContent:
         'space-between',
+      flexShrink: 0,
       paddingHorizontal:
         isMobile ? 14 : 20,
       paddingTop: 18,
@@ -7040,10 +7216,14 @@ function createStyles(
     },
 
     mainScroll: {
-      flex: 1
+      flex: 1,
+      minHeight: 0,
+      width: '100%'
     },
 
     scrollContent: {
+      width: '100%',
+      flexGrow: 1,
       paddingHorizontal:
         isMobile ? 12 : 16,
       paddingTop: 14,
@@ -7055,6 +7235,8 @@ function createStyles(
       alignItems: 'center',
       justifyContent:
         'space-between',
+      flexWrap: 'wrap',
+      gap: 8,
       borderWidth: 1,
       borderRadius: 9,
       padding: 10,
@@ -7068,6 +7250,7 @@ function createStyles(
 
     currencyBadgeGroup: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       gap: 8
     },
 
@@ -7236,11 +7419,12 @@ function createStyles(
         isMobile
           ? 'stretch'
           : 'center',
-      gap: isMobile ? 10 : 0
+      gap: isMobile ? 10 : 12
     },
 
     subscriptionMain: {
       flex: 1,
+      minWidth: 0,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 10
@@ -7249,6 +7433,7 @@ function createStyles(
     serviceIcon: {
       width: 38,
       height: 38,
+      flexShrink: 0,
       borderRadius: 10,
       alignItems: 'center',
       justifyContent: 'center'
@@ -7261,7 +7446,8 @@ function createStyles(
     },
 
     subscriptionInfo: {
-      flex: 1
+      flex: 1,
+      minWidth: 0
     },
 
     subscriptionTitleRow: {
@@ -7294,6 +7480,7 @@ function createStyles(
     },
 
     subscriptionRight: {
+      flexShrink: 0,
       alignItems:
         isMobile
           ? 'flex-start'
@@ -7313,6 +7500,7 @@ function createStyles(
 
     subscriptionActions: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       gap: 6,
       marginTop: 6
     },
@@ -7332,7 +7520,10 @@ function createStyles(
     deleteButton: {
       borderWidth: 1,
       borderRadius: 6,
-      padding: 5
+      paddingHorizontal: 7,
+      paddingVertical: 5,
+      alignItems: 'center',
+      justifyContent: 'center'
     },
 
     deleteButtonText: {
@@ -7340,6 +7531,7 @@ function createStyles(
     },
 
     calendarSection: {
+      width: '100%',
       marginTop: 4
     },
 
@@ -7348,6 +7540,7 @@ function createStyles(
       justifyContent:
         'space-between',
       alignItems: 'center',
+      gap: 8,
       marginBottom: 14
     },
 
@@ -7368,6 +7561,8 @@ function createStyles(
     },
 
     calendarTitle: {
+      flex: 1,
+      textAlign: 'center',
       fontSize:
         isMobile
           ? font(16)
@@ -7400,16 +7595,18 @@ function createStyles(
     },
 
     calendarContainer: {
+      width: '100%',
       marginTop: 14
     },
 
     calendarWeekHeader: {
+      width: '100%',
       flexDirection: 'row',
       marginBottom: 7
     },
 
     calendarWeekDay: {
-      width: '14.28%',
+      width: '14.2857%',
       alignItems: 'center'
     },
 
@@ -7419,22 +7616,26 @@ function createStyles(
     },
 
     calendarGrid: {
+      width: '100%',
       flexDirection: 'row',
-      flexWrap: 'wrap'
+      flexWrap: 'wrap',
+      alignItems: 'flex-start'
     },
 
     calendarDay: {
-      width: '14.28%',
-      minHeight:
-        isMobile ? 78 : 104,
+      width: '14.2857%',
+      height:
+        isMobile ? 88 : 118,
       borderWidth: 1,
       borderRadius: 6,
       padding: 4,
-      marginBottom: 4
+      marginBottom: 4,
+      overflow: 'hidden'
     },
 
     calendarDayEmpty: {
-      opacity: 0
+      opacity: 0,
+      pointerEvents: 'none'
     },
 
     calendarDayActive: {
@@ -7442,14 +7643,26 @@ function createStyles(
     },
 
     calendarDayNumber: {
+      flexShrink: 0,
       fontSize: font(11),
       fontWeight: 'bold',
       marginBottom: 3
     },
 
+    calendarDayScroll: {
+      flex: 1,
+      minHeight: 0
+    },
+
+    calendarDayScrollContent: {
+      paddingBottom: 2
+    },
+
     calendarSubscriptionBadge: {
+      width: '100%',
       borderRadius: 4,
-      padding: 3,
+      paddingHorizontal: 4,
+      paddingVertical: 3,
       marginTop: 2
     },
 
@@ -7461,10 +7674,12 @@ function createStyles(
 
     calendarSubscriptionPrice: {
       color: '#ffffff',
-      fontSize: font(7)
+      fontSize: font(7),
+      marginTop: 1
     },
 
     analyticsSection: {
+      width: '100%',
       marginTop: 2
     },
 
@@ -7480,6 +7695,7 @@ function createStyles(
     },
 
     analyticsSummaryRow: {
+      width: '100%',
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: 10,
@@ -7489,6 +7705,10 @@ function createStyles(
 
     analyticsSummaryCard: {
       flexGrow: 1,
+      flexBasis:
+        isMobile
+          ? '46%'
+          : 150,
       minWidth:
         isMobile
           ? '46%'
@@ -7510,6 +7730,7 @@ function createStyles(
     },
 
     panel: {
+      width: '100%',
       borderWidth: 1,
       borderRadius: 12,
       padding: 14,
@@ -7537,11 +7758,13 @@ function createStyles(
     renewalDot: {
       width: 8,
       height: 8,
+      flexShrink: 0,
       borderRadius: 4
     },
 
     renewalName: {
       flex: 1,
+      minWidth: 0,
       fontSize: font(11),
       fontWeight: '600'
     },
@@ -7670,6 +7893,7 @@ function createStyles(
     },
 
     distributionCard: {
+      width: '100%',
       borderWidth: 1,
       borderRadius: 8,
       padding: 10,
@@ -7681,6 +7905,7 @@ function createStyles(
       justifyContent:
         'space-between',
       alignItems: 'center',
+      flexWrap: 'wrap',
       gap: 10,
       marginBottom: 6
     },
@@ -7708,6 +7933,7 @@ function createStyles(
     },
 
     progressTrack: {
+      width: '100%',
       height: 6,
       borderRadius: 3,
       overflow: 'hidden'
@@ -7761,6 +7987,7 @@ function createStyles(
           ? '96%'
           : 760,
       maxHeight: '92%',
+      minHeight: 0,
       borderWidth: 1,
       borderRadius: 18,
       padding: 20
@@ -7777,6 +8004,7 @@ function createStyles(
           ? '96%'
           : '92%',
       maxHeight: 850,
+      minHeight: 0,
       borderWidth: 1,
       borderRadius: 18,
       overflow: 'hidden'
@@ -7787,6 +8015,7 @@ function createStyles(
       justifyContent:
         'space-between',
       alignItems: 'flex-start',
+      flexShrink: 0,
       paddingHorizontal:
         isMobile ? 15 : 22,
       paddingTop:
@@ -7810,6 +8039,7 @@ function createStyles(
     modalCloseButton: {
       width: 34,
       height: 34,
+      flexShrink: 0,
       borderRadius: 9,
       borderWidth: 1,
       padding: 0,
@@ -7821,7 +8051,6 @@ function createStyles(
     modalCloseText: {
       width: 30,
       height: 30,
-      color: '#ffffff',
       fontSize: font(12),
       fontWeight: '700',
       lineHeight: 30,
@@ -7930,16 +8159,19 @@ function createStyles(
     },
 
     subscriptionModalScroll: {
-      flex: 1
+      flex: 1,
+      minHeight: 0
     },
 
     subscriptionModalContent: {
+      width: '100%',
       paddingHorizontal:
         isMobile ? 14 : 22,
       paddingBottom: 20
     },
 
     formSection: {
+      width: '100%',
       marginBottom: 17
     },
 
@@ -7970,6 +8202,7 @@ function createStyles(
     },
 
     twoColumnRow: {
+      width: '100%',
       flexDirection: 'row',
       gap: 12
     },
@@ -7980,7 +8213,8 @@ function createStyles(
     },
 
     formColumn: {
-      flex: 1
+      flex: 1,
+      minWidth: 0
     },
 
     inputLabel: {
@@ -7990,6 +8224,7 @@ function createStyles(
     },
 
     textInput: {
+      width: '100%',
       minHeight: 40,
       borderWidth: 1,
       borderRadius: 8,
@@ -8084,6 +8319,7 @@ function createStyles(
     },
 
     inlineForm: {
+      width: '100%',
       borderWidth: 1,
       borderRadius: 10,
       padding: 12,
@@ -8091,9 +8327,15 @@ function createStyles(
     },
 
     inlineInputRow: {
-      flexDirection: 'row',
+      flexDirection:
+        isMobile
+          ? 'column'
+          : 'row',
       gap: 8,
-      alignItems: 'center'
+      alignItems:
+        isMobile
+          ? 'stretch'
+          : 'center'
     },
 
     flexInput: {
@@ -8128,7 +8370,8 @@ function createStyles(
       borderRadius: 8,
       paddingHorizontal: 11,
       paddingVertical: 8,
-      alignItems: 'center'
+      alignItems: 'center',
+      justifyContent: 'center'
     },
 
     flexOptionButton: {
@@ -8195,12 +8438,14 @@ function createStyles(
     },
 
     dateInputRow: {
+      width: '100%',
       flexDirection: 'row',
       gap: 9
     },
 
     dateInputField: {
-      flex: 1
+      flex: 1,
+      minWidth: 0
     },
 
     dateInputYearField: {
@@ -8214,6 +8459,7 @@ function createStyles(
 
     modalFooter: {
       flexDirection: 'row',
+      flexShrink: 0,
       gap: 10,
       borderTopWidth: 1,
       paddingHorizontal:
