@@ -93,11 +93,9 @@ export default function App() {
   const [exchangeRates] = useState(DEFAULT_RATES);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Filtreleme State'leri
   const [selectedPaymentFilter, setSelectedPaymentFilter] = useState('ALL');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('ALL');
 
-  // Custom Listeler
   const [paymentMethodsList, setPaymentMethodsList] = useState(PAYMENT_METHODS);
   const [popularServicesList, setPopularServicesList] = useState(DEFAULT_POPULAR_SERVICES);
 
@@ -105,11 +103,10 @@ export default function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
-  const [calMonth, setCalMonth] = useState(7); // Ağustos
+  const [calMonth, setCalMonth] = useState(7);
   const [calYear, setCalYear] = useState(2026);
   const [selectedAnalysisYear, setSelectedAnalysisYear] = useState(2026);
 
-  // Form State'leri
   const [formName, setFormName] = useState('');
   const [formPrice, setFormPrice] = useState('');
   const [formCurrency, setFormCurrency] = useState('TRY');
@@ -125,7 +122,7 @@ export default function App() {
 
   useEffect(() => {
     try {
-      const savedSubs = localStorage.getItem('cebin_subscriptions_v2');
+      const savedSubs = localStorage.getItem('cebin_subscriptions_v3');
       if (savedSubs) {
         setSubscriptions(JSON.parse(savedSubs));
       } else {
@@ -144,7 +141,7 @@ export default function App() {
   useEffect(() => {
     if (isLoaded) {
       try {
-        localStorage.setItem('cebin_subscriptions_v2', JSON.stringify(subscriptions));
+        localStorage.setItem('cebin_subscriptions_v3', JSON.stringify(subscriptions));
       } catch (e) {
         console.log('Kaydetme hatası:', e);
       }
@@ -153,7 +150,6 @@ export default function App() {
 
   const safeList = Array.isArray(subscriptions) ? subscriptions : [];
 
-  // Gözü yormayan yumuşak renk paleti (Light mode için kırık beyaz / warm gray, Dark için derin lacivert)
   const theme = {
     bg: isDarkMode ? '#090d16' : '#f1f5f9',
     headerBg: isDarkMode ? '#0f172a' : '#ffffff',
@@ -172,7 +168,6 @@ export default function App() {
     setSubscriptions(safeList.filter(s => s.id !== id));
   };
 
-  // CSV Excel Türkçe Karakter (UTF-8 BOM) Düzeltmesi
   const handleExportCSV = () => {
     if (safeList.length === 0) return;
     let csvContent = "\uFEFFServis Adi;Fiyat;Para Birimi;Kategori;Odeme Yontemi;Periyot;Gonderim Gunu\n";
@@ -210,7 +205,6 @@ export default function App() {
     return sum + cost;
   }, 0);
 
-  // Aylık detaylı grafik hesabı ve baskın kategori rengi bulma
   const getDetailedMonthlyBreakdown = (targetYear) => {
     const monthlyTotals = Array(12).fill(0);
     const monthlyDominantColor = Array(12).fill('#6366f1');
@@ -258,7 +252,6 @@ export default function App() {
   const totalYearlyExpenseForSelectedYear = monthlyTotals.reduce((a, b) => a + b, 0);
   const maxMonthlyExpense = Math.max(...monthlyTotals, 1);
 
-  // Ödeme Yöntemi Bazlı İstatistikler
   const yearlyPaymentMethodStats = safeList.reduce((acc, item) => {
     const method = item.paymentMethod || 'Diğer';
     const priceTL = convertToTL(item.price, item.currency || 'TRY', exchangeRates);
@@ -267,7 +260,6 @@ export default function App() {
     return acc;
   }, {});
 
-  // Kategori Bazlı Yıllık Harcama İstatistikleri
   const yearlyCategoryStats = safeList.reduce((acc, item) => {
     const cat = item.category || 'Diğer';
     const priceTL = convertToTL(item.price, item.currency || 'TRY', exchangeRates);
@@ -355,7 +347,7 @@ export default function App() {
             <View style={styles.sidebarHeader}>
               <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Cebin</Text>
               <View style={styles.proBadge}>
-                <Text style={styles.proBadgeText}>FINANCE 2.0</Text>
+                <Text style={styles.proBadgeText}>PRO</Text>
               </View>
             </View>
             <Text style={[styles.headerSubtitle, { color: theme.textSecondary, marginBottom: 24 }]}>
@@ -389,7 +381,7 @@ export default function App() {
               >
                 <Text style={{ fontSize: 18 }}>📊</Text>
                 <Text style={[styles.sidebarNavText, { color: activeTab === 'analytics' ? '#6366f1' : theme.textSecondary }]}>
-                  Analiz
+                  Analiz & Raporlar
                 </Text>
               </TouchableOpacity>
             </View>
@@ -411,7 +403,6 @@ export default function App() {
         {/* ANA İÇERİK KONTROL ALANI */}
         <View style={styles.responsiveWrapper}>
 
-          {/* EKRAN ÜST BAŞLIĞI */}
           <View style={[styles.header, { backgroundColor: theme.headerBg, borderBottomColor: theme.cardBorder }]}>
             <View>
               <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Cebin</Text>
@@ -419,7 +410,6 @@ export default function App() {
             </View>
             
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              {/* Sadece İkonik Tema Değiştirici (Güneş / Ay) */}
               <TouchableOpacity 
                 style={[styles.themeToggleIconBtn, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} 
                 onPress={() => setIsDarkMode(!isDarkMode)}
@@ -438,7 +428,6 @@ export default function App() {
 
           <ScrollView contentContainerStyle={[styles.scrollContent, isDesktop && { paddingBottom: 40 }]}>
 
-            {/* DÖVİZ KURLARI BİLGİ BARI */}
             <View style={[styles.currencyBar, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
               <Text style={[styles.currencyBarTitle, { color: theme.textSecondary }]}>💱 Canlı Kurlar:</Text>
               <View style={styles.currencyBadgeGroup}>
@@ -451,7 +440,6 @@ export default function App() {
               </View>
             </View>
 
-            {/* TAB 1: ABONELİK LİSTESİ */}
             {activeTab === 'list' && (
               <>
                 <View style={[styles.summaryCard, { backgroundColor: theme.summaryBg, borderColor: theme.summaryBorder }]}>
@@ -470,7 +458,6 @@ export default function App() {
                   </View>
                 </View>
 
-                {/* ÖDEME YÖNTEMİ FİLTRELEME BARI */}
                 <View style={{ marginBottom: 14 }}>
                   <Text style={{ color: theme.textPrimary, fontSize: 12, fontWeight: 'bold', marginBottom: 6 }}>
                     💳 Ödeme Yöntemine Göre Filtrele:
@@ -571,7 +558,6 @@ export default function App() {
               </>
             )}
 
-            {/* TAB 2: TAKVİM GÖRÜNÜMÜ */}
             {activeTab === 'calendar' && (
               <View style={{ marginTop: 10 }}>
                 <View style={styles.calendarHeaderNav}>
@@ -644,7 +630,6 @@ export default function App() {
               </View>
             )}
 
-            {/* TAB 3: ANALİZ VE GRAFİKLER */}
             {activeTab === 'analytics' && (
               <View style={{ marginTop: 10 }}>
                 <Text style={{ fontSize: 22, fontWeight: 'bold', color: theme.textPrimary, marginBottom: 4 }}>
@@ -666,7 +651,6 @@ export default function App() {
                   ))}
                 </ScrollView>
 
-                {/* AYLIK HARCAMA ÇUBUK GRAFİĞİ (DİNAMİK KATEGORİ RENKLİ) */}
                 <View style={[styles.chartContainer, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
                   <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.textPrimary, marginBottom: 14 }}>
                     {selectedAnalysisYear} Aylık Harcama Grafiği (TL)
@@ -689,7 +673,6 @@ export default function App() {
                     })}
                   </View>
 
-                  {/* YILLIK TOPLAM HARCAMA - GÜÇLÜ KONTRASTLI NET METİN */}
                   <View style={[styles.chartFooter, { borderTopColor: theme.cardBorder }]}>
                     <Text style={{ color: theme.textPrimary, fontSize: 14, fontWeight: 'bold' }}>
                       Yıllık Toplam Harcama ({selectedAnalysisYear}):
@@ -700,7 +683,6 @@ export default function App() {
                   </View>
                 </View>
 
-                {/* ÖDEME YÖNTEMİNE GÖRE HARCAMA DAĞILIMI */}
                 <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.textPrimary, marginTop: 18, marginBottom: 10 }}>
                   💳 Ödeme Yöntemine Göre Harcama Dağılımı ({selectedAnalysisYear})
                 </Text>
@@ -727,7 +709,6 @@ export default function App() {
                   })
                 )}
 
-                {/* KATEGORİ BAZLI HARCAMA İSTATİSTİKLERİ */}
                 <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.textPrimary, marginTop: 18, marginBottom: 10 }}>
                   📂 Kategori Bazlı Dağılım ({selectedAnalysisYear})
                 </Text>
@@ -755,7 +736,6 @@ export default function App() {
                   })
                 )}
 
-                {/* Veri Yedekleme Paneli */}
                 <View style={[styles.backupPanel, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, marginTop: 20 }]}>
                   <Text style={{ color: theme.textPrimary, fontWeight: 'bold', fontSize: 14, marginBottom: 6 }}>💾 Veri Yedekleme & Dışa Aktar</Text>
                   <Text style={{ color: theme.textSecondary, fontSize: 12, marginBottom: 12 }}>Abonelik verilerinizi Excel (CSV - Türkçe Karakter Uyumlu) veya JSON formatında bilgisayarınıza indirebilirsiniz.</Text>
@@ -775,7 +755,6 @@ export default function App() {
 
           </ScrollView>
 
-          {/* MOBİL ALT NAVİGASYON BARI */}
           {!isDesktop && (
             <View style={[styles.bottomNav, { backgroundColor: theme.headerBg, borderTopColor: theme.cardBorder }]}>
               <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('list')}>
@@ -797,7 +776,7 @@ export default function App() {
 
       </View>
 
-      {/* FORM MODAL (EKLE / DÜZENLE) - FONT VE KONTRAST İYİLEŞTİRMELERİ */}
+      {/* FORM MODAL - DÜZELTİLMİŞ BUTON YERLEŞİMİ */}
       <Modal visible={isModalOpen} animationType="fade" transparent>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
@@ -805,7 +784,7 @@ export default function App() {
               {editingId ? 'Abonelik Düzenle' : 'Yeni Abonelik Ekle'}
             </Text>
 
-            <ScrollView style={{ maxHeight: 460 }} showsVerticalScrollIndicator={false}>
+            <ScrollView style={{ maxHeight: 420 }} showsVerticalScrollIndicator={false}>
               {!editingId && (
                 <View style={{ marginBottom: 12 }}>
                   <Text style={{ color: theme.textSecondary, fontSize: 11, fontWeight: 'bold', marginBottom: 6 }}>HIZLI ŞABLON SEÇ:</Text>
@@ -919,11 +898,11 @@ export default function App() {
               />
             </ScrollView>
 
-            <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
-              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder, borderWidth: 1 }]} onPress={() => setIsModalOpen(false)}>
+            <View style={styles.modalFooterButtons}>
+              <TouchableOpacity style={[styles.modalCancelBtn, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder, borderWidth: 1 }]} onPress={() => setIsModalOpen(false)}>
                 <Text style={{ color: theme.textSecondary, fontWeight: 'bold' }}>İptal</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: '#6366f1', flex: 2 }]} onPress={handleSaveForm}>
+              <TouchableOpacity style={styles.modalSaveBtn} onPress={handleSaveForm}>
                 <Text style={{ color: '#ffffff', fontWeight: 'bold' }}>Kaydet</Text>
               </TouchableOpacity>
             </View>
@@ -1079,5 +1058,27 @@ const styles = StyleSheet.create({
   periodBtnText: { fontSize: 12, fontWeight: 'bold' },
   periodBtnTextActive: { color: '#fff' },
   templateChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6 },
-  modalBtn: { paddingVertical: 10, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  
+  modalFooterButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  modalCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalSaveBtn: {
+    flex: 2,
+    backgroundColor: '#6366f1',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
