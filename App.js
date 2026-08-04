@@ -1127,6 +1127,99 @@ export default function App() {
     subscriptions,
     isLoaded
   ]);
+  useEffect(() => {
+  let isMounted = true;
+
+  const fetchExchangeRates =
+    async () => {
+      try {
+        const [
+          usdResponse,
+          eurResponse
+        ] = await Promise.all([
+          fetch(
+            'https://api.frankfurter.dev/v2/rate/USD/TRY?providers=TCMB'
+          ),
+          fetch(
+            'https://api.frankfurter.dev/v2/rate/EUR/TRY?providers=TCMB'
+          )
+        ]);
+
+        if (
+          !usdResponse.ok ||
+          !eurResponse.ok
+        ) {
+          throw new Error(
+            'Kur servisi yanıt vermedi.'
+          );
+        }
+
+        const usdData =
+          await usdResponse.json();
+
+        const eurData =
+          await eurResponse.json();
+
+        if (!isMounted) {
+          return;
+        }
+
+        const usdRate =
+          Number(
+            usdData?.rate
+          );
+
+        const eurRate =
+          Number(
+            eurData?.rate
+          );
+
+        if (
+          !Number.isFinite(
+            usdRate
+          ) ||
+          !Number.isFinite(
+            eurRate
+          )
+        ) {
+          throw new Error(
+            'Kur değerleri geçersiz.'
+          );
+        }
+
+        setExchangeRates({
+          USD: usdRate,
+          EUR: eurRate
+        });
+      } catch (error) {
+        console.log(
+          'Güncel döviz kurları alınamadı:',
+          error
+        );
+
+        /*
+          API çalışmazsa mevcut veya localStorage'dan
+          yüklenen kur değerleri kullanılmaya devam eder.
+        */
+      }
+    };
+
+  fetchExchangeRates();
+
+  const intervalId =
+    setInterval(
+      fetchExchangeRates,
+      6 * 60 * 60 * 1000
+    );
+
+  return () => {
+    isMounted = false;
+
+    clearInterval(
+      intervalId
+    );
+  };
+}, []);
 
   useEffect(() => {
     if (!isLoaded) {
@@ -3309,67 +3402,122 @@ export default function App() {
       event.nativeEvent.contentOffset.y;
   }}
 >
-            {activeTab !==
-              'analytics' && (
-              <View
-                style={[
-                  styles.currencyBar,
-                  {
-                    backgroundColor:
-                      theme.cardBg,
+           {activeTab !==
+  'analytics' && (
+  <View
+    style={[
+      styles.currencyBar,
+      {
+        backgroundColor:
+          theme.cardBg,
 
-                    borderColor:
-                      theme.cardBorder
-                  }
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.currencyBarTitle,
-                    {
-                      color:
-                        theme.textSecondary
-                    }
-                  ]}
-                >
-                  💱 Kullanılan Kurlar
-                </Text>
+        borderColor:
+          theme.cardBorder
+      }
+    ]}
+  >
+    <View
+      style={
+        styles.currencyBarLeft
+      }
+    >
+      <View
+        style={[
+          styles.currencyIconBox,
+          {
+            backgroundColor:
+              theme.activeButtonSoft,
 
-                <View
-                  style={
-                    styles.currencyBadgeGroup
-                  }
-                >
-                  <View
-                    style={
-                      styles.currencyBadge
-                    }
-                  >
-                    <Text
-                      style={
-                        styles.currencyBadgeText
-                      }
-                    >
-                      USD: {exchangeRates.USD} ₺
-                    </Text>
-                  </View>
+            borderColor:
+              theme.activeButtonBorder
+          }
+        ]}
+      >
+        <Text
+          style={
+            styles.currencyBarIcon
+          }
+        >
+          💱
+        </Text>
+      </View>
 
-                  <View
-                    style={
-                      styles.currencyBadge
-                    }
-                  >
-                    <Text
-                      style={
-                        styles.currencyBadgeText
-                      }
-                    >
-                      EUR: {exchangeRates.EUR} ₺
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            )}
+      <Text
+        style={[
+          styles.currencyBarTitle,
+          {
+            color:
+              theme.textPrimary
+          }
+        ]}
+      >
+        Döviz Kurları
+      </Text>
+    </View>
+
+    <View
+      style={
+        styles.currencyBadgeGroup
+      }
+    >
+      <View
+        style={[
+          styles.currencyBadge,
+          {
+            backgroundColor:
+              theme.activeButtonSoft,
+
+            borderColor:
+              theme.activeButtonBorder
+          }
+        ]}
+      >
+        <Text
+          style={[
+            styles.currencyBadgeText,
+            {
+              color:
+                theme.accent
+            }
+          ]}
+        >
+          USD:{' '}
+          {Number(
+            exchangeRates.USD
+          ).toFixed(2)} ₺
+        </Text>
+      </View>
+
+      <View
+        style={[
+          styles.currencyBadge,
+          {
+            backgroundColor:
+              theme.activeButtonSoft,
+
+            borderColor:
+              theme.activeButtonBorder
+          }
+        ]}
+      >
+        <Text
+          style={[
+            styles.currencyBadgeText,
+            {
+              color:
+                theme.accent
+            }
+          ]}
+        >
+          EUR:{' '}
+          {Number(
+            exchangeRates.EUR
+          ).toFixed(2)} ₺
+        </Text>
+      </View>
+    </View>
+  </View>
+)}
 
             {activeTab ===
               'list' && (
@@ -3391,7 +3539,7 @@ export default function App() {
                       styles.summaryLabel
                     }
                   >
-                    Toplam Aylık Taahhüt
+                    Aylık Maliyet
                   </Text>
 
                   <Text
@@ -3420,7 +3568,7 @@ export default function App() {
                           styles.summaryStatLabel
                         }
                       >
-                        Günlük Tahmini Maliyet
+                        Günlük Maliyet
                       </Text>
 
                       <Text
@@ -3445,7 +3593,7 @@ export default function App() {
                           styles.summaryStatLabel
                         }
                       >
-                        Yıllık Projeksiyon
+                        Yıllık Toplam Maliyet
                       </Text>
 
                       <Text
@@ -7238,44 +7386,61 @@ container: {
     isMobile ? 80 : 30
 },
 
-    currencyBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent:
-        'space-between',
-      flexWrap: 'wrap',
-      gap: 8,
-      borderWidth: 1,
-      borderRadius: 9,
-      padding: 10,
-      marginBottom: 12
-    },
+   currencyBar: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent:
+    'space-between',
+  flexWrap: 'wrap',
+  gap: 10,
+  borderWidth: 1,
+  borderRadius: 12,
+  paddingHorizontal: 14,
+  paddingVertical: 11,
+  marginBottom: 12
+},
 
-    currencyBarTitle: {
-      fontSize: font(11),
-      fontWeight: 'bold'
-    },
+currencyBarLeft: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 9
+},
 
-    currencyBadgeGroup: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 8
-    },
+currencyIconBox: {
+  width: 32,
+  height: 32,
+  borderWidth: 1,
+  borderRadius: 9,
+  alignItems: 'center',
+  justifyContent: 'center'
+},
 
-    currencyBadge: {
-      backgroundColor:
-        theme.activeButtonSoft,
-      borderRadius: 6,
-      paddingHorizontal: 8,
-      paddingVertical: 4
-    },
+currencyBarIcon: {
+  fontSize: font(17)
+},
 
-    currencyBadgeText: {
-      color: '#a7a4ff',
-      fontSize: font(10),
-      fontWeight: 'bold'
-    },
+currencyBarTitle: {
+  fontSize: font(12),
+  fontWeight: 'bold'
+},
 
+currencyBadgeGroup: {
+  flexDirection: 'row',
+  flexWrap: 'wrap',
+  gap: 8
+},
+
+currencyBadge: {
+  borderWidth: 1,
+  borderRadius: 8,
+  paddingHorizontal: 10,
+  paddingVertical: 6
+},
+
+currencyBadgeText: {
+  fontSize: font(11),
+  fontWeight: 'bold'
+},
     summaryCard: {
       borderRadius: 14,
       borderWidth: 1,
