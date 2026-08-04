@@ -3185,16 +3185,11 @@ export default function App() {
           </View>
         )}
 
-        <View
-          style={[
-            styles.contentWrapper,
-
-            activeTab ===
-              'calendar' && {
-              maxWidth: 1060
-            }
-          ]}
-        >
+       <View
+  style={
+    styles.contentWrapper
+  }
+>
           <View
             style={[
               styles.header,
@@ -3286,38 +3281,34 @@ export default function App() {
           </View>
 
           <ScrollView
-            ref={
-              mainScrollRef
-            }
-            style={[
-              styles.mainScroll,
+  ref={
+    mainScrollRef
+  }
+  style={[
+    styles.mainScroll,
+    {
+      overflowY: 'auto',
+      overflowAnchor: 'none',
 
-              isDesktop && {
-                overflowY:
-                  'scroll',
+      scrollbarWidth:
+        'thin',
 
-                scrollbarGutter:
-                  'stable',
-
-                overflowAnchor:
-                  'none'
-              }
-            ]}
-            contentContainerStyle={
-              styles.scrollContent
-            }
-            showsVerticalScrollIndicator={
-              true
-            }
-            scrollEventThrottle={
-              16
-            }
-            onScroll={event => {
-              mainScrollPositionRef.current =
-                event.nativeEvent
-                  .contentOffset.y;
-            }}
-          >
+      scrollbarColor:
+        `${theme.cardBorder} transparent`
+    }
+  ]}
+  contentContainerStyle={
+    styles.scrollContent
+  }
+  showsVerticalScrollIndicator={
+    true
+  }
+  scrollEventThrottle={16}
+  onScroll={event => {
+    mainScrollPositionRef.current =
+      event.nativeEvent.contentOffset.y;
+  }}
+>
             {activeTab !==
               'analytics' && (
               <View
@@ -7056,24 +7047,28 @@ function createStyles(
     );
 
   return StyleSheet.create({
-    container: {
-      flex: 1,
-      width: '100%',
-      minHeight: 0
-    },
+container: {
+  flex: 1,
+  width: '100%',
+  height: '100vh',
+  minHeight: 0,
+  overflow: 'hidden'
+},
 
-    appWrapper: {
-      flex: 1,
-      width: '100%',
-      minHeight: 0
-    },
-
-    appWrapperDesktop: {
-      flexDirection: 'row',
-      width: '100%',
-      minHeight: 0
-    },
-
+   appWrapper: {
+  flex: 1,
+  width: '100%',
+  height: '100%',
+  minHeight: 0,
+  overflow: 'hidden'
+},
+   appWrapperDesktop: {
+  flexDirection: 'row',
+  width: '100%',
+  height: '100%',
+  minHeight: 0,
+  overflow: 'hidden'
+},
     sidebarContainer: {
       width: 250,
       minWidth: 250,
@@ -7173,22 +7168,21 @@ function createStyles(
       fontWeight: 'bold'
     },
 
-    contentWrapper: {
-      flex: 1,
-      minWidth: 0,
-      minHeight: 0,
-      width: '100%',
-      maxWidth: 980,
-      marginHorizontal: 'auto',
-      alignSelf: 'center'
-    },
+   contentWrapper: {
+  flex: 1,
+  minWidth: 0,
+  minHeight: 0,
+  height: '100%',
+  width: 'auto',
+  overflow: 'hidden'
+},
 
     header: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent:
         'space-between',
-      flexShrink: 0,
+        flexShrink: 0,
       paddingHorizontal:
         isMobile ? 14 : 20,
       paddingTop: 18,
@@ -7215,20 +7209,22 @@ function createStyles(
       fontSize: font(17)
     },
 
-    mainScroll: {
-      flex: 1,
-      minHeight: 0,
-      width: '100%'
-    },
+  mainScroll: {
+  flex: 1,
+  minHeight: 0,
+  width: '100%',
+  overflowY: 'auto'
+},
 
-    scrollContent: {
-      width: '100%',
-      flexGrow: 1,
-      paddingHorizontal:
-        isMobile ? 12 : 16,
-      paddingTop: 14,
-      paddingBottom: 90
-    },
+   scrollContent: {
+  width: '100%',
+  flexGrow: 1,
+  paddingHorizontal:
+    isMobile ? 12 : 20,
+  paddingTop: 14,
+  paddingBottom:
+    isMobile ? 80 : 30
+},
 
     currencyBar: {
       flexDirection: 'row',
