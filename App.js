@@ -1,103 +1,87 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, SafeAreaView, ScrollView, TouchableOpacity, Modal, TextInput, Linking, useWindowDimensions } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  Modal,
+  SafeAreaView,
+  StatusBar,
+  useWindowDimensions,
+  Linking,
+  Alert
+} from 'react-native';
 
-const STORAGE_KEY = '@cebin_subscriptions_v2';
+const DEFAULT_RATES = { USD: 33.50, EUR: 36.20 };
 
 const CATEGORY_COLORS = {
-  'Eğlence': '#ef4444',     // Kırmızı
-  'Müzik': '#10b981',       // Yeşil
-  'Depolama': '#3b82f6',    // Mavi
-  'Yazılım & AI': '#8b5cf6', // Mor
-  'Spor': '#f59e0b',        // Turuncu
-  'Diğer': '#64748b'        // Gri
+  'Eğlence': '#ef4444',
+  'Yazılım & AI': '#8b5cf6',
+  'Müzik': '#10b981',
+  'Eğitim': '#f59e0b',
+  'Bulut & Depolama': '#3b82f6',
+  'Spor & Sağlık': '#ec4899',
+  'Diğer': '#64748b',
 };
 
 const PAYMENT_METHODS = [
-  'Garanti Bonus', 'Enpara', 'Papara', 'İş Bankası', 'Yapı Kredi', 'Nays', 'QNB', 'Nakit/Diğer'
-];
-
-const CURRENCY_SYMBOLS = {
-  TRY: '₺',
-  USD: '$',
-  EUR: '€'
-};
-
-const DEFAULT_RATES = {
-  TRY: 1,
-  USD: 36.40,
-  EUR: 39.80
-};
-
-const NOTIFICATION_OPTIONS = [
-  { label: '🚫 Bildirim Yok', badgeLabel: 'Bildirim Yok', value: -1 },
-  { label: '⚡ Ödeme Günü (Aynı Gün)', badgeLabel: '⚡ Aynı Gün', value: 0 },
-  { label: '🔔 Ödemeden 1 Gün Önce', badgeLabel: '🔔 Hatırlatma: 1 Gün Önce', value: 1 },
-  { label: '🔔 Ödemeden 2 Gün Önce', badgeLabel: '🔔 Hatırlatma: 2 Gün Önce', value: 2 },
-  { label: '🔔 Ödemeden 3 Gün Önce', badgeLabel: '🔔 Hatırlatma: 3 Gün Önce', value: 3 },
-  { label: '🔔 Ödemeden 5 Gün Önce', badgeLabel: '🔔 Hatırlatma: 5 Gün Önce', value: 5 },
-  { label: '🔔 Ödemeden 7 Gün Önce', badgeLabel: '🔔 Hatırlatma: 7 Gün Önce', value: 7 },
-];
-
-const DEFAULT_SUBSCRIPTIONS = [
-  { id: '1', name: 'Netflix', price: 345, currency: 'TRY', category: 'Eğlence', paymentMethod: 'Garanti Bonus', billingDay: 7, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://www.netflix.com/youraccount', color: '#E50914', notificationDays: 2 },
-  { id: '2', name: 'YouTube Premium', price: 79, currency: 'TRY', category: 'Eğlence', paymentMethod: 'Enpara', billingDay: 15, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://www.youtube.com/paid_memberships', color: '#FF0000', notificationDays: 1 },
-  { id: '3', name: 'ChatGPT Plus', price: 20, currency: 'USD', category: 'Yazılım & AI', paymentMethod: 'Papara', billingDay: 12, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://chatgpt.com/#settings', color: '#10A37F', notificationDays: 3 }
+  'Garanti Bonus',
+  'Enpara Kart',
+  'Papara',
+  'İş Bankası Maximum',
+  'Yapı Kredi World',
+  'Nakit / Diğer'
 ];
 
 const DEFAULT_POPULAR_SERVICES = [
-  { name: 'Netflix', price: 345, currency: 'TRY', category: 'Eğlence', color: '#E50914', cancelUrl: 'https://www.netflix.com/youraccount' },
-  { name: 'Exxen', price: 160, currency: 'TRY', category: 'Eğlence', color: '#FACC15', cancelUrl: 'https://www.exxen.com/tr/account' },
-  { name: 'YouTube Premium', price: 79, currency: 'TRY', category: 'Eğlence', color: '#FF0000', cancelUrl: 'https://www.youtube.com/paid_memberships' },
-  { name: 'Spotify', price: 59, currency: 'TRY', category: 'Müzik', color: '#1DB954', cancelUrl: 'https://www.spotify.com/account/overview/' },
-  { name: 'Prime Video', price: 39, currency: 'TRY', category: 'Eğlence', color: '#00A8E1', cancelUrl: 'https://www.amazon.com.tr/mc/manage' },
-  { name: 'iCloud', price: 2.99, currency: 'USD', category: 'Depolama', color: '#38BDF8', cancelUrl: 'https://support.apple.com/HT207594' },
-  { name: 'ChatGPT Plus', price: 20, currency: 'USD', category: 'Yazılım & AI', color: '#10A37F', cancelUrl: 'https://chatgpt.com/#settings' },
+  { name: 'Netflix', price: '229', currency: 'TRY', category: 'Eğlence', color: '#E50914' },
+  { name: 'Spotify', price: '59', currency: 'TRY', category: 'Müzik', color: '#1DB954' },
+  { name: 'YouTube Premium', price: '79', currency: 'TRY', category: 'Eğlence', color: '#FF0000' },
+  { name: 'ChatGPT Plus', price: '20', currency: 'USD', category: 'Yazılım & AI', color: '#10A37F' },
+  { name: 'iCloud+', price: '39.99', currency: 'TRY', category: 'Bulut & Depolama', color: '#007AFF' },
+  { name: 'Amazon Prime', price: '39', currency: 'TRY', category: 'Eğlence', color: '#00A8E1' },
 ];
 
-const CATEGORIES = ['Eğlence', 'Müzik', 'Depolama', 'Yazılım & AI', 'Spor', 'Diğer'];
+const NOTIFICATION_OPTIONS = [
+  { label: 'Bildirim Yok', badgeLabel: null, value: -1 },
+  { label: 'Aynı Gün', badgeLabel: '🔔 Aynı Gün', value: 0 },
+  { label: '1 Gün Önce', badgeLabel: '🔔 Hatırlatma: 1 Gün Önce', value: 1 },
+  { label: '2 Gün Önce', badgeLabel: '🔔 Hatırlatma: 2 Gün Önce', value: 2 },
+  { label: '3 Gün Önce', badgeLabel: '🔔 Hatırlatma: 3 Gün Önce', value: 3 },
+  { label: '1 Hafta Önce', badgeLabel: '🔔 Hatırlatma: 1 Hafta Önce', value: 7 },
+];
 
 const MONTH_NAMES = [
-  'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 
+  'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
   'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
 ];
 
-const WEEK_DAYS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+const YEARS = [2025, 2026, 2027];
 
-const YEARS = [2025, 2026, 2027, 2028, 2029, 2030];
-
-const getDaysInMonth = (monthIndex, year) => {
-  return new Date(Number(year) || 2026, (Number(monthIndex) || 0) + 1, 0).getDate();
+const formatCurrency = (val, currency = 'TRY') => {
+  const num = Number(val) || 0;
+  const symbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : '₺';
+  return `${num.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${symbol}`;
 };
 
-const getFirstDayOffset = (monthIndex, year) => {
-  const day = new Date(Number(year) || 2026, Number(monthIndex) || 0, 1).getDay();
-  return day === 0 ? 6 : day - 1; 
+const formatShortCurrency = (val, currency = 'TRY') => {
+  const num = Number(val) || 0;
+  const symbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : '₺';
+  return `${Math.round(num).toLocaleString('tr-TR')} ${symbol}`;
 };
 
-const formatCurrency = (amount, currency = 'TRY') => {
-  const val = Number(amount) || 0;
-  const symbol = CURRENCY_SYMBOLS[currency] || '₺';
-  return `${val.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${symbol}`;
+const convertToTL = (price, currency, rates = DEFAULT_RATES) => {
+  const p = Number(price) || 0;
+  if (currency === 'USD') return p * (rates.USD || 33.50);
+  if (currency === 'EUR') return p * (rates.EUR || 36.20);
+  return p;
 };
 
-const formatShortCurrency = (amount, currency = 'TRY') => {
-  const val = Number(amount) || 0;
-  const symbol = CURRENCY_SYMBOLS[currency] || '₺';
-  if (val === 0) return `0 ${symbol}`;
-  return `${val.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ${symbol}`;
-};
-
-const getServiceColor = (name = '') => {
-  const lower = name.toLowerCase();
-  if (lower.includes('netflix')) return '#E50914';
-  if (lower.includes('spotify')) return '#1DB954';
-  if (lower.includes('youtube')) return '#FF0000';
-  if (lower.includes('exxen')) return '#FACC15';
-  if (lower.includes('chatgpt') || lower.includes('openai')) return '#10A37F';
-  if (lower.includes('prime') || lower.includes('amazon')) return '#00A8E1';
-  if (lower.includes('icloud') || lower.includes('apple')) return '#38BDF8';
-  return '#6366F1';
+const getServiceColor = (name) => {
+  const match = DEFAULT_POPULAR_SERVICES.find(s => s.name.toLowerCase() === (name || '').toLowerCase());
+  return match ? match.color : '#6366f1';
 };
 
 export default function App() {
@@ -106,30 +90,29 @@ export default function App() {
 
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [subscriptions, setSubscriptions] = useState([]);
-  const [exchangeRates, setExchangeRates] = useState(DEFAULT_RATES);
+  const [exchangeRates] = useState(DEFAULT_RATES);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Custom listeler
+  // Filtreleme State'leri
+  const [selectedPaymentFilter, setSelectedPaymentFilter] = useState('ALL');
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('ALL');
+
+  // Custom Listeler
   const [paymentMethodsList, setPaymentMethodsList] = useState(PAYMENT_METHODS);
   const [popularServicesList, setPopularServicesList] = useState(DEFAULT_POPULAR_SERVICES);
   const [isAddingNewPaymentMethod, setIsAddingNewPaymentMethod] = useState(false);
   const [newCustomPaymentMethod, setNewCustomPaymentMethod] = useState('');
-  const [isAddingNewService, setIsAddingNewService] = useState(false);
-  const [newCustomServiceName, setNewCustomServiceName] = useState('');
-  const [newCustomServicePrice, setNewCustomServicePrice] = useState('');
 
   const [activeTab, setActiveTab] = useState('list'); 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [duplicateWarning, setDuplicateWarning] = useState('');
-  const [isNotificationDropdownOpen, setIsNotificationDropdownOpen] = useState(false);
 
   const [calMonth, setCalMonth] = useState(7); // Ağustos (0-indexed 7)
   const [calYear, setCalYear] = useState(2026);
   const [selectedAnalysisYear, setSelectedAnalysisYear] = useState(2026);
 
-  const [notificationPermission, setNotificationPermission] = useState('default');
-
+  // Form State'leri
   const [formName, setFormName] = useState('');
   const [formPrice, setFormPrice] = useState('');
   const [formCurrency, setFormCurrency] = useState('TRY');
@@ -144,226 +127,177 @@ export default function App() {
   const [formNotificationDays, setFormNotificationDays] = useState(2);
 
   useEffect(() => {
-    const fetchRates = async () => {
+    try {
+      const savedSubs = localStorage.getItem('cebin_subscriptions_v2');
+      if (savedSubs) {
+        setSubscriptions(JSON.parse(savedSubs));
+      } else {
+        // Örnek Başlangıç Verileri
+        setSubscriptions([
+          { id: '1', name: 'Netflix', price: '229', currency: 'TRY', category: 'Eğlence', paymentMethod: 'Garanti Bonus', period: 'monthly', billingDay: '15', billingMonth: '8', billingYear: '2026', notificationDays: 2, cancelUrl: 'https://www.netflix.com/youraccount', color: '#E50914' },
+          { id: '2', name: 'ChatGPT Plus', price: '20', currency: 'USD', category: 'Yazılım & AI', paymentMethod: 'Enpara Kart', period: 'monthly', billingDay: '28', billingMonth: '8', billingYear: '2026', notificationDays: 1, cancelUrl: 'https://chatgpt.com', color: '#10A37F' },
+          { id: '3', name: 'Spotify', price: '59', currency: 'TRY', category: 'Müzik', paymentMethod: 'Papara', period: 'monthly', billingDay: '10', billingMonth: '8', billingYear: '2026', notificationDays: 3, cancelUrl: 'https://www.spotify.com/account/overview', color: '#1DB954' },
+        ]);
+      }
+    } catch (e) {
+      console.log('Localstorage erişim hatası:', e);
+    }
+    setIsLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (isLoaded) {
       try {
-        const response = await fetch('https://open.er-api.com/v6/latest/USD');
-        const data = await response.json();
-        if (data && data.rates && data.rates.TRY) {
-          const usdTry = data.rates.TRY;
-          const eurTry = data.rates.TRY / (data.rates.EUR || 0.92);
-          setExchangeRates({
-            TRY: 1,
-            USD: Number(usdTry.toFixed(2)),
-            EUR: Number(eurTry.toFixed(2))
-          });
-        }
+        localStorage.setItem('cebin_subscriptions_v2', JSON.stringify(subscriptions));
       } catch (e) {
-        console.log('Canlı kur çekilemedi, varsayılan kurlar kullanılıyor:', e);
-      }
-    };
-
-    fetchRates();
-  }, []);
-
-  useEffect(() => {
-    const loadStoredData = async () => {
-      try {
-        let savedData = null;
-        if (typeof window !== 'undefined' && window.localStorage) {
-          savedData = window.localStorage.getItem(STORAGE_KEY);
-        }
-        
-        if (savedData) {
-          setSubscriptions(JSON.parse(savedData));
-        } else {
-          setSubscriptions(DEFAULT_SUBSCRIPTIONS);
-        }
-
-        if (typeof window !== 'undefined' && 'Notification' in window) {
-          setNotificationPermission(Notification.permission);
-        }
-      } catch (error) {
-        console.error('Veriler yüklenirken hata oluştu:', error);
-        setSubscriptions(DEFAULT_SUBSCRIPTIONS);
-      } finally {
-        setIsLoaded(true);
-      }
-    };
-
-    loadStoredData();
-  }, []);
-
-  useEffect(() => {
-    if (!isLoaded) return;
-
-    const saveStoredData = async () => {
-      try {
-        const jsonValue = JSON.stringify(subscriptions);
-        if (typeof window !== 'undefined' && window.localStorage) {
-          window.localStorage.setItem(STORAGE_KEY, jsonValue);
-        }
-      } catch (error) {
-        console.error('Veriler kaydedilirken hata oluştu:', error);
-      }
-    };
-
-    saveStoredData();
-  }, [subscriptions, isLoaded]);
-
-  const requestNotificationAccess = async () => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      const perm = await Notification.requestPermission();
-      setNotificationPermission(perm);
-      if (perm === 'granted') {
-        new Notification("Cebin Finance", {
-          body: "Hatırlatıcı bildirimleri başarıyla aktifleştirildi!",
-          icon: "https://fav.farm/💳"
-        });
+        console.log('Kaydetme hatası:', e);
       }
     }
-  };
+  }, [subscriptions, isLoaded]);
 
   const safeList = Array.isArray(subscriptions) ? subscriptions : [];
 
-  const convertToTL = (price, currency) => {
-    const rate = exchangeRates[currency] || 1;
-    return (Number(price) || 0) * rate;
-  };
-
-  const isSubActiveOnDay = (sub, day) => {
-    if (!sub) return false;
-    const billingDay = Number(sub.billingDay) || 1;
-    if (sub.period === 'monthly') {
-      return billingDay === day;
-    } else if (sub.period === 'yearly') {
-      const subMonth = Number(sub.billingMonth || 1) - 1;
-      const subYear = Number(sub.billingYear || 2026);
-      return billingDay === day && subMonth === calMonth && subYear === calYear;
-    }
-    return false;
+  // Gözü yormayan dinlendirici Gündüz (Light) Modu ve Karanlık (Dark) Mod renk paletleri
+  const theme = {
+    bg: isDarkMode ? '#090d16' : '#f8fafc',
+    headerBg: isDarkMode ? '#0f172a' : '#ffffff',
+    cardBg: isDarkMode ? '#151f30' : '#ffffff',
+    summaryBg: isDarkMode ? '#1e1b4b' : '#312e81',
+    summaryBorder: isDarkMode ? '#312e81' : '#4338ca',
+    cardBorder: isDarkMode ? '#1e293b' : '#e2e8f0',
+    textPrimary: isDarkMode ? '#f8fafc' : '#0f172a',
+    textSecondary: isDarkMode ? '#cbd5e1' : '#334155',
+    textMuted: isDarkMode ? '#94a3b8' : '#64748b',
+    inputBg: isDarkMode ? '#0f172a' : '#f1f5f9',
+    accent: isDarkMode ? '#38bdf8' : '#0284c7',
   };
 
   const handleDelete = (id) => {
     setSubscriptions(safeList.filter(s => s.id !== id));
   };
 
-  const theme = {
-    bg: isDarkMode ? '#090d16' : '#f1f5f9',
-    headerBg: isDarkMode ? '#0f172a' : '#ffffff',
-    cardBg: isDarkMode ? '#151f30' : '#ffffff',
-    summaryBg: isDarkMode ? '#1e1b4b' : '#4f46e5',
-    summaryBorder: isDarkMode ? '#312e81' : '#4338ca',
-    cardBorder: isDarkMode ? '#1e293b' : '#cbd5e1',
-    textPrimary: isDarkMode ? '#ffffff' : '#0f172a',
-    textSecondary: isDarkMode ? '#94a3b8' : '#64748b',
-    inputBg: isDarkMode ? '#0f172a' : '#f8fafc',
-    accent: isDarkMode ? '#38bdf8' : '#0284c7',
+  const handleExportCSV = () => {
+    if (safeList.length === 0) return;
+    let csvContent = "data:text/csv;charset=utf-8,Servis Adi,Fiyat,Para Birimi,Kategori,Odeme Yontemi,Periyot,Gonderim Gunu\n";
+    safeList.forEach(s => {
+      csvContent += `"${s.name}",${s.price},"${s.currency}","${s.category}","${s.paymentMethod}","${s.period}",${s.billingDay}\n`;
+    });
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `cebin_abonelikler_${calYear}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
+
+  const handleExportJSON = () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(subscriptions, null, 2));
+    const dlAnchorElem = document.createElement('a');
+    dlAnchorElem.setAttribute("href", dataStr);
+    dlAnchorElem.setAttribute("download", `cebin_yedek_${Date.now()}.json`);
+    dlAnchorElem.click();
+  };
+
+  const handleImportJSON = (event) => {
+    const fileReader = new FileReader();
+    if (event.target.files && event.target.files[0]) {
+      fileReader.readAsText(event.target.files[0], "UTF-8");
+      fileReader.onload = (e) => {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (Array.isArray(parsed)) {
+            setSubscriptions(parsed);
+            alert("✅ Veriler başarıyla içe aktarıldı!");
+          }
+        } catch (err) {
+          alert("❌ Geçersiz yedek dosyası!");
+        }
+      };
+    }
+  };
+
+  const filteredSubscriptions = safeList.filter(sub => {
+    const matchPayment = selectedPaymentFilter === 'ALL' || sub.paymentMethod === selectedPaymentFilter;
+    const matchCat = selectedCategoryFilter === 'ALL' || sub.category === selectedCategoryFilter;
+    return matchPayment && matchCat;
+  });
 
   const monthlyTotalTL = safeList.reduce((sum, item) => {
     if (!item) return sum;
-    const priceTL = convertToTL(item.price, item.currency || 'TRY');
+    const priceTL = convertToTL(item.price, item.currency || 'TRY', exchangeRates);
     const cost = item.period === 'yearly' ? priceTL / 12 : priceTL;
     return sum + cost;
   }, 0);
 
-  const calculateMonthTotalTL = (monthIndex, year) => {
-    return safeList.reduce((sum, item) => {
-      const priceTL = convertToTL(item.price, item.currency || 'TRY');
-      if (item.period === 'monthly') {
-        return sum + priceTL;
-      } else if (item.period === 'yearly') {
-        const subMonth = Number(item.billingMonth || 1) - 1;
-        const subYear = Number(item.billingYear || 2026);
-        if (subMonth === monthIndex && subYear === year) {
-          return sum + priceTL;
-        }
-      }
-      return sum;
-    }, 0);
-  };
-
-  const currentCalMonthTotalTL = calculateMonthTotalTL(calMonth, calYear);
-
-  const getUpcomingPayments = () => {
-    const todayDay = 8;
-    return safeList.filter(s => {
-      const notifDays = s.notificationDays !== undefined ? s.notificationDays : 2;
-      if (notifDays === -1) return false;
-      const dayDiff = Number(s.billingDay) - todayDay;
-      return dayDiff >= 0 && dayDiff <= notifDays;
-    });
-  };
-
-  const upcomingPayments = getUpcomingPayments();
-
+  // Aylık detaylı grafik hesabı ve baskın kategori rengi bulma
   const getDetailedMonthlyBreakdown = (targetYear) => {
-    const monthlyCategoryData = Array(12).fill(null).map(() => ({}));
     const monthlyTotals = Array(12).fill(0);
+    const monthlyDominantColor = Array(12).fill('#6366f1');
 
-    safeList.forEach(sub => {
-      const priceTL = convertToTL(sub.price, sub.currency || 'TRY');
-      const cat = sub.category || 'Diğer';
+    for (let monthIdx = 0; monthIdx < 12; monthIdx++) {
+      let monthSum = 0;
+      const categorySumsInMonth = {};
 
-      if (sub.period === 'monthly') {
-        for (let m = 0; m < 12; m++) {
-          monthlyCategoryData[m][cat] = (monthlyCategoryData[m][cat] || 0) + priceTL;
-          monthlyTotals[m] += priceTL;
+      safeList.forEach(item => {
+        const priceTL = convertToTL(item.price, item.currency || 'TRY', exchangeRates);
+        const itemCat = item.category || 'Diğer';
+
+        if (item.period === 'monthly') {
+          monthSum += priceTL;
+          categorySumsInMonth[itemCat] = (categorySumsInMonth[itemCat] || 0) + priceTL;
+        } else if (item.period === 'yearly') {
+          const bMonth = Number(item.billingMonth || 1) - 1;
+          const bYear = Number(item.billingYear || targetYear);
+          if (bMonth === monthIdx && bYear === targetYear) {
+            monthSum += priceTL;
+            categorySumsInMonth[itemCat] = (categorySumsInMonth[itemCat] || 0) + priceTL;
+          }
         }
-      } else if (sub.period === 'yearly') {
-        const subMonthIndex = Number(sub.billingMonth || 1) - 1;
-        const subYear = Number(sub.billingYear || 2026);
-        if (subYear === targetYear) {
-          monthlyCategoryData[subMonthIndex][cat] = (monthlyCategoryData[subMonthIndex][cat] || 0) + priceTL;
-          monthlyTotals[subMonthIndex] += priceTL;
+      });
+
+      monthlyTotals[monthIdx] = monthSum;
+
+      // O ay en çok harcama yapılan kategorinin rengini çubuğa atama
+      let maxCatAmount = 0;
+      let dominantCat = 'Eğlence';
+      Object.entries(categorySumsInMonth).forEach(([cat, amt]) => {
+        if (amt > maxCatAmount) {
+          maxCatAmount = amt;
+          dominantCat = cat;
         }
+      });
+      if (maxCatAmount > 0) {
+        monthlyDominantColor[monthIdx] = CATEGORY_COLORS[dominantCat] || '#6366f1';
       }
-    });
+    }
 
-    return { monthlyCategoryData, monthlyTotals };
+    return { monthlyTotals, monthlyDominantColor };
   };
 
-  const { monthlyCategoryData, monthlyTotals } = getDetailedMonthlyBreakdown(selectedAnalysisYear);
+  const { monthlyTotals, monthlyDominantColor } = getDetailedMonthlyBreakdown(selectedAnalysisYear);
   const totalYearlyExpenseForSelectedYear = monthlyTotals.reduce((a, b) => a + b, 0);
   const maxMonthlyExpense = Math.max(...monthlyTotals, 1);
 
-  const yearlyCategoryStats = safeList.reduce((acc, item) => {
-    const cat = item.category || 'Diğer';
-    const priceTL = convertToTL(item.price, item.currency || 'TRY');
-    if (item.period === 'monthly') {
-      acc[cat] = (acc[cat] || 0) + (priceTL * 12);
-    } else if (item.period === 'yearly' && Number(item.billingYear || 2026) === selectedAnalysisYear) {
-      acc[cat] = (acc[cat] || 0) + priceTL;
-    }
+  // Ödeme Yöntemi Bazlı İstatistikler
+  const yearlyPaymentMethodStats = safeList.reduce((acc, item) => {
+    const method = item.paymentMethod || 'Diğer';
+    const priceTL = convertToTL(item.price, item.currency || 'TRY', exchangeRates);
+    const annualCost = item.period === 'monthly' ? priceTL * 12 : priceTL;
+    acc[method] = (acc[method] || 0) + annualCost;
     return acc;
   }, {});
 
-  const handlePrevMonth = () => {
-    if (calYear === 2025 && calMonth === 0) return;
-    if (calMonth === 0) {
-      setCalMonth(11);
-      setCalYear(calYear - 1);
-    } else {
-      setCalMonth(calMonth - 1);
-    }
-  };
-
-  const handleNextMonth = () => {
-    if (calYear === 2030 && calMonth === 11) return;
-    if (calMonth === 11) {
-      setCalMonth(0);
-      setCalYear(calYear + 1);
-    } else {
-      setCalMonth(calMonth + 1);
-    }
-  };
+  // Kategori Bazlı Yıllık Harcama İstatistikleri
+  const yearlyCategoryStats = safeList.reduce((acc, item) => {
+    const cat = item.category || 'Diğer';
+    const priceTL = convertToTL(item.price, item.currency || 'TRY', exchangeRates);
+    const annualCost = item.period === 'monthly' ? priceTL * 12 : priceTL;
+    acc[cat] = (acc[cat] || 0) + annualCost;
+    return acc;
+  }, {});
 
   const openForm = (item = null) => {
-    setDuplicateWarning('');
-    setIsNotificationDropdownOpen(false);
-    setIsAddingNewPaymentMethod(false);
-    setIsAddingNewService(false);
-
     if (item) {
       setEditingId(item.id);
       setFormName(item.name || '');
@@ -373,7 +307,7 @@ export default function App() {
       setFormMonth(String(item.billingMonth || '8'));
       setFormYear(String(item.billingYear || '2026'));
       setFormCategory(item.category || 'Eğlence');
-      setFormPaymentMethod(item.paymentMethod || 'Garanti Bonus');
+      setFormPaymentMethod(item.paymentMethod || paymentMethodsList[0]);
       setFormPeriod(item.period || 'monthly');
       setFormCancelUrl(item.cancelUrl || '');
       setFormColor(item.color || getServiceColor(item.name));
@@ -387,99 +321,46 @@ export default function App() {
       setFormMonth('8');
       setFormYear('2026');
       setFormCategory('Eğlence');
-      setFormPaymentMethod('Garanti Bonus');
+      setFormPaymentMethod(paymentMethodsList[0] || 'Garanti Bonus');
       setFormPeriod('monthly');
       setFormCancelUrl('');
       setFormColor('#6366F1');
       setFormNotificationDays(2);
     }
+    setDuplicateWarning('');
     setIsModalOpen(true);
   };
 
-  const handleAddCustomPaymentMethod = () => {
-    if (!newCustomPaymentMethod.trim()) return;
-    const addedName = newCustomPaymentMethod.trim();
-    if (!paymentMethodsList.includes(addedName)) {
-      setPaymentMethodsList([...paymentMethodsList, addedName]);
+  const handleSaveForm = () => {
+    if (!formName.trim()) {
+      alert("Lütfen servis adını giriniz.");
+      return;
     }
-    setFormPaymentMethod(addedName);
-    setNewCustomPaymentMethod('');
-    setIsAddingNewPaymentMethod(false);
-  };
-
-  const handleAddCustomService = () => {
-    if (!newCustomServiceName.trim()) return;
-    const name = newCustomServiceName.trim();
-    const price = Number(newCustomServicePrice) || 0;
-    const newService = {
-      name,
-      price,
-      currency: 'TRY',
-      category: 'Diğer',
-      color: getServiceColor(name),
-      cancelUrl: ''
-    };
-    setPopularServicesList([...popularServicesList, newService]);
-    selectPopularService(newService);
-    setNewCustomServiceName('');
-    setNewCustomServicePrice('');
-    setIsAddingNewService(false);
-  };
-
-  const selectPopularService = (service) => {
-    setFormName(service.name);
-    setFormPrice(String(service.price));
-    setFormCurrency(service.currency || 'TRY');
-    setFormCategory(service.category || 'Eğlence');
-    setFormCancelUrl(service.cancelUrl || '');
-    setFormColor(service.color || getServiceColor(service.name));
-    checkDuplicate(service.name);
-  };
-
-  const checkDuplicate = (name) => {
-    const exists = safeList.some(
-      s => s.name.toLowerCase().trim() === name.toLowerCase().trim() && s.id !== editingId
-    );
-    if (exists) {
-      setDuplicateWarning(`⚠️ "${name}" adında bir abonelik zaten mevcut! Tekrar eklemek istediğinize emin misiniz?`);
-    } else {
-      setDuplicateWarning('');
+    if (!formPrice || isNaN(formPrice)) {
+      alert("Lütfen geçerli bir fiyat giriniz.");
+      return;
     }
-  };
 
-  const handleSave = () => {
-    if (!formName || !formPrice) return;
-
-    const normalizedPrice = Number(formPrice.replace(',', '.'));
-    const parsedMonth = Math.min(Math.max(Number(formMonth) || 1, 1), 12);
-    const parsedYear = Number(formYear) || 2026;
-
-    const maxDaysInSelectedMonth = formPeriod === 'yearly' 
-      ? getDaysInMonth(parsedMonth - 1, parsedYear)
-      : 31;
-    
-    const rawDay = Number(formDay) || 1;
-    const clampedDay = Math.min(Math.max(rawDay, 1), maxDaysInSelectedMonth);
-
-    const subData = {
+    const payload = {
+      id: editingId || String(Date.now()),
       name: formName.trim(),
-      price: isNaN(normalizedPrice) ? 0 : normalizedPrice,
+      price: formPrice,
       currency: formCurrency,
-      billingDay: clampedDay,
-      billingMonth: parsedMonth,
-      billingYear: parsedYear,
+      billingDay: formDay,
+      billingMonth: formMonth,
+      billingYear: formYear,
       category: formCategory,
       paymentMethod: formPaymentMethod,
       period: formPeriod,
+      cancelUrl: formCancelUrl,
+      color: formColor,
       notificationDays: formNotificationDays,
-      cancelUrl: formCancelUrl || `https://www.google.com/search?q=${formName}+iptal+et`,
-      color: formColor || getServiceColor(formName),
     };
 
     if (editingId) {
-      setSubscriptions(safeList.map(s => s.id === editingId ? { ...subData, id: editingId } : s));
+      setSubscriptions(safeList.map(s => s.id === editingId ? payload : s));
     } else {
-      setSubscriptions([...safeList, { ...subData, id: Date.now().toString() }]);
+      setSubscriptions([...safeList, payload]);
     }
     setIsModalOpen(false);
   };
@@ -490,7 +371,7 @@ export default function App() {
       
       <View style={[styles.appWrapper, isDesktop && styles.appWrapperDesktop]}>
 
-        {/* DİKEY SIDEBAR (Geniş Ekranlar / Masaüstü) */}
+        {/* MASAÜSTÜ SIDEBAR (Geniş Ekranlar) */}
         {isDesktop && (
           <View style={[styles.sidebarContainer, { backgroundColor: theme.headerBg, borderRightColor: theme.cardBorder }]}>
             <View style={styles.sidebarHeader}>
@@ -535,7 +416,14 @@ export default function App() {
               </TouchableOpacity>
             </View>
 
-            <View style={{ marginTop: 'auto' }}>
+            {/* HIZLI DIŞA AKTAR / YEDEKLEME ALANI */}
+            <View style={{ marginTop: 'auto', gap: 8 }}>
+              <TouchableOpacity style={[styles.exportBtn, { backgroundColor: theme.inputBg }]} onPress={handleExportCSV}>
+                <Text style={{ color: theme.textPrimary, fontSize: 12, fontWeight: 'bold' }}>📄 CSV / Excel İndir</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.exportBtn, { backgroundColor: theme.inputBg }]} onPress={handleExportJSON}>
+                <Text style={{ color: theme.accent, fontSize: 12, fontWeight: 'bold' }}>💾 JSON Yedek Al</Text>
+              </TouchableOpacity>
               <TouchableOpacity style={styles.addBtn} onPress={() => openForm()}>
                 <Text style={styles.addBtnText}>+ Yeni Abonelik Ekle</Text>
               </TouchableOpacity>
@@ -546,45 +434,24 @@ export default function App() {
         {/* ANA İÇERİK KONTROL ALANI */}
         <View style={styles.responsiveWrapper}>
 
-          {/* Üst Header */}
+          {/* EKRAN ÜST BAŞLIĞI */}
           <View style={[styles.header, { backgroundColor: theme.headerBg, borderBottomColor: theme.cardBorder }]}>
-            {!isDesktop ? (
-              <View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Cebin</Text>
-                  <View style={styles.proBadge}>
-                    <Text style={styles.proBadgeText}>FINANCE 2.0</Text>
-                  </View>
-                </View>
-                <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Akıllı Abonelik & Bütçe Asistanı</Text>
-              </View>
-            ) : (
-              <Text style={[styles.headerTitle, { color: theme.textPrimary, fontSize: 20 }]}>
-                {activeTab === 'list' ? 'Abonelik Yönetimi' : activeTab === 'calendar' ? 'Ödeme Takvimi' : 'Finansal Analiz & Raporlar'}
-              </Text>
-            )}
-
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
+            <View>
+              <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Cebin</Text>
+              <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Abonelik & Sabit Gider Takibi</Text>
+            </View>
+            
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <TouchableOpacity 
-                style={[
-                  styles.iconBtn, 
-                  { backgroundColor: notificationPermission === 'granted' ? '#10b98122' : theme.cardBg, borderColor: theme.cardBorder }
-                ]} 
-                onPress={requestNotificationAccess}
-              >
-                <Text style={{ fontSize: 16 }}>{notificationPermission === 'granted' ? '🔔' : '🔕'}</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[styles.themeToggleBtn, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]} 
+                style={[styles.themeToggleBtn, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} 
                 onPress={() => setIsDarkMode(!isDarkMode)}
               >
-                <Text style={{ fontSize: 16 }}>{isDarkMode ? '☀️' : '🌙'}</Text>
+                <Text style={{ fontSize: 16 }}>{isDarkMode ? '☀️ Light' : '🌙 Dark'}</Text>
               </TouchableOpacity>
-
+              
               {!isDesktop && (
                 <TouchableOpacity style={styles.addBtn} onPress={() => openForm()}>
-                  <Text style={styles.addBtnText}>+ Yeni Ekle</Text>
+                  <Text style={styles.addBtnText}>+ Ekle</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -605,22 +472,10 @@ export default function App() {
               </View>
             </View>
 
-            {/* BİLDİRİM UYARI BANNER'I */}
-            {upcomingPayments.length > 0 && (
-              <View style={[styles.reminderBanner, { backgroundColor: '#f59e0b15', borderColor: '#f59e0b' }]}>
-                <Text style={{ color: '#f59e0b', fontWeight: 'bold', fontSize: 13, marginBottom: 2 }}>
-                  🔔 Yaklaşan Ödeme Uyarıları ({upcomingPayments.length}):
-                </Text>
-                <Text style={{ color: theme.textPrimary, fontSize: 12 }}>
-                  {upcomingPayments.map(s => `${s.name} (${s.billingDay}. gün - ${formatCurrency(s.price, s.currency)})`).join(', ')}
-                </Text>
-              </View>
-            )}
-
             {/* TAB 1: ABONELİK LİSTESİ */}
             {activeTab === 'list' && (
               <>
-                {/* FINANSAL ÖZET KARTI */}
+                {/* FİNANSAL ÖZET KARTI */}
                 <View style={[styles.summaryCard, { backgroundColor: theme.summaryBg, borderColor: theme.summaryBorder }]}>
                   <Text style={styles.summaryLabel}>Toplam Aylık Taahhüt</Text>
                   <Text style={styles.summaryValue}>{formatCurrency(monthlyTotalTL, 'TRY')}</Text>
@@ -637,24 +492,48 @@ export default function App() {
                   </View>
                 </View>
 
+                {/* ÖDEME YÖNTEMİ FİLTRELEME BARI */}
+                <View style={{ marginBottom: 14 }}>
+                  <Text style={{ color: theme.textPrimary, fontSize: 12, fontWeight: 'bold', marginBottom: 6 }}>
+                    💳 Ödeme Yöntemine Göre Filtrele:
+                  </Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                    <TouchableOpacity 
+                      style={[styles.filterChip, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }, selectedPaymentFilter === 'ALL' && styles.filterChipActive]}
+                      onPress={() => setSelectedPaymentFilter('ALL')}
+                    >
+                      <Text style={[styles.filterChipText, { color: theme.textSecondary }, selectedPaymentFilter === 'ALL' && styles.filterChipTextActive]}>Tüm Kartlar</Text>
+                    </TouchableOpacity>
+                    {paymentMethodsList.map(method => (
+                      <TouchableOpacity 
+                        key={method}
+                        style={[styles.filterChip, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }, selectedPaymentFilter === method && styles.filterChipActive]}
+                        onPress={() => setSelectedPaymentFilter(method)}
+                      >
+                        <Text style={[styles.filterChipText, { color: theme.textSecondary }, selectedPaymentFilter === method && styles.filterChipTextActive]}>{method}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+
                 {/* KARTLARIN LİSTELENMESİ */}
-                <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
-                  Kayıtlı Abonelikler ({safeList.length})
+                <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
+                  Kayıtlı Abonelikler ({filteredSubscriptions.length})
                 </Text>
 
-                {safeList.length === 0 ? (
+                {filteredSubscriptions.length === 0 ? (
                   <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
                     <Text style={{ fontSize: 32, marginBottom: 8 }}>💳</Text>
-                    <Text style={{ color: theme.textPrimary, fontWeight: 'bold', fontSize: 16 }}>Henüz Abonelik Eklenmedi</Text>
+                    <Text style={{ color: theme.textPrimary, fontWeight: 'bold', fontSize: 16 }}>Abonelik Bulunamadı</Text>
                     <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 4, textAlign: 'center' }}>
-                      Aylık veya yıllık sabit harcamalarınızı takip etmek için yukarıdaki "+ Yeni Ekle" butonunu kullanabilirsiniz.
+                      Seçilen filtre kriterlerine uygun abonelik kaydı bulunmuyor.
                     </Text>
                   </View>
                 ) : (
-                  safeList.map((item) => {
-                    const priceInTL = convertToTL(item.price, item.currency || 'TRY');
+                  filteredSubscriptions.map((item) => {
+                    const priceInTL = convertToTL(item.price, item.currency || 'TRY', exchangeRates);
                     const isYearly = item.period === 'yearly';
-                    const notifOpt = NOTIFICATION_OPTIONS.find(o => o.value === item.notificationDays) || NOTIFICATION_OPTIONS[2];
+                    const notifOpt = NOTIFICATION_OPTIONS.find(o => o.value === item.notificationDays) || NOTIFICATION_OPTIONS[3];
                     const serviceColor = item.color || getServiceColor(item.name);
 
                     return (
@@ -663,7 +542,7 @@ export default function App() {
                           <View style={[styles.brandIconBox, { backgroundColor: serviceColor }]}>
                             <Text style={styles.brandIconText}>{item.name ? item.name.charAt(0).toUpperCase() : 'C'}</Text>
                           </View>
-                          <View>
+                          <View style={{ flex: 1 }}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                               <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>{item.name}</Text>
                               {item.paymentMethod && (
@@ -674,7 +553,7 @@ export default function App() {
                               {notifOpt.value !== -1 && (
                                 <View style={[styles.cardTag, { backgroundColor: theme.inputBg }]}>
                                   <Text style={[styles.cardTagText, { color: theme.accent }]}>
-                                    {notifOpt.badgeLabel || notifOpt.label}
+                                    {notifOpt.badgeLabel}
                                   </Text>
                                 </View>
                               )}
@@ -690,19 +569,21 @@ export default function App() {
                             {formatCurrency(item.price, item.currency || 'TRY')} {isYearly ? '/yıl' : '/ay'}
                           </Text>
                           {item.currency !== 'TRY' && (
-                            <Text style={{ fontSize: 11, color: theme.accent, marginTop: 1 }}>
+                            <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.accent, marginTop: 1 }}>
                               ≈ {formatCurrency(priceInTL, 'TRY')}
                             </Text>
                           )}
                           <View style={styles.actionButtons}>
                             <TouchableOpacity style={[styles.editBtn, { backgroundColor: theme.inputBg }]} onPress={() => openForm(item)}>
-                              <Text style={{ color: theme.textSecondary, fontSize: 11 }}>Düzenle</Text>
+                              <Text style={{ color: theme.textSecondary, fontSize: 11, fontWeight: 'bold' }}>Düzenle</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={[styles.cancelBtn, { backgroundColor: theme.inputBg }]} onPress={() => item.cancelUrl && Linking.openURL(item.cancelUrl)}>
-                              <Text style={styles.cancelText}>İptal 🔗</Text>
-                            </TouchableOpacity>
+                            {item.cancelUrl ? (
+                              <TouchableOpacity style={[styles.cancelBtn, { backgroundColor: theme.inputBg }]} onPress={() => Linking.openURL(item.cancelUrl)}>
+                                <Text style={styles.cancelText}>İptal 🔗</Text>
+                              </TouchableOpacity>
+                            ) : null}
                             <TouchableOpacity onPress={() => handleDelete(item.id)} style={[styles.deleteBtn, { backgroundColor: theme.inputBg }]}>
-                              <Text style={{ color: '#ef4444', fontSize: 11 }}>🗑️</Text>
+                              <Text style={{ color: '#ef4444', fontSize: 12 }}>🗑️</Text>
                             </TouchableOpacity>
                           </View>
                         </View>
@@ -713,75 +594,91 @@ export default function App() {
               </>
             )}
 
-            {/* TAB 2: AYLIK ÖDEME TAKVİMİ */}
+            {/* TAB 2: TAKVİM GÖRÜNÜMÜ */}
             {activeTab === 'calendar' && (
               <View style={{ marginTop: 10 }}>
                 <View style={styles.calendarHeaderNav}>
-                  <TouchableOpacity style={[styles.arrowBtn, { backgroundColor: theme.cardBg }]} onPress={handlePrevMonth}>
-                    <Text style={styles.arrowText}>◀</Text>
+                  <TouchableOpacity 
+                    style={[styles.arrowBtn, { backgroundColor: theme.inputBg }]} 
+                    onPress={() => {
+                      if (calMonth === 0) { setCalMonth(11); setCalYear(calYear - 1); }
+                      else { setCalMonth(calMonth - 1); }
+                    }}
+                  >
+                    <Text style={styles.arrowText}>◀ Önceki</Text>
                   </TouchableOpacity>
-                  <View style={{ alignItems: 'center' }}>
-                    <Text style={[styles.calendarTitleText, { color: theme.textPrimary }]}>
-                      {MONTH_NAMES[calMonth]} {calYear}
-                    </Text>
-                    <Text style={{ fontSize: 12, color: theme.textSecondary, marginTop: 2 }}>Aylık Ödeme Takvimi</Text>
-                  </View>
-                  <TouchableOpacity style={[styles.arrowBtn, { backgroundColor: theme.cardBg }]} onPress={handleNextMonth}>
-                    <Text style={styles.arrowText}>▶</Text>
+                  
+                  <Text style={[styles.calendarTitleText, { color: theme.textPrimary }]}>
+                    {MONTH_NAMES[calMonth]} {calYear}
+                  </Text>
+
+                  <TouchableOpacity 
+                    style={[styles.arrowBtn, { backgroundColor: theme.inputBg }]} 
+                    onPress={() => {
+                      if (calMonth === 11) { setCalMonth(0); setCalYear(calYear + 1); }
+                      else { setCalMonth(calMonth + 1); }
+                    }}
+                  >
+                    <Text style={styles.arrowText}>Sonraki ▶</Text>
                   </TouchableOpacity>
                 </View>
 
+                {/* TAKVİM IZGARASI */}
                 <View style={styles.calendarWrapper}>
                   <View style={styles.weekHeaderRow}>
-                    {WEEK_DAYS.map(wd => (
-                      <View key={wd} style={styles.weekHeaderCell}>
-                        <Text style={[styles.weekHeaderText, { color: theme.textSecondary }]}>{wd}</Text>
+                    {['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].map((d, i) => (
+                      <View key={i} style={styles.weekHeaderCell}>
+                        <Text style={[styles.weekHeaderText, { color: theme.textSecondary }]}>{d}</Text>
                       </View>
                     ))}
                   </View>
 
                   <View style={styles.calendarGrid}>
-                    {Array.from({ length: getFirstDayOffset(calMonth, calYear) }).map((_, idx) => (
-                      <View key={`offset-${idx}`} style={[styles.calendarDayBox, styles.emptyDayBox, { backgroundColor: 'transparent' }]} />
-                    ))}
+                    {Array.from({ length: 31 }).map((_, idx) => {
+                      const dayNum = idx + 1;
+                      const subsOnDay = safeList.filter(s => {
+                        if (s.period === 'monthly') return Number(s.billingDay) === dayNum;
+                        if (s.period === 'yearly') {
+                          return Number(s.billingDay) === dayNum && Number(s.billingMonth) === (calMonth + 1) && Number(s.billingYear) === calYear;
+                        }
+                        return false;
+                      });
 
-                    {Array.from({ length: getDaysInMonth(calMonth, calYear) }, (_, i) => i + 1).map((day) => {
-                      const daySubs = safeList.filter(s => isSubActiveOnDay(s, day));
                       return (
-                        <View key={day} style={[styles.calendarDayBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }, daySubs.length > 0 && styles.activeDayBox]}>
-                          <Text style={[styles.dayNumber, { color: theme.textSecondary }]}>{day}</Text>
-                          {daySubs.map(s => {
-                            const sColor = s.color || getServiceColor(s.name);
-                            return (
-                              <View key={s.id} style={[styles.daySubBadge, { backgroundColor: sColor }]}>
-                                <Text style={styles.daySubText} numberOfLines={1}>{s.name}</Text>
-                                <Text style={styles.daySubPrice}>{formatShortCurrency(s.price, s.currency)}</Text>
-                              </View>
-                            );
-                          })}
+                        <View 
+                          key={dayNum} 
+                          style={[
+                            styles.calendarDayBox, 
+                            { backgroundColor: theme.cardBg, borderColor: theme.cardBorder },
+                            subsOnDay.length > 0 && styles.activeDayBox
+                          ]}
+                        >
+                          <Text style={[styles.dayNumber, { color: theme.textPrimary }]}>{dayNum}</Text>
+                          {subsOnDay.map((sub, sIdx) => (
+                            <View key={sIdx} style={[styles.daySubBadge, { backgroundColor: sub.color || getServiceColor(sub.name) }]}>
+                              <Text style={styles.daySubText} numberOfLines={1}>{sub.name}</Text>
+                              <Text style={styles.daySubPrice}>{formatShortCurrency(convertToTL(sub.price, sub.currency, exchangeRates))}</Text>
+                            </View>
+                          ))}
                         </View>
                       );
                     })}
                   </View>
                 </View>
-
-                <View style={[styles.monthTotalFooterCard, { backgroundColor: theme.headerBg, borderColor: theme.cardBorder }]}>
-                  <Text style={{ color: theme.textSecondary, fontSize: 14, fontWeight: '600' }}>
-                    {MONTH_NAMES[calMonth]} {calYear} Dönemi Toplam Ödeme (TL):
-                  </Text>
-                  <Text style={{ color: theme.accent, fontSize: 24, fontWeight: 'bold', marginTop: 4 }}>
-                    {formatCurrency(currentCalMonthTotalTL, 'TRY')}
-                  </Text>
-                </View>
               </View>
             )}
 
-            {/* TAB 3: ANALIZ VE GRAFIKLER */}
+            {/* TAB 3: ANALİZ VE GRAFİKLER */}
             {activeTab === 'analytics' && (
               <View style={{ marginTop: 10 }}>
-                <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.textPrimary, marginBottom: 4 }}>Finansal Analiz & Grafikler</Text>
-                <Text style={{ color: theme.textSecondary, fontSize: 13, marginBottom: 16 }}>Aylık harcama dağılımları ve yıllık trendler</Text>
+                <Text style={{ fontSize: 22, fontWeight: 'bold', color: theme.textPrimary, marginBottom: 4 }}>
+                  Finansal Analiz & Raporlar
+                </Text>
+                <Text style={{ color: theme.textSecondary, fontSize: 13, marginBottom: 16 }}>
+                  Aylık harcama dağılımları, ödeme yöntemi analizi ve trendler
+                </Text>
 
+                {/* Yıl Seçici Chips */}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
                   {YEARS.map(y => (
                     <TouchableOpacity 
@@ -794,36 +691,71 @@ export default function App() {
                   ))}
                 </ScrollView>
 
-                {/* AYLIK HARCAMA ÇUBUK GRAFİĞİ */}
+                {/* AYLIK HARCAMA ÇUBUK GRAFİĞİ (DİNAMİK KATEGORİ RENKLİ ÇUBUKLAR) */}
                 <View style={[styles.chartContainer, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-                  <Text style={{ fontSize: 14, fontWeight: 'bold', color: theme.textPrimary, marginBottom: 12 }}>
+                  <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.textPrimary, marginBottom: 14 }}>
                     {selectedAnalysisYear} Aylık Harcama Grafiği (TL)
                   </Text>
 
                   <View style={styles.barsAreaContainer}>
                     {monthlyTotals.map((tot, mIdx) => {
                       const heightPercent = maxMonthlyExpense > 0 ? (tot / maxMonthlyExpense) * 100 : 0;
+                      // Çubuk rengi o ayın baskın harcama kategorisinin rengiyle eşleşir
+                      const barColor = tot > 0 ? monthlyDominantColor[mIdx] : 'transparent';
+                      
                       return (
                         <View key={mIdx} style={styles.barColumn}>
                           <View style={[styles.barTrack, { backgroundColor: theme.inputBg }]}>
-                            <View style={[styles.barFill, { height: `${Math.max(heightPercent, 4)}%`, backgroundColor: tot > 0 ? '#6366f1' : 'transparent' }]} />
+                            <View style={[styles.barFill, { height: `${Math.max(heightPercent, 6)}%`, backgroundColor: barColor }]} />
                           </View>
-                          <Text style={[styles.barLabel, { color: theme.textSecondary }]}>{MONTH_NAMES[mIdx].substring(0, 3)}</Text>
-                          <Text style={[styles.barAmountText, { color: theme.textPrimary }]}>{formatShortCurrency(tot, 'TRY')}</Text>
+                          <Text style={[styles.barLabel, { color: theme.textPrimary }]}>{MONTH_NAMES[mIdx].substring(0, 3)}</Text>
+                          <Text style={[styles.barAmountText, { color: theme.textPrimary }]}>{tot > 0 ? formatShortCurrency(tot, 'TRY') : '-'}</Text>
                         </View>
                       );
                     })}
                   </View>
 
-                  <View style={styles.chartFooter}>
-                    <Text style={{ color: theme.textSecondary, fontSize: 12 }}>Yıllık Toplam Harcama ({selectedAnalysisYear}):</Text>
-                    <Text style={{ color: theme.accent, fontSize: 16, fontWeight: 'bold' }}>{formatCurrency(totalYearlyExpenseForSelectedYear, 'TRY')}</Text>
+                  {/* YILLIK TOPLAM HARCAMA ALANI - YÜKSEK KONTRASTLI VE NET */}
+                  <View style={[styles.chartFooter, { borderTopColor: theme.cardBorder }]}>
+                    <Text style={{ color: theme.textPrimary, fontSize: 14, fontWeight: 'bold' }}>
+                      Yıllık Toplam Harcama ({selectedAnalysisYear}):
+                    </Text>
+                    <Text style={{ color: theme.accent, fontSize: 18, fontWeight: 'bold' }}>
+                      {formatCurrency(totalYearlyExpenseForSelectedYear, 'TRY')}
+                    </Text>
                   </View>
                 </View>
 
+                {/* ÖDEME YÖNTEMİNE GÖRE HARCAMA DAĞILIMI */}
+                <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.textPrimary, marginTop: 18, marginBottom: 10 }}>
+                  💳 Ödeme Yöntemine Göre Harcama Dağılımı ({selectedAnalysisYear})
+                </Text>
+
+                {Object.keys(yearlyPaymentMethodStats).length === 0 ? (
+                  <Text style={{ color: theme.textSecondary, fontStyle: 'italic', fontSize: 12 }}>Kayıtlı ödeme yöntemi verisi bulunamadı.</Text>
+                ) : (
+                  Object.entries(yearlyPaymentMethodStats).map(([method, amount]) => {
+                    const percentage = totalYearlyExpenseForSelectedYear > 0 
+                      ? ((amount / totalYearlyExpenseForSelectedYear) * 100).toFixed(1) 
+                      : 0;
+
+                    return (
+                      <View key={method} style={[styles.categoryCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                          <Text style={{ color: theme.textPrimary, fontWeight: 'bold', fontSize: 13 }}>💳 {method}</Text>
+                          <Text style={{ color: theme.textPrimary, fontWeight: 'bold', fontSize: 13 }}>{formatCurrency(amount, 'TRY')} (%{percentage})</Text>
+                        </View>
+                        <View style={[styles.progressBarBg, { backgroundColor: theme.inputBg }]}>
+                          <View style={[styles.progressBarFill, { width: `${percentage}%`, backgroundColor: '#38bdf8' }]} />
+                        </View>
+                      </View>
+                    );
+                  })
+                )}
+
                 {/* KATEGORİ BAZLI HARCAMA İSTATİSTİKLERİ */}
-                <Text style={{ fontSize: 14, fontWeight: 'bold', color: theme.textPrimary, marginTop: 12, marginBottom: 8 }}>
-                  Kategori Bazlı Dağılım ({selectedAnalysisYear})
+                <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.textPrimary, marginTop: 18, marginBottom: 10 }}>
+                  📂 Kategori Bazlı Dağılım ({selectedAnalysisYear})
                 </Text>
 
                 {Object.keys(yearlyCategoryStats).length === 0 ? (
@@ -836,10 +768,10 @@ export default function App() {
                       : 0;
 
                     return (
-                      <View key={cat} style={[styles.categoryCard, { backgroundColor: theme.cardBg }]}>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <View key={cat} style={[styles.categoryCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
                           <Text style={{ color: theme.textPrimary, fontWeight: 'bold', fontSize: 13 }}>{cat}</Text>
-                          <Text style={{ color: theme.textSecondary, fontSize: 12 }}>{formatCurrency(amount, 'TRY')} (%{percentage})</Text>
+                          <Text style={{ color: theme.textPrimary, fontWeight: 'bold', fontSize: 13 }}>{formatCurrency(amount, 'TRY')} (%{percentage})</Text>
                         </View>
                         <View style={[styles.progressBarBg, { backgroundColor: theme.inputBg }]}>
                           <View style={[styles.progressBarFill, { width: `${percentage}%`, backgroundColor: catColor }]} />
@@ -848,51 +780,41 @@ export default function App() {
                     );
                   })
                 )}
+
+                {/* Dışa Aktar ve İçe Aktar (Yedekleme) Bölümü */}
+                <View style={[styles.backupPanel, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, marginTop: 20 }]}>
+                  <Text style={{ color: theme.textPrimary, fontWeight: 'bold', fontSize: 14, marginBottom: 6 }}>💾 Veri Yedekleme & Dışa Aktar</Text>
+                  <Text style={{ color: theme.textSecondary, fontSize: 12, marginBottom: 12 }}>Abonelik verilerinizi Excel (CSV) veya JSON formatında bilgisayarınıza indirebilir, daha sonra geri yükleyebilirsiniz.</Text>
+                  
+                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                    <TouchableOpacity style={[styles.exportBtn, { flex: 1, backgroundColor: theme.inputBg }]} onPress={handleExportCSV}>
+                      <Text style={{ color: theme.textPrimary, fontSize: 12, fontWeight: 'bold' }}>📄 CSV Indir</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.exportBtn, { flex: 1, backgroundColor: theme.inputBg }]} onPress={handleExportJSON}>
+                      <Text style={{ color: theme.accent, fontSize: 12, fontWeight: 'bold' }}>💾 JSON Yedek Al</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
               </View>
             )}
 
           </ScrollView>
 
-          {/* BOTTOM NAVIGATION BAR (Sadece Mobil Ekranlarda Görünür) */}
+          {/* MOBİL ALT NAVİGASYON BARI */}
           {!isDesktop && (
-            <View style={[styles.bottomNavContainer, { backgroundColor: theme.headerBg, borderTopColor: theme.cardBorder }]}>
-              <TouchableOpacity 
-                style={[styles.navTabBtn, activeTab === 'list' && styles.navTabBtnActive]} 
-                onPress={() => setActiveTab('list')}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.navIconCircle, activeTab === 'list' && styles.navIconCircleActive]}>
-                  <Text style={{ fontSize: 22 }}>💳</Text>
-                </View>
-                <Text style={[styles.navTabText, { color: activeTab === 'list' ? '#6366f1' : theme.textSecondary }]}>
-                  Abonelikler
-                </Text>
+            <View style={[styles.bottomNav, { backgroundColor: theme.headerBg, borderTopColor: theme.cardBorder }]}>
+              <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('list')}>
+                <Text style={{ fontSize: 18 }}>💳</Text>
+                <Text style={[styles.navText, { color: activeTab === 'list' ? '#6366f1' : theme.textSecondary }]}>Abonelikler</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[styles.navTabBtn, activeTab === 'calendar' && styles.navTabBtnActive]} 
-                onPress={() => setActiveTab('calendar')}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.navIconCircle, activeTab === 'calendar' && styles.navIconCircleActive]}>
-                  <Text style={{ fontSize: 22 }}>📅</Text>
-                </View>
-                <Text style={[styles.navTabText, { color: activeTab === 'calendar' ? '#6366f1' : theme.textSecondary }]}>
-                  Takvim
-                </Text>
+              <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('calendar')}>
+                <Text style={{ fontSize: 18 }}>📅</Text>
+                <Text style={[styles.navText, { color: activeTab === 'calendar' ? '#6366f1' : theme.textSecondary }]}>Takvim</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[styles.navTabBtn, activeTab === 'analytics' && styles.navTabBtnActive]} 
-                onPress={() => setActiveTab('analytics')}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.navIconCircle, activeTab === 'analytics' && styles.navIconCircleActive]}>
-                  <Text style={{ fontSize: 22 }}>📊</Text>
-                </View>
-                <Text style={[styles.navTabText, { color: activeTab === 'analytics' ? '#6366f1' : theme.textSecondary }]}>
-                  Analiz
-                </Text>
+              <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('analytics')}>
+                <Text style={{ fontSize: 18 }}>📊</Text>
+                <Text style={[styles.navText, { color: activeTab === 'analytics' ? '#6366f1' : theme.textSecondary }]}>Analiz</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -904,284 +826,141 @@ export default function App() {
       {/* FORM MODAL (EKLE / DÜZENLE) */}
       <Modal visible={isModalOpen} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
-          <ScrollView contentContainerStyle={[styles.modalContent, { backgroundColor: theme.cardBg }]}>
-            <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>{editingId ? 'Abonelik Bilgilerini Düzenle' : 'Yeni Abonelik Tanımla'}</Text>
+          <View style={[styles.modalContent, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+            <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>
+              {editingId ? 'Abonelik Düzenle' : 'Yeni Abonelik Ekle'}
+            </Text>
 
-            {duplicateWarning ? (
-              <View style={styles.warningBox}>
-                <Text style={styles.warningText}>{duplicateWarning}</Text>
-              </View>
-            ) : null}
-
-            {!editingId && (
-              <View style={{ marginBottom: 16 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <Text style={[styles.fieldLabel, { color: theme.textSecondary, marginBottom: 0 }]}>Hızlı Ekle (Popüler Servisler):</Text>
-                  <TouchableOpacity onPress={() => setIsAddingNewService(!isAddingNewService)}>
-                    <Text style={{ color: theme.accent, fontSize: 12, fontWeight: 'bold' }}>
-                      {isAddingNewService ? '✕ Kapat' : '+ Özel Servis Ekle'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                {isAddingNewService && (
-                  <View style={[styles.inlineAddBox, { backgroundColor: theme.inputBg }]}>
-                    <TextInput 
-                      placeholder="Servis Adı (ör: Disney+)" 
-                      placeholderTextColor="#64748b" 
-                      style={[styles.input, { backgroundColor: theme.cardBg, color: theme.textPrimary, marginBottom: 8 }]}
-                      value={newCustomServiceName}
-                      onChangeText={setNewCustomServiceName}
-                    />
-                    <View style={{ flexDirection: 'row', gap: 8 }}>
-                      <TextInput 
-                        placeholder="Fiyat (₺)" 
-                        placeholderTextColor="#64748b" 
-                        keyboardType="numeric"
-                        style={[styles.input, { backgroundColor: theme.cardBg, color: theme.textPrimary, flex: 1, marginBottom: 0 }]}
-                        value={newCustomServicePrice}
-                        onChangeText={setNewCustomServicePrice}
-                      />
-                      <TouchableOpacity style={styles.inlineSaveBtn} onPress={handleAddCustomService}>
-                        <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 12 }}>Ekle</Text>
+            <ScrollView style={{ maxHeight: 450 }}>
+              {/* Hazır Servis Şablonları */}
+              {!editingId && (
+                <View style={{ marginBottom: 12 }}>
+                  <Text style={{ color: theme.textSecondary, fontSize: 11, fontWeight: 'bold', marginBottom: 6 }}>HIZLI ŞABLON SEÇ:</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                    {popularServicesList.map((srv, idx) => (
+                      <TouchableOpacity 
+                        key={idx} 
+                        style={[styles.templateChip, { backgroundColor: srv.color }]}
+                        onPress={() => {
+                          setFormName(srv.name);
+                          setFormPrice(srv.price);
+                          setFormCurrency(srv.currency);
+                          setFormCategory(srv.category);
+                          setFormColor(srv.color);
+                        }}
+                      >
+                        <Text style={{ color: '#fff', fontSize: 11, fontWeight: 'bold' }}>{srv.name}</Text>
                       </TouchableOpacity>
-                    </View>
-                  </View>
-                )}
-
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
-                  {popularServicesList.map((s, idx) => (
-                    <TouchableOpacity 
-                      key={idx} 
-                      style={[
-                        styles.chipBtn, 
-                        { 
-                          borderColor: s.color || '#6366F1', 
-                          borderWidth: 1,
-                          backgroundColor: formName.toLowerCase() === s.name.toLowerCase() ? (s.color || '#6366F1') + '22' : 'transparent'
-                        }
-                      ]} 
-                      onPress={() => selectPopularService(s)}
-                    >
-                      <Text style={{ color: s.color || '#6366F1', fontSize: 12, fontWeight: 'bold' }}>{s.name}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Servis Adı:</Text>
-            <TextInput 
-              placeholder="ör: Netflix" 
-              placeholderTextColor="#64748b" 
-              style={[styles.input, { backgroundColor: theme.inputBg, color: theme.textPrimary }]}
-              value={formName}
-              onChangeText={(txt) => {
-                setFormName(txt);
-                setFormColor(getServiceColor(txt));
-                checkDuplicate(txt);
-              }}
-            />
-
-            <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Kategori:</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-              {CATEGORIES.map((cat) => (
-                <TouchableOpacity 
-                  key={cat} 
-                  style={[styles.categoryChip, { backgroundColor: theme.inputBg }, formCategory === cat && styles.categoryChipActive]}
-                  onPress={() => setFormCategory(cat)}
-                >
-                  <Text style={[styles.categoryText, { color: theme.textSecondary }, formCategory === cat && styles.categoryTextActive]}>{cat}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <View style={{ marginBottom: 12 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <Text style={[styles.fieldLabel, { color: theme.textSecondary, marginBottom: 0 }]}>Ödeme Yapılan Kart / Yöntem:</Text>
-                <TouchableOpacity onPress={() => setIsAddingNewPaymentMethod(!isAddingNewPaymentMethod)}>
-                  <Text style={{ color: theme.accent, fontSize: 12, fontWeight: 'bold' }}>
-                    {isAddingNewPaymentMethod ? '✕ Kapat' : '+ Özel Kart Ekle'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {isAddingNewPaymentMethod && (
-                <View style={[styles.inlineAddBox, { backgroundColor: theme.inputBg }]}>
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    <TextInput 
-                      placeholder="Kart / Yöntem İsmi (ör: DenizBank)" 
-                      placeholderTextColor="#64748b" 
-                      style={[styles.input, { backgroundColor: theme.cardBg, color: theme.textPrimary, flex: 1, marginBottom: 0 }]}
-                      value={newCustomPaymentMethod}
-                      onChangeText={setNewCustomPaymentMethod}
-                    />
-                    <TouchableOpacity style={styles.inlineSaveBtn} onPress={handleAddCustomPaymentMethod}>
-                      <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 12 }}>Kaydet</Text>
-                    </TouchableOpacity>
-                  </View>
+                    ))}
+                  </ScrollView>
                 </View>
               )}
 
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
-                {paymentMethodsList.map((method) => (
+              {/* Servis Adı */}
+              <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Servis / Abonelik Adı</Text>
+              <TextInput 
+                style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} 
+                placeholder="Örn: Netflix, Spotify" 
+                placeholderTextColor={theme.textMuted}
+                value={formName}
+                onChangeText={setFormName}
+              />
+
+              {/* Fiyat ve Para Birimi */}
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <View style={{ flex: 2 }}>
+                  <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Tutar / Fiyat</Text>
+                  <TextInput 
+                    style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} 
+                    placeholder="0.00" 
+                    placeholderTextColor={theme.textMuted}
+                    keyboardType="numeric"
+                    value={formPrice}
+                    onChangeText={setFormPrice}
+                  />
+                </View>
+
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Para Birimi</Text>
+                  <View style={{ flexDirection: 'row', gap: 4, marginTop: 4 }}>
+                    {['TRY', 'USD', 'EUR'].map(curr => (
+                      <TouchableOpacity 
+                        key={curr} 
+                        style={[styles.currBtn, { backgroundColor: theme.inputBg }, formCurrency === curr && styles.currBtnActive]}
+                        onPress={() => setFormCurrency(curr)}
+                      >
+                        <Text style={[styles.currBtnText, { color: theme.textSecondary }, formCurrency === curr && styles.currBtnTextActive]}>{curr}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </View>
+
+              {/* Periyot Seçimi */}
+              <Text style={[styles.inputLabel, { color: theme.textSecondary, marginTop: 10 }]}>Ödeme Periyodu</Text>
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+                <TouchableOpacity 
+                  style={[styles.periodBtn, { backgroundColor: theme.inputBg }, formPeriod === 'monthly' && styles.periodBtnActive]}
+                  onPress={() => setFormPeriod('monthly')}
+                >
+                  <Text style={[styles.periodBtnText, { color: theme.textSecondary }, formPeriod === 'monthly' && styles.periodBtnTextActive]}>Aylık</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.periodBtn, { backgroundColor: theme.inputBg }, formPeriod === 'yearly' && styles.periodBtnActive]}
+                  onPress={() => setFormPeriod('yearly')}
+                >
+                  <Text style={[styles.periodBtnText, { color: theme.textSecondary }, formPeriod === 'yearly' && styles.periodBtnTextActive]}>Yıllık</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Ödeme Yöntemi Kart Seçimi */}
+              <Text style={[styles.inputLabel, { color: theme.textSecondary, marginTop: 10 }]}>Ödeme Yapılan Kart / Hesap</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, marginTop: 4 }}>
+                {paymentMethodsList.map(pm => (
                   <TouchableOpacity 
-                    key={method} 
-                    style={[styles.categoryChip, { backgroundColor: theme.inputBg }, formPaymentMethod === method && styles.categoryChipActive]}
-                    onPress={() => setFormPaymentMethod(method)}
+                    key={pm}
+                    style={[styles.filterChip, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }, formPaymentMethod === pm && styles.filterChipActive]}
+                    onPress={() => setFormPaymentMethod(pm)}
                   >
-                    <Text style={[styles.categoryText, { color: theme.textSecondary }, formPaymentMethod === method && styles.categoryChipActive]}>💳 {method}</Text>
+                    <Text style={[styles.filterChipText, { color: theme.textSecondary }, formPaymentMethod === pm && styles.filterChipTextActive]}>{pm}</Text>
                   </TouchableOpacity>
                 ))}
-              </View>
-            </View>
+              </ScrollView>
 
-            <View style={{ marginBottom: 14 }}>
-              <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Hatırlatıcı / Bildirim Zamanı:</Text>
-              <TouchableOpacity 
-                style={[styles.dropdownHeader, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}
-                onPress={() => setIsNotificationDropdownOpen(!isNotificationDropdownOpen)}
-              >
-                <Text style={{ color: theme.textPrimary, fontWeight: '600', fontSize: 13 }}>
-                  {(NOTIFICATION_OPTIONS.find(o => o.value === formNotificationDays) || NOTIFICATION_OPTIONS[2]).label}
-                </Text>
-                <Text style={{ color: theme.textSecondary }}>{isNotificationDropdownOpen ? '▲' : '▼'}</Text>
-              </TouchableOpacity>
+              {/* Hatırlatıcı Bildirim Kuralı */}
+              <Text style={[styles.inputLabel, { color: theme.textSecondary, marginTop: 10 }]}>Hatırlatıcı Kuralı</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, marginTop: 4 }}>
+                {NOTIFICATION_OPTIONS.map(opt => (
+                  <TouchableOpacity 
+                    key={opt.value}
+                    style={[styles.filterChip, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }, formNotificationDays === opt.value && styles.filterChipActive]}
+                    onPress={() => setFormNotificationDays(opt.value)}
+                  >
+                    <Text style={[styles.filterChipText, { color: theme.textSecondary }, formNotificationDays === opt.value && styles.filterChipTextActive]}>{opt.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
 
-              {isNotificationDropdownOpen && (
-                <View style={[styles.dropdownBody, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}>
-                  {NOTIFICATION_OPTIONS.map((opt) => (
-                    <TouchableOpacity 
-                      key={opt.value} 
-                      style={[
-                        styles.dropdownItem, 
-                        formNotificationDays === opt.value && { backgroundColor: '#6366f122' }
-                      ]}
-                      onPress={() => {
-                        setFormNotificationDays(opt.value);
-                        setIsNotificationDropdownOpen(false);
-                      }}
-                    >
-                      <Text style={{ 
-                        color: formNotificationDays === opt.value ? '#6366f1' : theme.textPrimary,
-                        fontWeight: formNotificationDays === opt.value ? 'bold' : 'normal',
-                        fontSize: 13 
-                      }}>
-                        {opt.label}
-                      </Text>
-                      {formNotificationDays === opt.value && <Text style={{ color: '#6366f1' }}>✓</Text>}
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-            </View>
-
-            <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Ödeme Periyodu:</Text>
-            <View style={styles.periodSelector}>
-              <TouchableOpacity 
-                style={[styles.periodOption, { backgroundColor: theme.inputBg }, formPeriod === 'monthly' && styles.periodActive]}
-                onPress={() => setFormPeriod('monthly')}
-              >
-                <Text style={[styles.periodText, { color: theme.textSecondary }, formPeriod === 'monthly' && styles.periodTextActive]}>Aylık Ödeme</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.periodOption, { backgroundColor: theme.inputBg }, formPeriod === 'yearly' && styles.periodActive]}
-                onPress={() => setFormPeriod('yearly')}
-              >
-                <Text style={[styles.periodText, { color: theme.textSecondary }, formPeriod === 'yearly' && styles.periodTextActive]}>Yıllık Ödeme</Text>
-              </TouchableOpacity>
-            </View>
-
-            <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Tutar ve Para Birimi:</Text>
-            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+              {/* İptal Bağlantısı (URL) */}
+              <Text style={[styles.inputLabel, { color: theme.textSecondary, marginTop: 10 }]}>Hızlı İptal Web Bağlantısı (Opsiyonel)</Text>
               <TextInput 
-                placeholder="0,00" 
-                placeholderTextColor="#64748b" 
-                keyboardType="numeric"
-                style={[styles.input, { backgroundColor: theme.inputBg, color: theme.textPrimary, flex: 2, marginBottom: 0 }]}
-                value={formPrice}
-                onChangeText={(txt) => setFormPrice(txt.replace(/[^0-9,.]/g, ''))}
+                style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} 
+                placeholder="https://..." 
+                placeholderTextColor={theme.textMuted}
+                value={formCancelUrl}
+                onChangeText={setFormCancelUrl}
               />
-              {['TRY', 'USD', 'EUR'].map(curr => (
-                <TouchableOpacity 
-                  key={curr} 
-                  style={[
-                    styles.currencySelectorBtn, 
-                    { backgroundColor: theme.inputBg },
-                    formCurrency === curr && styles.currencySelectorBtnActive
-                  ]}
-                  onPress={() => setFormCurrency(curr)}
-                >
-                  <Text style={[styles.currencySelectorText, { color: theme.textSecondary }, formCurrency === curr && styles.currencySelectorTextActive]}>
-                    {CURRENCY_SYMBOLS[curr]} {curr}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            </ScrollView>
 
-            {formPeriod === 'monthly' ? (
-              <>
-                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Ödeme Günü (Ayın kaçıncı günü: 1-31):</Text>
-                <TextInput 
-                  placeholder="ör: 15" 
-                  placeholderTextColor="#64748b" 
-                  keyboardType="numeric"
-                  style={[styles.input, { backgroundColor: theme.inputBg, color: theme.textPrimary }]}
-                  value={formDay}
-                  onChangeText={(txt) => setFormDay(txt.replace(/[^0-9]/g, ''))}
-                />
-              </>
-            ) : (
-              <>
-                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Yenileme Tarihi (Gün, Ay ve Yıl):</Text>
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  <TextInput 
-                    placeholder="Gün (1-31)" 
-                    placeholderTextColor="#64748b" 
-                    keyboardType="numeric"
-                    style={[styles.input, { backgroundColor: theme.inputBg, color: theme.textPrimary, flex: 1 }]}
-                    value={formDay}
-                    onChangeText={(txt) => setFormDay(txt.replace(/[^0-9]/g, ''))}
-                  />
-                  <TextInput 
-                    placeholder="Ay (1-12)" 
-                    placeholderTextColor="#64748b" 
-                    keyboardType="numeric"
-                    style={[styles.input, { backgroundColor: theme.inputBg, color: theme.textPrimary, flex: 1 }]}
-                    value={formMonth}
-                    onChangeText={(txt) => setFormMonth(txt.replace(/[^0-9]/g, ''))}
-                  />
-                  <TextInput 
-                    placeholder="Yıl (ör: 2026)" 
-                    placeholderTextColor="#64748b" 
-                    keyboardType="numeric"
-                    style={[styles.input, { backgroundColor: theme.inputBg, color: theme.textPrimary, flex: 1 }]}
-                    value={formYear}
-                    onChangeText={(txt) => setFormYear(txt.replace(/[^0-9]/g, ''))}
-                  />
-                </View>
-                {(() => {
-                  const m = Math.min(Math.max(Number(formMonth) || 1, 1), 12);
-                  const y = Number(formYear) || 2026;
-                  const maxDays = getDaysInMonth(m - 1, y);
-                  return (
-                    <Text style={{ fontSize: 11, color: theme.accent, marginTop: -4, marginBottom: 10 }}>
-                      ℹ️ {MONTH_NAMES[m - 1]} {y} dönemi {maxDays} gün çekmektedir.
-                    </Text>
-                  );
-                })()}
-              </>
-            )}
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.cancelModalBtn} onPress={() => setIsModalOpen(false)}>
-                <Text style={{ color: '#fff' }}>Vazgeç</Text>
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: theme.inputBg }]} onPress={() => setIsModalOpen(false)}>
+                <Text style={{ color: theme.textSecondary, fontWeight: 'bold' }}>İptal</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.saveModalBtn} onPress={handleSave}>
-                <Text style={{ color: '#fff', fontWeight: 'bold' }}>Kaydet</Text>
+              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: '#6366f1', flex: 2 }]} onPress={handleSaveForm}>
+                <Text style={{ color: '#ffffff', fontWeight: 'bold' }}>Kaydet</Text>
               </TouchableOpacity>
             </View>
-          </ScrollView>
+          </View>
         </View>
       </Modal>
 
@@ -1200,7 +979,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   sidebarHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
-  sidebarNavGroup: { gap: 8 },
+  sidebarNavGroup: { gap: 8, marginTop: 12 },
   sidebarNavBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1216,6 +995,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
+  exportBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
   responsiveWrapper: {
     maxWidth: 850,
     width: '100%',
@@ -1223,168 +1008,109 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     flex: 1,
   },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 40, paddingBottom: 16, borderBottomWidth: 1 },
-  headerTitle: { fontSize: 26, fontWeight: 'bold', letterSpacing: 0.5 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 36, paddingBottom: 16, borderBottomWidth: 1 },
+  headerTitle: { fontSize: 24, fontWeight: 'bold', letterSpacing: 0.5 },
   headerSubtitle: { fontSize: 11, marginTop: 2 },
   proBadge: { backgroundColor: '#6366f1', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   proBadgeText: { color: '#ffffff', fontSize: 9, fontWeight: 'bold' },
-  iconBtn: { padding: 8, borderRadius: 8, borderWidth: 1 },
-  themeToggleBtn: { padding: 8, borderRadius: 8, borderWidth: 1 },
-  addBtn: { backgroundColor: '#6366f1', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
+  themeToggleBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1 },
+  addBtn: { backgroundColor: '#6366f1', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
   addBtnText: { color: '#ffffff', fontWeight: 'bold', fontSize: 13 },
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 110, paddingTop: 16 },
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 100, paddingTop: 16 },
   
-  currencyBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 10, borderRadius: 8, borderWidth: 1, marginBottom: 12 },
-  currencyBarTitle: { fontSize: 12, fontWeight: '600' },
+  currencyBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 10, borderRadius: 8, borderWidth: 1, marginBottom: 14 },
+  currencyBarTitle: { fontSize: 12, fontWeight: 'bold' },
   currencyBadgeGroup: { flexDirection: 'row', gap: 8 },
   currencyBadge: { backgroundColor: '#6366f122', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
   currencyBadgeText: { color: '#6366f1', fontSize: 11, fontWeight: 'bold' },
 
-  reminderBanner: { borderRadius: 10, padding: 12, borderWidth: 1, marginBottom: 16 },
-
-  emptyCard: { borderRadius: 12, padding: 20, borderWidth: 1, alignItems: 'center' },
-  summaryCard: { borderRadius: 16, padding: 22, marginBottom: 16, borderWidth: 1 },
-  summaryLabel: { color: '#ffffff', fontSize: 13, fontWeight: '600', opacity: 0.9 },
-  summaryValue: { color: '#ffffff', fontSize: 34, fontWeight: 'bold', marginVertical: 8 },
-  statsRow: { flexDirection: 'row', gap: 12, marginTop: 12 },
-  statBox: { flex: 1, backgroundColor: 'rgba(255, 255, 255, 0.15)', padding: 12, borderRadius: 10 },
+  summaryCard: { borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1 },
+  summaryLabel: { color: '#ffffff', fontSize: 13, fontWeight: 'bold', opacity: 0.9 },
+  summaryValue: { color: '#ffffff', fontSize: 32, fontWeight: 'bold', marginVertical: 6 },
+  statsRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
+  statBox: { flex: 1, backgroundColor: 'rgba(255, 255, 255, 0.15)', padding: 10, borderRadius: 8 },
   statLabel: { color: '#ffffff', fontSize: 11, opacity: 0.9 },
-  statValue: { color: '#ffffff', fontSize: 15, fontWeight: 'bold', marginTop: 2 },
-  sectionTitle: { fontSize: 14, fontWeight: '600', marginBottom: 12 },
+  statValue: { color: '#ffffff', fontSize: 14, fontWeight: 'bold', marginTop: 2 },
+  sectionTitle: { fontSize: 15, fontWeight: 'bold', marginBottom: 12 },
   
-  card: { borderRadius: 12, padding: 16, marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1 },
+  filterChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1 },
+  filterChipActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
+  filterChipText: { fontSize: 12, fontWeight: '600' },
+  filterChipTextActive: { color: '#ffffff', fontWeight: 'bold' },
+
+  emptyCard: { borderRadius: 12, padding: 24, borderWidth: 1, alignItems: 'center' },
+  card: { borderRadius: 12, padding: 14, marginBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1 },
   leftSection: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  brandIconBox: { width: 42, height: 42, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  brandIconBox: { width: 40, height: 40, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
   brandIconText: { color: '#ffffff', fontSize: 18, fontWeight: 'bold' },
-  cardTitle: { fontSize: 16, fontWeight: 'bold' },
+  cardTitle: { fontSize: 15, fontWeight: 'bold' },
   cardTag: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   cardTagText: { fontSize: 10, fontWeight: 'bold' },
-  cardSubtitle: { fontSize: 12, marginTop: 2 },
+  cardSubtitle: { fontSize: 11, marginTop: 2, fontWeight: '500' },
   rightSection: { alignItems: 'flex-end' },
   price: { fontSize: 15, fontWeight: 'bold' },
   actionButtons: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
-  editBtn: { padding: 4, borderRadius: 6 },
+  editBtn: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
   cancelBtn: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  cancelText: { color: '#38bdf8', fontSize: 11, fontWeight: '600' },
+  cancelText: { color: '#38bdf8', fontSize: 11, fontWeight: 'bold' },
   deleteBtn: { padding: 4, borderRadius: 6 },
 
   calendarHeaderNav: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   calendarTitleText: { fontSize: 18, fontWeight: 'bold' },
-  arrowBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
-  arrowText: { color: '#38bdf8', fontSize: 14, fontWeight: 'bold' },
+  arrowBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+  arrowText: { color: '#38bdf8', fontSize: 13, fontWeight: 'bold' },
 
   calendarWrapper: { width: '100%' },
   weekHeaderRow: { flexDirection: 'row', marginBottom: 6 },
   weekHeaderCell: { width: '14.28%', alignItems: 'center' },
   weekHeaderText: { fontSize: 12, fontWeight: 'bold' },
 
-  monthTotalFooterCard: { borderWidth: 1, padding: 16, borderRadius: 12, marginTop: 16, alignItems: 'center' },
-
   calendarGrid: { flexDirection: 'row', flexWrap: 'wrap' },
-  calendarDayBox: { width: '14.28%', minHeight: 82, borderRadius: 8, padding: 4, borderWidth: 1, marginBottom: 4 },
-  emptyDayBox: { borderWidth: 0 },
+  calendarDayBox: { width: '14.28%', minHeight: 78, borderRadius: 8, padding: 4, borderWidth: 1, marginBottom: 4 },
   activeDayBox: { borderColor: '#6366f1', borderWidth: 1.5 },
   dayNumber: { fontSize: 11, fontWeight: 'bold', marginBottom: 2 },
   daySubBadge: { borderRadius: 4, padding: 3, marginTop: 2 },
-  daySubText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
-  daySubPrice: { color: '#ffffff', fontSize: 9, fontWeight: '600' },
+  daySubText: { color: '#fff', fontSize: 9, fontWeight: 'bold' },
+  daySubPrice: { color: '#ffffff', fontSize: 8, fontWeight: '600' },
 
-  yearChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 8 },
+  yearChip: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20, marginRight: 8 },
   yearChipActive: { backgroundColor: '#6366f1' },
-  yearChipText: { fontWeight: '600' },
+  yearChipText: { fontWeight: '600', fontSize: 13 },
   yearChipTextActive: { color: '#ffffff', fontWeight: 'bold' },
 
   chartContainer: { borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1 },
-
-  barsAreaContainer: { flexDirection: 'row', height: 180, alignItems: 'flex-end', justifyContent: 'space-between', paddingVertical: 10 },
+  barsAreaContainer: { flexDirection: 'row', height: 170, alignItems: 'flex-end', justifyContent: 'space-between', paddingVertical: 10 },
   barColumn: { flex: 1, height: '100%', alignItems: 'center', justifyContent: 'flex-end' },
-  barTrack: { width: 18, height: 120, borderRadius: 6, justifyContent: 'flex-end', overflow: 'hidden' },
+  barTrack: { width: 18, height: 110, borderRadius: 6, justifyContent: 'flex-end', overflow: 'hidden' },
   barFill: { width: '100%', borderRadius: 6 },
-  barLabel: { fontSize: 12, marginTop: 6, fontWeight: 'bold' },
-  barAmountText: { fontSize: 10, marginTop: 2, fontWeight: 'bold' },
+  barLabel: { fontSize: 11, marginTop: 6, fontWeight: 'bold' },
+  barAmountText: { fontSize: 9, marginTop: 2, fontWeight: 'bold' },
 
   chartFooter: { borderTopWidth: 1, paddingTop: 12, marginTop: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 
-  categoryCard: { padding: 12, borderRadius: 10, marginBottom: 8 },
-  progressBarBg: { height: 6, borderRadius: 3, overflow: 'hidden' },
-  progressBarFill: { height: '100%', borderRadius: 3 },
+  categoryCard: { padding: 12, borderRadius: 10, marginBottom: 8, borderWidth: 1 },
+  progressBarBg: { height: 8, borderRadius: 4, overflow: 'hidden' },
+  progressBarFill: { height: '100%', borderRadius: 4 },
 
-  bottomNavContainer: { 
-    position: 'absolute', 
-    bottom: 0, 
-    left: 0, 
-    right: 0, 
-    borderTopWidth: 1, 
-    flexDirection: 'row', 
-    justifyContent: 'space-around', 
-    alignItems: 'center',
-    paddingVertical: 10, 
-    paddingHorizontal: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 8,
-  },
-  navTabBtn: { 
-    flex: 1, 
-    alignItems: 'center', 
-    justifyContent: 'center',
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  navTabBtnActive: {
-    backgroundColor: '#6366f115'
-  },
-  navIconCircle: {
-    width: 44,
-    height: 38,
-    borderRadius: 12,
-    alignItems: 'center',
-    justify: 'center',
-    marginBottom: 2
-  },
-  navIconCircleActive: {
-    backgroundColor: '#6366f125',
-  },
-  navTabText: { 
-    fontSize: 12, 
-    fontWeight: 'bold',
-    letterSpacing: 0.3
-  },
+  backupPanel: { padding: 14, borderRadius: 12, borderWidth: 1 },
 
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: 20 },
-  modalContent: { borderRadius: 16, padding: 20, marginVertical: 40, maxWidth: 600, width: '100%', alignSelf: 'center' },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 16 },
-  fieldLabel: { fontSize: 12, marginBottom: 4 },
-  input: { padding: 12, borderRadius: 8, marginBottom: 12 },
-  chipBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
-  categoryChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
-  categoryChipActive: { backgroundColor: '#6366f1' },
-  categoryText: { fontSize: 12 },
-  categoryTextActive: { color: '#fff', fontWeight: 'bold' },
-  periodSelector: { flexDirection: 'row', gap: 8, marginBottom: 12 },
-  periodOption: { flex: 1, padding: 10, borderRadius: 8, alignItems: 'center' },
-  periodActive: { backgroundColor: '#6366f1' },
-  periodText: { fontSize: 12 },
-  periodTextActive: { color: '#fff', fontWeight: 'bold' },
-  
-  currencySelectorBtn: { flex: 1, padding: 10, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  currencySelectorBtnActive: { backgroundColor: '#6366f1' },
-  currencySelectorText: { fontSize: 12, fontWeight: 'bold' },
-  currencySelectorTextActive: { color: '#fff' },
+  bottomNav: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', height: 60, borderTopWidth: 1, justifyContent: 'space-around', alignItems: 'center' },
+  navItem: { alignItems: 'center', justifyContent: 'center' },
+  navText: { fontSize: 11, fontWeight: 'bold', marginTop: 2 },
 
-  inlineAddBox: { padding: 10, borderRadius: 10, marginBottom: 10 },
-  inlineSaveBtn: { backgroundColor: '#6366f1', paddingHorizontal: 16, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-
-  dropdownHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, borderRadius: 8, borderWidth: 1 },
-  dropdownBody: { marginTop: 4, borderRadius: 8, borderWidth: 1, overflow: 'hidden' },
-  dropdownItem: { padding: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 0.5, borderBottomColor: '#334155' },
-
-  warningBox: { backgroundColor: '#ef444422', borderColor: '#ef4444', borderWidth: 1, padding: 10, borderRadius: 8, marginBottom: 12 },
-  warningText: { color: '#ef4444', fontSize: 12, fontWeight: 'bold' },
-
-  modalButtons: { flexDirection: 'row', gap: 12, marginTop: 12 },
-  cancelModalBtn: { flex: 1, backgroundColor: '#334155', padding: 12, borderRadius: 8, alignItems: 'center' },
-  saveModalBtn: { flex: 1, backgroundColor: '#6366f1', padding: 12, borderRadius: 8, alignItems: 'center' }
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modalContent: { width: '100%', maxWidth: 480, borderRadius: 16, padding: 20, borderWidth: 1 },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 14 },
+  inputLabel: { fontSize: 12, fontWeight: 'bold', marginBottom: 4 },
+  textInput: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1, fontSize: 14, marginBottom: 10 },
+  currBtn: { flex: 1, paddingVertical: 8, borderRadius: 6, alignItems: 'center' },
+  currBtnActive: { backgroundColor: '#6366f1' },
+  currBtnText: { fontSize: 11, fontWeight: 'bold' },
+  currBtnTextActive: { color: '#fff' },
+  periodBtn: { flex: 1, paddingVertical: 8, borderRadius: 6, alignItems: 'center' },
+  periodBtnActive: { backgroundColor: '#6366f1' },
+  periodBtnText: { fontSize: 12, fontWeight: 'bold' },
+  periodBtnTextActive: { color: '#fff' },
+  templateChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6 },
+  modalBtn: { paddingVertical: 10, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
 });
