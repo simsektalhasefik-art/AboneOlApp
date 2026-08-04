@@ -5,16 +5,17 @@ import React, {
 } from 'react';
 
 import {
-  SafeAreaView,
-  View,
+  StyleSheet,
   Text,
+  View,
   ScrollView,
   TouchableOpacity,
   TextInput,
   Modal,
-  StyleSheet,
-  Alert,
-  Platform
+  SafeAreaView,
+  StatusBar,
+  useWindowDimensions,
+  Linking
 } from 'react-native';
 
 const DEFAULT_RATES = {
@@ -1271,79 +1272,7 @@ export default function App() {
     activeButtonSoft:
       '#7772ff26'
   };
-  useEffect(() => {
-  if (
-    Platform.OS !== 'web' ||
-    typeof document === 'undefined'
-  ) {
-    return;
-  }
-
-  const styleId =
-    'cebin-themed-scrollbars';
-
-  const oldStyle =
-    document.getElementById(
-      styleId
-    );
-
-  if (oldStyle) {
-    oldStyle.remove();
-  }
-
-  const styleElement =
-    document.createElement(
-      'style'
-    );
-
-  styleElement.id = styleId;
-
-  styleElement.innerHTML = `
-    #subscription-modal-scroll {
-      scrollbar-width: thin;
-      scrollbar-color: ${theme.cardBorder} ${theme.inputBg};
-    }
-
-    #subscription-modal-scroll::-webkit-scrollbar {
-      width: 10px;
-    }
-
-    #subscription-modal-scroll::-webkit-scrollbar-track {
-      background: ${theme.inputBg};
-      border-radius: 10px;
-    }
-
-    #subscription-modal-scroll::-webkit-scrollbar-thumb {
-      background: ${theme.activeButtonSoft};
-      border: 2px solid ${theme.inputBg};
-      border-radius: 10px;
-    }
-
-    #subscription-modal-scroll::-webkit-scrollbar-thumb:hover {
-      background: ${theme.accent};
-    }
-  `;
-
-  document.head.appendChild(
-    styleElement
-  );
-
-  return () => {
-    const currentStyle =
-      document.getElementById(
-        styleId
-      );
-
-    if (currentStyle) {
-      currentStyle.remove();
-    }
-  };
-}, [
-  theme.cardBorder,
-  theme.inputBg,
-  theme.accent
-]);
-
+  
   const safeList =
     Array.isArray(
       subscriptions
