@@ -102,7 +102,7 @@ export default function App() {
   const [paymentMethodsList] = useState(PAYMENT_METHODS);
   const [popularServicesList] = useState(DEFAULT_POPULAR_SERVICES);
 
-  const [activeTab, setActiveTab] = useState('list'); 
+  const [activeTab, setActiveTab] = useState('list');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
@@ -153,17 +153,22 @@ export default function App() {
 
   const safeList = Array.isArray(subscriptions) ? subscriptions : [];
 
+  // --- THEME: contrast-audited for both modes -----------------------------
+  // textSecondary / textMuted were previously too close to the background
+  // color in one mode or the other (slate-400 on a light card, slate-500 on
+  // a near-black input). Values below keep dark-mode text bright enough and
+  // light-mode text dark enough to stay readable (~4.5:1+ contrast).
   const theme = {
-    bg: isDarkMode ? '#090d16' : '#f1f5f9',
+    bg: isDarkMode ? '#090d16' : '#f8fafc',
     headerBg: isDarkMode ? '#131b2e' : '#ffffff',
     cardBg: isDarkMode ? '#131b2e' : '#ffffff',
     summaryBg: isDarkMode ? '#312e81' : '#4f46e5',
     summaryBorder: isDarkMode ? '#4338ca' : '#6366f1',
     cardBorder: isDarkMode ? '#222f49' : '#cbd5e1',
-    textPrimary: isDarkMode ? '#f1f5f9' : '#0f172a',
-    textSecondary: isDarkMode ? '#94a3b8' : '#475569',
-    textMuted: isDarkMode ? '#64748b' : '#94a3b8',
-    inputBg: isDarkMode ? '#0b111d' : '#e2e8f0',
+    textPrimary: isDarkMode ? '#f8fafc' : '#0b1220',
+    textSecondary: isDarkMode ? '#cbd5e1' : '#334155',
+    textMuted: isDarkMode ? '#94a3b8' : '#64748b',
+    inputBg: isDarkMode ? '#0b111d' : '#e9edf3',
     accent: isDarkMode ? '#38bdf8' : '#0284c7',
   };
 
@@ -254,6 +259,8 @@ export default function App() {
   const { monthlyTotals, monthlyDominantColor } = getDetailedMonthlyBreakdown(selectedAnalysisYear);
   const totalYearlyExpenseForSelectedYear = monthlyTotals.reduce((a, b) => a + b, 0);
   const maxMonthlyExpense = Math.max(...monthlyTotals, 1);
+  const monthsWithSpending = monthlyTotals.filter(v => v > 0).length;
+  const averageMonthlyExpense = monthsWithSpending > 0 ? totalYearlyExpenseForSelectedYear / monthsWithSpending : 0;
 
   const yearlyPaymentMethodStats = safeList.reduce((acc, item) => {
     const method = item.paymentMethod || 'Diğer';
@@ -270,6 +277,11 @@ export default function App() {
     acc[cat] = (acc[cat] || 0) + annualCost;
     return acc;
   }, {});
+
+  // Sort both breakdowns descending so the biggest expense is always on top.
+  const sortedPaymentMethodEntries = Object.entries(yearlyPaymentMethodStats).sort((a, b) => b[1] - a[1]);
+  const sortedCategoryEntries = Object.entries(yearlyCategoryStats).sort((a, b) => b[1] - a[1]);
+  const topCategoryLabel = sortedCategoryEntries[0]?.[0] || '-';
 
   const openForm = (item = null) => {
     if (item) {
@@ -343,7 +355,7 @@ export default function App() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
       <StatusBar style={isDarkMode ? 'light' : 'dark'} />
-      
+
       <View style={[styles.appWrapper, isDesktop && styles.appWrapperDesktop]}>
 
         {/* MASAÜSTÜ SIDEBAR */}
@@ -360,8 +372,8 @@ export default function App() {
             </Text>
 
             <View style={styles.sidebarNavGroup}>
-              <TouchableOpacity 
-                style={[styles.sidebarNavBtn, activeTab === 'list' && styles.sidebarNavBtnActive]} 
+              <TouchableOpacity
+                style={[styles.sidebarNavBtn, activeTab === 'list' && styles.sidebarNavBtnActive]}
                 onPress={() => setActiveTab('list')}
               >
                 <Text style={{ fontSize: 18 }}>💳</Text>
@@ -370,8 +382,8 @@ export default function App() {
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity 
-                style={[styles.sidebarNavBtn, activeTab === 'calendar' && styles.sidebarNavBtnActive]} 
+              <TouchableOpacity
+                style={[styles.sidebarNavBtn, activeTab === 'calendar' && styles.sidebarNavBtnActive]}
                 onPress={() => setActiveTab('calendar')}
               >
                 <Text style={{ fontSize: 18 }}>📅</Text>
@@ -380,8 +392,8 @@ export default function App() {
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity 
-                style={[styles.sidebarNavBtn, activeTab === 'analytics' && styles.sidebarNavBtnActive]} 
+              <TouchableOpacity
+                style={[styles.sidebarNavBtn, activeTab === 'analytics' && styles.sidebarNavBtnActive]}
                 onPress={() => setActiveTab('analytics')}
               >
                 <Text style={{ fontSize: 18 }}>📊</Text>
@@ -413,16 +425,16 @@ export default function App() {
               <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Cebin</Text>
               <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Abonelik & Sabit Gider Takibi</Text>
             </View>
-            
+
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <TouchableOpacity 
-                style={[styles.themeToggleIconBtn, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} 
+              <TouchableOpacity
+                style={[styles.themeToggleIconBtn, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}
                 onPress={() => setIsDarkMode(!isDarkMode)}
                 title="Tema Değiştir"
               >
                 <Text style={{ fontSize: 18 }}>{isDarkMode ? '☀️' : '🌙'}</Text>
               </TouchableOpacity>
-              
+
               {!isDesktop && (
                 <TouchableOpacity style={styles.addBtn} onPress={() => openForm()}>
                   <Text style={styles.addBtnText}>+ Ekle</Text>
@@ -450,7 +462,7 @@ export default function App() {
                 <View style={[styles.summaryCard, { backgroundColor: theme.summaryBg, borderColor: theme.summaryBorder }]}>
                   <Text style={styles.summaryLabel}>Toplam Aylık Taahhüt</Text>
                   <Text style={styles.summaryValue}>{formatCurrency(monthlyTotalTL, 'TRY')}</Text>
-                  
+
                   <View style={styles.statsRow}>
                     <View style={styles.statBox}>
                       <Text style={styles.statLabel}>Günlük Tahmini Maliyet</Text>
@@ -468,14 +480,14 @@ export default function App() {
                     💳 Ödeme Yöntemine Göre Filtrele:
                   </Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[styles.filterChip, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }, selectedPaymentFilter === 'ALL' && styles.filterChipActive]}
                       onPress={() => setSelectedPaymentFilter('ALL')}
                     >
                       <Text style={[styles.filterChipText, { color: theme.textSecondary }, selectedPaymentFilter === 'ALL' && styles.filterChipTextActive]}>Tüm Kartlar</Text>
                     </TouchableOpacity>
                     {paymentMethodsList.map(method => (
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         key={method}
                         style={[styles.filterChip, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }, selectedPaymentFilter === method && styles.filterChipActive]}
                         onPress={() => setSelectedPaymentFilter(method)}
@@ -548,7 +560,7 @@ export default function App() {
                             </TouchableOpacity>
                             {item.cancelUrl ? (
                               <TouchableOpacity style={[styles.cancelBtn, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder, borderWidth: 1 }]} onPress={() => Linking.openURL(item.cancelUrl)}>
-                                <Text style={styles.cancelText}>İptal 🔗</Text>
+                                <Text style={[styles.cancelText, { color: theme.accent }]}>İptal 🔗</Text>
                               </TouchableOpacity>
                             ) : null}
                             <TouchableOpacity onPress={() => handleDelete(item.id)} style={[styles.deleteBtn, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder, borderWidth: 1 }]}>
@@ -566,8 +578,8 @@ export default function App() {
             {activeTab === 'calendar' && (
               <View style={{ marginTop: 10 }}>
                 <View style={styles.calendarHeaderNav}>
-                  <TouchableOpacity 
-                    style={[styles.arrowBtn, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder, borderWidth: 1 }]} 
+                  <TouchableOpacity
+                    style={[styles.arrowBtn, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder, borderWidth: 1 }]}
                     onPress={() => {
                       if (calMonth === 0) { setCalMonth(11); setCalYear(Math.max(2025, calYear - 1)); }
                       else { setCalMonth(calMonth - 1); }
@@ -575,13 +587,13 @@ export default function App() {
                   >
                     <Text style={[styles.arrowText, { color: theme.accent }]}>◀ Önceki</Text>
                   </TouchableOpacity>
-                  
+
                   <Text style={[styles.calendarTitleText, { color: theme.textPrimary }]}>
                     {MONTH_NAMES[calMonth]} {calYear} ({daysInCurrentMonth} Gün)
                   </Text>
 
-                  <TouchableOpacity 
-                    style={[styles.arrowBtn, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder, borderWidth: 1 }]} 
+                  <TouchableOpacity
+                    style={[styles.arrowBtn, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder, borderWidth: 1 }]}
                     onPress={() => {
                       if (calMonth === 11) { setCalMonth(0); setCalYear(Math.min(2030, calYear + 1)); }
                       else { setCalMonth(calMonth + 1); }
@@ -591,11 +603,10 @@ export default function App() {
                   </TouchableOpacity>
                 </View>
 
-                {/* Yıl Seçim Çubuğu */}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
                   {YEARS.map(y => (
-                    <TouchableOpacity 
-                      key={y} 
+                    <TouchableOpacity
+                      key={y}
                       style={[styles.yearChip, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1 }, calYear === y && styles.yearChipActive]}
                       onPress={() => setCalYear(y)}
                     >
@@ -625,10 +636,10 @@ export default function App() {
                       });
 
                       return (
-                        <View 
-                          key={dayNum} 
+                        <View
+                          key={dayNum}
                           style={[
-                            styles.calendarDayBox, 
+                            styles.calendarDayBox,
                             { backgroundColor: theme.cardBg, borderColor: theme.cardBorder },
                             subsOnDay.length > 0 && styles.activeDayBox
                           ]}
@@ -659,8 +670,8 @@ export default function App() {
 
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
                   {YEARS.map(y => (
-                    <TouchableOpacity 
-                      key={y} 
+                    <TouchableOpacity
+                      key={y}
                       style={[styles.yearChip, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1 }, selectedAnalysisYear === y && styles.yearChipActive]}
                       onPress={() => setSelectedAnalysisYear(y)}
                     >
@@ -668,6 +679,22 @@ export default function App() {
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
+
+                {/* Quick summary row so the user sees the big picture before the bar chart */}
+                <View style={styles.summaryMiniRow}>
+                  <View style={[styles.summaryMiniCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                    <Text style={[styles.summaryMiniLabel, { color: theme.textSecondary }]}>Aylık Ortalama</Text>
+                    <Text style={[styles.summaryMiniValue, { color: theme.textPrimary }]} numberOfLines={1}>
+                      {formatShortCurrency(averageMonthlyExpense, 'TRY')}
+                    </Text>
+                  </View>
+                  <View style={[styles.summaryMiniCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                    <Text style={[styles.summaryMiniLabel, { color: theme.textSecondary }]}>En Yüksek Kategori</Text>
+                    <Text style={[styles.summaryMiniValue, { color: theme.textPrimary }]} numberOfLines={1}>
+                      {topCategoryLabel}
+                    </Text>
+                  </View>
+                </View>
 
                 <View style={[styles.chartContainer, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
                   <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.textPrimary, marginBottom: 14 }}>
@@ -678,14 +705,14 @@ export default function App() {
                     {monthlyTotals.map((tot, mIdx) => {
                       const heightPercent = maxMonthlyExpense > 0 ? (tot / maxMonthlyExpense) * 100 : 0;
                       const barColor = tot > 0 ? monthlyDominantColor[mIdx] : 'transparent';
-                      
+
                       return (
                         <View key={mIdx} style={styles.barColumn}>
                           <View style={[styles.barTrack, { backgroundColor: theme.inputBg }]}>
                             <View style={[styles.barFill, { height: `${Math.max(heightPercent, 6)}%`, backgroundColor: barColor }]} />
                           </View>
                           <Text style={[styles.barLabel, { color: theme.textPrimary }]}>{MONTH_NAMES[mIdx].substring(0, 3)}</Text>
-                          <Text style={[styles.barAmountText, { color: theme.textPrimary }]}>{tot > 0 ? formatShortCurrency(tot, 'TRY') : '-'}</Text>
+                          <Text style={[styles.barAmountText, { color: theme.textSecondary }]}>{tot > 0 ? formatShortCurrency(tot, 'TRY') : '-'}</Text>
                         </View>
                       );
                     })}
@@ -705,12 +732,12 @@ export default function App() {
                   💳 Ödeme Yöntemine Göre Harcama Dağılımı ({selectedAnalysisYear})
                 </Text>
 
-                {Object.keys(yearlyPaymentMethodStats).length === 0 ? (
+                {sortedPaymentMethodEntries.length === 0 ? (
                   <Text style={{ color: theme.textSecondary, fontStyle: 'italic', fontSize: 12 }}>Kayıtlı ödeme yöntemi verisi bulunamadı.</Text>
                 ) : (
-                  Object.entries(yearlyPaymentMethodStats).map(([method, amount]) => {
-                    const percentage = totalYearlyExpenseForSelectedYear > 0 
-                      ? ((amount / totalYearlyExpenseForSelectedYear) * 100).toFixed(1) 
+                  sortedPaymentMethodEntries.map(([method, amount]) => {
+                    const percentage = totalYearlyExpenseForSelectedYear > 0
+                      ? ((amount / totalYearlyExpenseForSelectedYear) * 100).toFixed(1)
                       : 0;
 
                     return (
@@ -720,7 +747,7 @@ export default function App() {
                           <Text style={{ color: theme.textPrimary, fontWeight: 'bold', fontSize: 13 }}>{formatCurrency(amount, 'TRY')} (%{percentage})</Text>
                         </View>
                         <View style={[styles.progressBarBg, { backgroundColor: theme.inputBg }]}>
-                          <View style={[styles.progressBarFill, { width: `${percentage}%`, backgroundColor: '#38bdf8' }]} />
+                          <View style={[styles.progressBarFill, { width: `${percentage}%`, backgroundColor: theme.accent }]} />
                         </View>
                       </View>
                     );
@@ -731,13 +758,13 @@ export default function App() {
                   📂 Kategori Bazlı Dağılım ({selectedAnalysisYear})
                 </Text>
 
-                {Object.keys(yearlyCategoryStats).length === 0 ? (
+                {sortedCategoryEntries.length === 0 ? (
                   <Text style={{ color: theme.textSecondary, fontStyle: 'italic', fontSize: 12 }}>Kayıtlı veri bulunamadı.</Text>
                 ) : (
-                  Object.entries(yearlyCategoryStats).map(([cat, amount]) => {
+                  sortedCategoryEntries.map(([cat, amount]) => {
                     const catColor = CATEGORY_COLORS[cat] || '#6366f1';
-                    const percentage = totalYearlyExpenseForSelectedYear > 0 
-                      ? ((amount / totalYearlyExpenseForSelectedYear) * 100).toFixed(1) 
+                    const percentage = totalYearlyExpenseForSelectedYear > 0
+                      ? ((amount / totalYearlyExpenseForSelectedYear) * 100).toFixed(1)
                       : 0;
 
                     return (
@@ -757,7 +784,7 @@ export default function App() {
                 <View style={[styles.backupPanel, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, marginTop: 20 }]}>
                   <Text style={{ color: theme.textPrimary, fontWeight: 'bold', fontSize: 14, marginBottom: 6 }}>💾 Veri Yedekleme & Dışa Aktar</Text>
                   <Text style={{ color: theme.textSecondary, fontSize: 12, marginBottom: 12 }}>Abonelik verilerinizi Excel (CSV) veya JSON formatında bilgisayarınıza indirebilirsiniz.</Text>
-                  
+
                   <View style={{ flexDirection: 'row', gap: 10 }}>
                     <TouchableOpacity style={[styles.exportBtn, { flex: 1, backgroundColor: theme.inputBg, borderColor: theme.cardBorder, borderWidth: 1 }]} onPress={handleExportCSV}>
                       <Text style={{ color: theme.textPrimary, fontSize: 12, fontWeight: 'bold' }}>📄 CSV İndir</Text>
@@ -802,14 +829,16 @@ export default function App() {
               {editingId ? 'Abonelik Düzenle' : 'Yeni Abonelik Ekle'}
             </Text>
 
-            <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
+            <ScrollView style={{ maxHeight: 440 }} showsVerticalScrollIndicator={false}>
               {!editingId && (
                 <View style={{ marginBottom: 10 }}>
                   <Text style={{ color: theme.textSecondary, fontSize: 11, fontWeight: 'bold', marginBottom: 6 }}>HIZLI ŞABLON SEÇ:</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                  {/* Was a horizontal ScrollView — chips got clipped off-screen.
+                      flexWrap lets them wrap to as many rows as needed instead. */}
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                     {popularServicesList.map((srv, idx) => (
-                      <TouchableOpacity 
-                        key={idx} 
+                      <TouchableOpacity
+                        key={idx}
                         style={[styles.templateChip, { backgroundColor: srv.color }]}
                         onPress={() => {
                           setFormName(srv.name);
@@ -822,14 +851,14 @@ export default function App() {
                         <Text style={{ color: '#fff', fontSize: 11, fontWeight: 'bold' }}>{srv.name}</Text>
                       </TouchableOpacity>
                     ))}
-                  </ScrollView>
+                  </View>
                 </View>
               )}
 
               <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Servis / Abonelik Adı</Text>
-              <TextInput 
-                style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} 
-                placeholder="Örn: Netflix, Spotify" 
+              <TextInput
+                style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]}
+                placeholder="Örn: Netflix, Spotify"
                 placeholderTextColor={theme.textMuted}
                 value={formName}
                 onChangeText={setFormName}
@@ -838,9 +867,9 @@ export default function App() {
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <View style={{ flex: 2 }}>
                   <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Tutar / Fiyat</Text>
-                  <TextInput 
-                    style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} 
-                    placeholder="0.00" 
+                  <TextInput
+                    style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]}
+                    placeholder="0.00"
                     placeholderTextColor={theme.textMuted}
                     keyboardType="numeric"
                     value={formPrice}
@@ -852,8 +881,8 @@ export default function App() {
                   <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Para Birimi</Text>
                   <View style={{ flexDirection: 'row', gap: 4, marginTop: 4 }}>
                     {['TRY', 'USD', 'EUR'].map(curr => (
-                      <TouchableOpacity 
-                        key={curr} 
+                      <TouchableOpacity
+                        key={curr}
                         style={[styles.currBtn, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder, borderWidth: 1 }, formCurrency === curr && styles.currBtnActive]}
                         onPress={() => setFormCurrency(curr)}
                       >
@@ -866,13 +895,13 @@ export default function App() {
 
               <Text style={[styles.inputLabel, { color: theme.textSecondary, marginTop: 8 }]}>Ödeme Periyodu</Text>
               <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.periodBtn, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder, borderWidth: 1 }, formPeriod === 'monthly' && styles.periodBtnActive]}
                   onPress={() => setFormPeriod('monthly')}
                 >
                   <Text style={[styles.periodBtnText, { color: theme.textSecondary }, formPeriod === 'monthly' && styles.periodBtnTextActive]}>Aylık</Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.periodBtn, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder, borderWidth: 1 }, formPeriod === 'yearly' && styles.periodBtnActive]}
                   onPress={() => setFormPeriod('yearly')}
                 >
@@ -881,9 +910,10 @@ export default function App() {
               </View>
 
               <Text style={[styles.inputLabel, { color: theme.textSecondary, marginTop: 8 }]}>Ödeme Yapılan Kart / Hesap</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, marginTop: 4 }}>
+              {/* Was a horizontal ScrollView — same clipping issue as the template chips. */}
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
                 {paymentMethodsList.map(pm => (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     key={pm}
                     style={[styles.filterChip, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }, formPaymentMethod === pm && styles.filterChipActive]}
                     onPress={() => setFormPaymentMethod(pm)}
@@ -891,12 +921,13 @@ export default function App() {
                     <Text style={[styles.filterChipText, { color: theme.textSecondary }, formPaymentMethod === pm && styles.filterChipTextActive]}>{pm}</Text>
                   </TouchableOpacity>
                 ))}
-              </ScrollView>
+              </View>
 
               <Text style={[styles.inputLabel, { color: theme.textSecondary, marginTop: 8 }]}>Hatırlatıcı Kuralı</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, marginTop: 4 }}>
+              {/* Was a horizontal ScrollView — "3 Gün Ö..." was getting cut off here. */}
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
                 {NOTIFICATION_OPTIONS.map(opt => (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     key={opt.value}
                     style={[styles.filterChip, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }, formNotificationDays === opt.value && styles.filterChipActive]}
                     onPress={() => setFormNotificationDays(opt.value)}
@@ -904,7 +935,7 @@ export default function App() {
                     <Text style={[styles.filterChipText, { color: theme.textSecondary }, formNotificationDays === opt.value && styles.filterChipTextActive]}>{opt.label}</Text>
                   </TouchableOpacity>
                 ))}
-              </ScrollView>
+              </View>
             </ScrollView>
 
             <View style={styles.modalFooterButtons}>
@@ -965,14 +996,14 @@ const styles = StyleSheet.create({
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 14, borderBottomWidth: 1 },
   headerTitle: { fontSize: 22, fontWeight: 'bold', letterSpacing: 0.5 },
-  headerSubtitle: { fontSize: 11, marginTop: 2 },
+  headerSubtitle: { fontSize: 12, marginTop: 2 },
   proBadge: { backgroundColor: '#6366f1', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   proBadgeText: { color: '#ffffff', fontSize: 9, fontWeight: 'bold' },
   themeToggleIconBtn: { width: 38, height: 38, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   addBtn: { backgroundColor: '#6366f1', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
   addBtnText: { color: '#ffffff', fontWeight: 'bold', fontSize: 13 },
   scrollContent: { paddingHorizontal: 16, paddingBottom: 90, paddingTop: 14 },
-  
+
   currencyBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 10, borderRadius: 8, borderWidth: 1, marginBottom: 12 },
   currencyBarTitle: { fontSize: 12, fontWeight: 'bold' },
   currencyBadgeGroup: { flexDirection: 'row', gap: 8 },
@@ -984,10 +1015,10 @@ const styles = StyleSheet.create({
   summaryValue: { color: '#ffffff', fontSize: 28, fontWeight: 'bold', marginVertical: 4 },
   statsRow: { flexDirection: 'row', gap: 10, marginTop: 8 },
   statBox: { flex: 1, backgroundColor: 'rgba(255, 255, 255, 0.15)', padding: 8, borderRadius: 8 },
-  statLabel: { color: '#ffffff', fontSize: 10, opacity: 0.9 },
+  statLabel: { color: '#ffffff', fontSize: 11, opacity: 0.9 },
   statValue: { color: '#ffffff', fontSize: 13, fontWeight: 'bold', marginTop: 2 },
   sectionTitle: { fontSize: 15, fontWeight: 'bold', marginBottom: 10 },
-  
+
   filterChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1 },
   filterChipActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
   filterChipText: { fontSize: 12, fontWeight: '600' },
@@ -1000,14 +1031,14 @@ const styles = StyleSheet.create({
   brandIconText: { color: '#ffffff', fontSize: 16, fontWeight: 'bold' },
   cardTitle: { fontSize: 14, fontWeight: 'bold' },
   cardTag: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  cardTagText: { fontSize: 10, fontWeight: 'bold' },
-  cardSubtitle: { fontSize: 11, marginTop: 2, fontWeight: '500' },
+  cardTagText: { fontSize: 11, fontWeight: 'bold' },
+  cardSubtitle: { fontSize: 12, marginTop: 2, fontWeight: '500' },
   rightSection: { alignItems: 'flex-end' },
   price: { fontSize: 14, fontWeight: 'bold' },
   actionButtons: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
   editBtn: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
   cancelBtn: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  cancelText: { color: '#38bdf8', fontSize: 11, fontWeight: 'bold' },
+  cancelText: { fontSize: 11, fontWeight: 'bold' },
   deleteBtn: { padding: 4, borderRadius: 6 },
 
   calendarHeaderNav: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
@@ -1033,13 +1064,18 @@ const styles = StyleSheet.create({
   yearChipText: { fontWeight: '600', fontSize: 12 },
   yearChipTextActive: { color: '#ffffff', fontWeight: 'bold' },
 
+  summaryMiniRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
+  summaryMiniCard: { flex: 1, borderRadius: 12, padding: 12, borderWidth: 1 },
+  summaryMiniLabel: { fontSize: 11, fontWeight: '600', marginBottom: 4 },
+  summaryMiniValue: { fontSize: 15, fontWeight: 'bold' },
+
   chartContainer: { borderRadius: 12, padding: 14, marginBottom: 14, borderWidth: 1 },
   barsAreaContainer: { flexDirection: 'row', height: 160, alignItems: 'flex-end', justifyContent: 'space-between', paddingVertical: 8 },
   barColumn: { flex: 1, height: '100%', alignItems: 'center', justifyContent: 'flex-end' },
   barTrack: { width: 16, height: 100, borderRadius: 6, justifyContent: 'flex-end', overflow: 'hidden' },
   barFill: { width: '100%', borderRadius: 6 },
   barLabel: { fontSize: 11, marginTop: 6, fontWeight: 'bold' },
-  barAmountText: { fontSize: 8, marginTop: 2, fontWeight: 'bold' },
+  barAmountText: { fontSize: 9, marginTop: 2, fontWeight: '600' },
 
   chartFooter: { borderTopWidth: 1, paddingTop: 10, marginTop: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 
@@ -1054,9 +1090,9 @@ const styles = StyleSheet.create({
   navText: { fontSize: 10, fontWeight: 'bold', marginTop: 2 },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 16 },
-  modalContent: { width: '100%', maxWidth: 460, borderRadius: 14, padding: 16, borderWidth: 1 },
+  modalContent: { width: '100%', maxWidth: 480, maxHeight: '88%', borderRadius: 14, padding: 16, borderWidth: 1 },
   modalTitle: { fontSize: 17, fontWeight: 'bold', marginBottom: 12 },
-  inputLabel: { fontSize: 11, fontWeight: 'bold', marginBottom: 3 },
+  inputLabel: { fontSize: 12, fontWeight: 'bold', marginBottom: 3 },
   textInput: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8, borderWidth: 1, fontSize: 13, marginBottom: 8 },
   currBtn: { flex: 1, paddingVertical: 6, borderRadius: 6, alignItems: 'center', borderWidth: 1 },
   currBtnActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
@@ -1067,7 +1103,7 @@ const styles = StyleSheet.create({
   periodBtnText: { fontSize: 11, fontWeight: 'bold' },
   periodBtnTextActive: { color: '#fff' },
   templateChip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6 },
-  
+
   modalFooterButtons: {
     flexDirection: 'row',
     gap: 10,
