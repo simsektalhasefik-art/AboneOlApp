@@ -18,10 +18,6 @@ import {
   Linking
 } from 'react-native';
 
-/* -------------------------------------------------------------------------- */
-/*                                SABİT VERİLER                                */
-/* -------------------------------------------------------------------------- */
-
 const DEFAULT_RATES = {
   USD: 47.56,
   EUR: 54.77
@@ -34,8 +30,6 @@ const CATEGORY_COLORS = {
   Eğitim: '#f59e0b',
   'Bulut & Depolama': '#3b82f6',
   'Spor & Sağlık': '#ec4899',
-
-  // Füme arka planla karışmaması için turuncu kullanılıyor.
   Diğer: '#f97316'
 };
 
@@ -163,10 +157,6 @@ const YEARS = [
   2030
 ];
 
-/*
-  Abonelikler sayfasında yalnızca tek filtre alanı kullanılacak.
-  Ödeme yöntemi, dönem ve sıralama ayrı ayrı gösterilmeyecek.
-*/
 const VIEW_FILTER_OPTIONS = [
   {
     key: 'ALL',
@@ -198,15 +188,18 @@ const BACKGROUND_PRESETS = {
   smoke: {
     label: 'Açık Füme',
     dark: true,
+
     bg: '#30353c',
     sidebarBg: '#373d45',
     headerBg: '#3a4048',
     cardBg: '#414852',
     inputBg: '#343a42',
     cardBorder: '#58616d',
+
     textPrimary: '#f4f6f8',
     textSecondary: '#d2d7de',
     textMuted: '#aeb7c2',
+
     summaryBg: '#5b58d6',
     summaryBorder: '#7470ef',
     accent: '#63b3ff'
@@ -215,15 +208,18 @@ const BACKGROUND_PRESETS = {
   anthracite: {
     label: 'Antrasit',
     dark: true,
+
     bg: '#20242a',
     sidebarBg: '#272c33',
     headerBg: '#2a3038',
     cardBg: '#303741',
     inputBg: '#252b33',
     cardBorder: '#434c58',
+
     textPrimary: '#f4f5f7',
     textSecondary: '#cbd1d9',
     textMuted: '#98a2af',
+
     summaryBg: '#4f46c8',
     summaryBorder: '#6860df',
     accent: '#55aaff'
@@ -232,32 +228,158 @@ const BACKGROUND_PRESETS = {
   navy: {
     label: 'Lacivert',
     dark: true,
+
     bg: '#111827',
     sidebarBg: '#182131',
     headerBg: '#1c2636',
     cardBg: '#222d3d',
     inputBg: '#172131',
     cardBorder: '#344154',
+
     textPrimary: '#f1f5f9',
     textSecondary: '#cbd5e1',
     textMuted: '#94a3b8',
+
     summaryBg: '#3730a3',
     summaryBorder: '#4f46e5',
     accent: '#60a5fa'
   },
 
+  sage: {
+    label: 'Adaçayı',
+    dark: false,
+
+    bg: '#dfe8df',
+    sidebarBg: '#cedbce',
+    headerBg: '#eaf1ea',
+    cardBg: '#f5f8f4',
+    inputBg: '#e7eee6',
+    cardBorder: '#afc1ae',
+
+    textPrimary: '#26352a',
+    textSecondary: '#506353',
+    textMuted: '#748278',
+
+    summaryBg: '#4f7c5a',
+    summaryBorder: '#6d9977',
+    accent: '#d97706'
+  },
+
+  mint: {
+    label: 'Açık Yeşil',
+    dark: false,
+
+    bg: '#dff3ea',
+    sidebarBg: '#c9e6d9',
+    headerBg: '#ebf8f2',
+    cardBg: '#f6fcf9',
+    inputBg: '#e3f2eb',
+    cardBorder: '#a8cfbc',
+
+    textPrimary: '#17392b',
+    textSecondary: '#3f6857',
+    textMuted: '#708d80',
+
+    summaryBg: '#0f766e',
+    summaryBorder: '#14b8a6',
+    accent: '#ea580c'
+  },
+
+  apricot: {
+    label: 'Kayısı',
+    dark: false,
+
+    bg: '#f5e3d1',
+    sidebarBg: '#ebd1b8',
+    headerBg: '#faeee3',
+    cardBg: '#fff8f1',
+    inputBg: '#f2e3d5',
+    cardBorder: '#d7bba1',
+
+    textPrimary: '#3b291d',
+    textSecondary: '#6e5340',
+    textMuted: '#927764',
+
+    summaryBg: '#d97706',
+    summaryBorder: '#f59e0b',
+    accent: '#0f766e'
+  },
+
+  sand: {
+    label: 'Kum',
+    dark: false,
+
+    bg: '#eee8dc',
+    sidebarBg: '#e0d7c7',
+    headerBg: '#f5f1e8',
+    cardBg: '#fcfaf5',
+    inputBg: '#ece5d9',
+    cardBorder: '#cbc0ae',
+
+    textPrimary: '#3a342b',
+    textSecondary: '#665e51',
+    textMuted: '#8a8173',
+
+    summaryBg: '#8b6f47',
+    summaryBorder: '#a98b60',
+    accent: '#2563eb'
+  },
+
+  lavender: {
+    label: 'Lavanta',
+    dark: false,
+
+    bg: '#e9e4f4',
+    sidebarBg: '#dcd4eb',
+    headerBg: '#f1edf8',
+    cardBg: '#faf8fd',
+    inputBg: '#e8e2f1',
+    cardBorder: '#c5bad8',
+
+    textPrimary: '#302740',
+    textSecondary: '#625570',
+    textMuted: '#85768f',
+
+    summaryBg: '#7c5cbf',
+    summaryBorder: '#9676d4',
+    accent: '#d97706'
+  },
+
+  rose: {
+    label: 'Gül Kurusu',
+    dark: false,
+
+    bg: '#f1e1e3',
+    sidebarBg: '#e5cfd2',
+    headerBg: '#f8ecee',
+    cardBg: '#fff8f9',
+    inputBg: '#f0dfe2',
+    cardBorder: '#d3b5ba',
+
+    textPrimary: '#42282e',
+    textSecondary: '#704d55',
+    textMuted: '#93737a',
+
+    summaryBg: '#be5f73',
+    summaryBorder: '#d17b8d',
+    accent: '#2563eb'
+  },
+
   light: {
     label: 'Açık',
     dark: false,
+
     bg: '#edf1f5',
     sidebarBg: '#ffffff',
     headerBg: '#ffffff',
     cardBg: '#ffffff',
     inputBg: '#f1f4f8',
     cardBorder: '#d8dee7',
+
     textPrimary: '#1f2937',
     textSecondary: '#566171',
     textMuted: '#7d8999',
+
     summaryBg: '#4f46e5',
     summaryBorder: '#6366f1',
     accent: '#2563eb'
@@ -286,10 +408,6 @@ const FONT_SCALE_OPTIONS = [
     scale: 1.24
   }
 ];
-
-/* -------------------------------------------------------------------------- */
-/*                            YARDIMCI FONKSİYONLAR                             */
-/* -------------------------------------------------------------------------- */
 
 const getDaysInMonth = (
   month,
@@ -578,10 +696,6 @@ const getSubscriptionCostForMonth = (
   );
 };
 
-/* -------------------------------------------------------------------------- */
-/*                              ANA UYGULAMA                                   */
-/* -------------------------------------------------------------------------- */
-
 export default function App() {
   const { width } =
     useWindowDimensions();
@@ -592,12 +706,22 @@ export default function App() {
   const isMobile =
     width < 480;
 
-  /*
-    Analiz yılı değiştiğinde ScrollView bu ref ile en üste alınacak.
-    Böylece 2025'ten 2026'ya geçerken üst bölüm kaybolmayacak.
-  */
   const mainScrollRef =
     useRef(null);
+
+  const scrollMainToTop = (
+    animated = false
+  ) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        mainScrollRef.current
+          ?.scrollTo?.({
+            y: 0,
+            animated
+          });
+      });
+    });
+  };
 
   const [
     subscriptions,
@@ -706,8 +830,6 @@ export default function App() {
     clampedYear
   );
 
-  /* ----------------------------- Form alanları ----------------------------- */
-
   const [
     formName,
     setFormName
@@ -810,11 +932,7 @@ export default function App() {
     newPaymentMethodName,
     setNewPaymentMethodName
   ] = useState('');
-  /* ------------------------------------------------------------------------ */
-  /*                         KAYITLI VERİLERİ YÜKLEME                          */
-  /* ------------------------------------------------------------------------ */
-
-  useEffect(() => {
+    useEffect(() => {
     try {
       const savedSubscriptions =
         localStorage.getItem(
@@ -1066,63 +1184,24 @@ export default function App() {
     isLoaded
   ]);
 
-  /*
-    Analiz yılı değiştiğinde sayfa en üste alınır.
-    requestAnimationFrame kullanılması render tamamlandıktan sonra
-    scroll işleminin uygulanmasını sağlar.
-  */
   useEffect(() => {
-    if (
-      activeTab !==
-      'analytics'
-    ) {
-      return;
-    }
-
-    const frameId =
-      requestAnimationFrame(
-        () => {
-          mainScrollRef.current
-            ?.scrollTo?.({
-              y: 0,
-              animated: false
-            });
-        }
-      );
-
-    return () =>
-      cancelAnimationFrame(
-        frameId
-      );
+    scrollMainToTop(false);
   }, [
-    selectedAnalysisYear,
-    activeTab
+    activeTab,
+    selectedAnalysisYear
   ]);
 
-  /*
-    Sekme değiştirildiğinde de içerik en üstten başlar.
-  */
   useEffect(() => {
-    const frameId =
-      requestAnimationFrame(
-        () => {
-          mainScrollRef.current
-            ?.scrollTo?.({
-              y: 0,
-              animated: false
-            });
-        }
-      );
-
-    return () =>
-      cancelAnimationFrame(
-        frameId
-      );
-  }, [activeTab]);
-
-  /* ------------------------------------------------------------------------ */
-  /*                            GÖRÜNÜM AYARLARI                               */
-  /* ------------------------------------------------------------------------ */
+    if (
+      activeTab ===
+      'analytics'
+    ) {
+      scrollMainToTop(false);
+    }
+  }, [
+    subscriptions,
+    activeTab
+  ]);
 
   const selectedPreset =
     BACKGROUND_PRESETS[
@@ -1153,7 +1232,7 @@ export default function App() {
     activeButton: '#6965e8',
 
     activeButtonBorder:
-      '#7772f0',
+      '#7c78f0',
 
     activeButtonSoft:
       '#7772ff26'
@@ -1179,10 +1258,6 @@ export default function App() {
     )
       ? paymentMethodsList
       : [];
-
-  /* ------------------------------------------------------------------------ */
-  /*                         ABONELİK LİSTESİ FİLTRESİ                         */
-  /* ------------------------------------------------------------------------ */
 
   const todayForFiltering =
     new Date();
@@ -1248,7 +1323,7 @@ export default function App() {
               todayForFiltering
             );
 
-          const startOfToday =
+          const todayStart =
             new Date(
               todayForFiltering
                 .getFullYear(),
@@ -1262,7 +1337,7 @@ export default function App() {
             Math.round(
               (
                 nextRenewal -
-                startOfToday
+                todayStart
               ) /
                 86400000
             );
@@ -1342,10 +1417,6 @@ export default function App() {
     )?.label ||
     'Tüm Abonelikler';
 
-  /* ------------------------------------------------------------------------ */
-  /*                         ANA SAYFA HESAPLAMALARI                           */
-  /* ------------------------------------------------------------------------ */
-
   const monthlyTotalTL =
     safeList.reduce(
       (
@@ -1391,10 +1462,6 @@ export default function App() {
 
   const yearlyProjectionTL =
     monthlyTotalTL * 12;
-
-  /* ------------------------------------------------------------------------ */
-  /*                           ANALİZ HESAPLAMALARI                            */
-  /* ------------------------------------------------------------------------ */
 
   const getDetailedMonthlyBreakdown =
     targetYear => {
@@ -1761,10 +1828,6 @@ export default function App() {
           b.daysUntil
       );
 
-  /* ------------------------------------------------------------------------ */
-  /*                           ABONELİK FORMU                                  */
-  /* ------------------------------------------------------------------------ */
-
   const openSubscriptionForm =
     (
       item = null
@@ -2129,6 +2192,15 @@ export default function App() {
       );
 
       closeSubscriptionForm();
+
+      if (
+        activeTab ===
+        'analytics'
+      ) {
+        scrollMainToTop(
+          false
+        );
+      }
     };
    const handleDeleteSubscription = id => {
     const targetSubscription =
@@ -2162,15 +2234,10 @@ export default function App() {
       Number(
         String(
           newTemplatePrice
-        ).replace(
-          ',',
-          '.'
-        )
+        ).replace(',', '.')
       );
 
-    if (
-      !newTemplateName.trim()
-    ) {
+    if (!newTemplateName.trim()) {
       alert(
         'Lütfen şablon adını giriniz.'
       );
@@ -2202,9 +2269,7 @@ export default function App() {
           )
       );
 
-    if (
-      templateAlreadyExists
-    ) {
+    if (templateAlreadyExists) {
       alert(
         'Bu isimde bir şablon zaten bulunuyor.'
       );
@@ -2215,7 +2280,7 @@ export default function App() {
     const templateColor =
       TEMPLATE_COLOR_PALETTE[
         safeTemplates.length %
-        TEMPLATE_COLOR_PALETTE.length
+          TEMPLATE_COLOR_PALETTE.length
       ];
 
     setTemplatesList([
@@ -2241,17 +2306,13 @@ export default function App() {
     ]);
 
     setNewTemplateName('');
-
     setNewTemplatePrice('');
-
     setNewTemplateCurrency(
       'TRY'
     );
-
     setNewTemplateCategory(
       'Diğer'
     );
-
     setShowTemplateForm(
       false
     );
@@ -2308,9 +2369,7 @@ export default function App() {
           )
       );
 
-    if (
-      methodAlreadyExists
-    ) {
+    if (methodAlreadyExists) {
       alert(
         'Bu ödeme yöntemi zaten bulunuyor.'
       );
@@ -2343,9 +2402,7 @@ export default function App() {
             paymentMethod
         ).length;
 
-      if (
-        usageCount > 0
-      ) {
+      if (usageCount > 0) {
         alert(
           `Bu ödeme yöntemi ${usageCount} kayıtta kullanılıyor. Önce ilgili kayıtların ödeme yöntemini değiştiriniz.`
         );
@@ -2384,14 +2441,8 @@ export default function App() {
       }
     };
 
-  /* ------------------------------------------------------------------------ */
-  /*                              YEDEKLEME                                    */
-  /* ------------------------------------------------------------------------ */
-
   const handleExportCSV = () => {
-    if (
-      safeList.length === 0
-    ) {
+    if (safeList.length === 0) {
       alert(
         'Dışa aktarılacak kayıt bulunmuyor.'
       );
@@ -2463,7 +2514,7 @@ export default function App() {
 
   const handleExportJSON = () => {
     const backupData = {
-      version: 2,
+      version: 3,
 
       exportedAt:
         new Date().toISOString(),
@@ -2696,10 +2747,6 @@ export default function App() {
     fileInput.click();
   };
 
-  /* ------------------------------------------------------------------------ */
-  /*                               TAKVİM                                     */
-  /* ------------------------------------------------------------------------ */
-
   const daysInCurrentMonth =
     getDaysInMonth(
       calendarMonth,
@@ -2724,33 +2771,21 @@ export default function App() {
 
   const handleAnalysisYearChange =
     year => {
+      scrollMainToTop(false);
+
       setSelectedAnalysisYear(
         year
       );
-
-      mainScrollRef.current
-        ?.scrollTo?.({
-          y: 0,
-          animated: false
-        });
     };
 
   const handleTabChange =
     tabKey => {
+      scrollMainToTop(false);
+
       setActiveTab(
         tabKey
       );
-
-      mainScrollRef.current
-        ?.scrollTo?.({
-          y: 0,
-          animated: false
-        });
     };
-
-  /* ------------------------------------------------------------------------ */
-  /*                              ANA EKRAN                                    */
-  /* ------------------------------------------------------------------------ */
 
   return (
     <SafeAreaView
@@ -2773,6 +2808,7 @@ export default function App() {
       <View
         style={[
           styles.appWrapper,
+
           isDesktop &&
             styles.appWrapperDesktop
         ]}
@@ -3112,10 +3148,17 @@ export default function App() {
           </View>
 
           <ScrollView
-            ref={mainScrollRef}
-            style={
-              styles.mainScroll
+            ref={
+              mainScrollRef
             }
+            style={[
+              styles.mainScroll,
+
+              {
+                overflowAnchor:
+                  'none'
+              }
+            ]}
             contentContainerStyle={
               styles.scrollContent
             }
@@ -5108,7 +5151,6 @@ export default function App() {
         </View>
       </View>
 
-      {/* Görünüm ayarları penceresi */}
       <Modal
         visible={
           isAppearanceModalOpen
@@ -5143,7 +5185,12 @@ export default function App() {
                 styles.modalHeader
               }
             >
-              <View>
+              <View
+                style={{
+                  flex: 1,
+                  paddingRight: 12
+                }}
+              >
                 <Text
                   style={[
                     styles.modalTitle,
@@ -5165,7 +5212,7 @@ export default function App() {
                     }
                   ]}
                 >
-                  Arka plan rengini ve yazı boyutunu kişiselleştirin.
+                  Arka plan temasını ve yazı boyutunu kişiselleştirin.
                 </Text>
               </View>
 
@@ -5195,193 +5242,199 @@ export default function App() {
                     }
                   ]}
                 >
-                  ×
+                  ✕
                 </Text>
               </TouchableOpacity>
             </View>
 
-            <Text
-              style={[
-                styles.appearanceSectionTitle,
-                {
-                  color:
-                    theme.textPrimary
-                }
-              ]}
-            >
-              Arka Plan Teması
-            </Text>
-
-            <View
-              style={
-                styles.appearanceOptionGrid
+            <ScrollView
+              showsVerticalScrollIndicator={
+                false
               }
+              contentContainerStyle={{
+                paddingBottom: 8
+              }}
             >
-              {Object.entries(
-                BACKGROUND_PRESETS
-              ).map(
-                ([
-                  presetKey,
-                  preset
-                ]) => (
-                  <TouchableOpacity
-                    key={
-                      presetKey
-                    }
-                    style={[
-                      styles.appearanceThemeOption,
-                      {
-                        backgroundColor:
-                          preset.cardBg,
+              <Text
+                style={[
+                  styles.appearanceSectionTitle,
+                  {
+                    color:
+                      theme.textPrimary
+                  }
+                ]}
+              >
+                Arka Plan Teması
+              </Text>
 
-                        borderColor:
-                          backgroundPreset ===
-                          presetKey
-                            ? theme.activeButtonBorder
-                            : preset.cardBorder
-                      },
-
-                      backgroundPreset ===
-                        presetKey &&
-                        styles.appearanceOptionActive
-                    ]}
-                    onPress={() =>
-                      setBackgroundPreset(
+              <View
+                style={
+                  styles.appearanceOptionGrid
+                }
+              >
+                {Object.entries(
+                  BACKGROUND_PRESETS
+                ).map(
+                  ([
+                    presetKey,
+                    preset
+                  ]) => (
+                    <TouchableOpacity
+                      key={
                         presetKey
-                      )
-                    }
-                  >
-                    <View
+                      }
                       style={[
-                        styles.themePreview,
+                        styles.appearanceThemeOption,
                         {
                           backgroundColor:
-                            preset.bg
-                        }
+                            preset.cardBg,
+
+                          borderColor:
+                            backgroundPreset ===
+                            presetKey
+                              ? theme.activeButtonBorder
+                              : preset.cardBorder
+                        },
+
+                        backgroundPreset ===
+                          presetKey &&
+                          styles.appearanceOptionActive
                       ]}
+                      onPress={() =>
+                        setBackgroundPreset(
+                          presetKey
+                        )
+                      }
                     >
                       <View
                         style={[
-                          styles.themePreviewSidebar,
+                          styles.themePreview,
                           {
                             backgroundColor:
-                              preset.sidebarBg
+                              preset.bg
                           }
                         ]}
-                      />
-
-                      <View
-                        style={
-                          styles.themePreviewContent
-                        }
                       >
                         <View
                           style={[
-                            styles.themePreviewHeader,
+                            styles.themePreviewSidebar,
                             {
                               backgroundColor:
-                                preset.headerBg
+                                preset.sidebarBg
                             }
                           ]}
                         />
 
                         <View
-                          style={[
-                            styles.themePreviewCard,
-                            {
-                              backgroundColor:
-                                preset.summaryBg
-                            }
-                          ]}
-                        />
+                          style={
+                            styles.themePreviewContent
+                          }
+                        >
+                          <View
+                            style={[
+                              styles.themePreviewHeader,
+                              {
+                                backgroundColor:
+                                  preset.headerBg
+                              }
+                            ]}
+                          />
+
+                          <View
+                            style={[
+                              styles.themePreviewCard,
+                              {
+                                backgroundColor:
+                                  preset.summaryBg
+                              }
+                            ]}
+                          />
+                        </View>
                       </View>
-                    </View>
 
-                    <Text
-                      style={[
-                        styles.appearanceOptionLabel,
-                        {
-                          color:
-                            backgroundPreset ===
-                            presetKey
-                              ? '#ffffff'
-                              : preset.textPrimary
-                        }
-                      ]}
-                    >
-                      {preset.label}
-                    </Text>
-                  </TouchableOpacity>
-                )
-              )}
-            </View>
+                      <Text
+                        style={[
+                          styles.appearanceOptionLabel,
+                          {
+                            color:
+                              preset.textPrimary
+                          }
+                        ]}
+                      >
+                        {preset.label}
+                      </Text>
+                    </TouchableOpacity>
+                  )
+                )}
+              </View>
 
-            <Text
-              style={[
-                styles.appearanceSectionTitle,
-                {
-                  color:
-                    theme.textPrimary
+              <Text
+                style={[
+                  styles.appearanceSectionTitle,
+                  {
+                    color:
+                      theme.textPrimary
+                  }
+                ]}
+              >
+                Yazı Boyutu
+              </Text>
+
+              <View
+                style={
+                  styles.fontScaleRow
                 }
-              ]}
-            >
-              Yazı Boyutu
-            </Text>
-
-            <View
-              style={
-                styles.fontScaleRow
-              }
-            >
-              {FONT_SCALE_OPTIONS.map(
-                option => (
-                  <TouchableOpacity
-                    key={
-                      option.key
-                    }
-                    style={[
-                      styles.fontScaleOption,
-                      {
-                        backgroundColor:
-                          theme.inputBg,
-
-                        borderColor:
-                          theme.cardBorder
-                      },
-
-                      fontScaleKey ===
-                        option.key &&
-                        styles.fontScaleOptionActive
-                    ]}
-                    onPress={() =>
-                      setFontScaleKey(
+              >
+                {FONT_SCALE_OPTIONS.map(
+                  option => (
+                    <TouchableOpacity
+                      key={
                         option.key
-                      )
-                    }
-                  >
-                    <Text
+                      }
                       style={[
-                        styles.fontScaleOptionText,
+                        styles.fontScaleOption,
                         {
-                          color:
-                            theme.textSecondary,
+                          backgroundColor:
+                            theme.inputBg,
 
-                          fontSize:
-                            12 *
-                            option.scale
+                          borderColor:
+                            theme.cardBorder
                         },
 
                         fontScaleKey ===
                           option.key &&
-                          styles.fontScaleOptionTextActive
+                          styles.fontScaleOptionActive
                       ]}
+                      onPress={() =>
+                        setFontScaleKey(
+                          option.key
+                        )
+                      }
                     >
-                      {option.label}
-                    </Text>
-                  </TouchableOpacity>
-                )
-              )}
-            </View>
+                      <Text
+                        style={[
+                          styles.fontScaleOptionText,
+                          {
+                            color:
+                              theme.textSecondary,
+
+                            fontSize:
+                              12 *
+                              option.scale
+                          },
+
+                          fontScaleKey ===
+                            option.key &&
+                            styles.fontScaleOptionTextActive
+                        ]}
+                      >
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  )
+                )}
+              </View>
+            </ScrollView>
 
             <TouchableOpacity
               style={
@@ -5405,7 +5458,6 @@ export default function App() {
         </View>
       </Modal>
 
-      {/* Abonelik ekleme / düzenleme penceresi */}
       <Modal
         visible={
           isSubscriptionModalOpen
@@ -5438,7 +5490,12 @@ export default function App() {
                 styles.modalHeader
               }
             >
-              <View>
+              <View
+                style={{
+                  flex: 1,
+                  paddingRight: 12
+                }}
+              >
                 <Text
                   style={[
                     styles.modalTitle,
@@ -5490,7 +5547,7 @@ export default function App() {
                     }
                   ]}
                 >
-                  ×
+                  ✕
                 </Text>
               </TouchableOpacity>
             </View>
@@ -5502,7 +5559,9 @@ export default function App() {
               contentContainerStyle={
                 styles.subscriptionModalContent
               }
-              showsVerticalScrollIndicator
+              showsVerticalScrollIndicator={
+                false
+              }
             >
               {!editingId && (
                 <View
@@ -5515,7 +5574,12 @@ export default function App() {
                       styles.formSectionHeader
                     }
                   >
-                    <View>
+                    <View
+                      style={{
+                        flex: 1,
+                        paddingRight: 10
+                      }}
+                    >
                       <Text
                         style={[
                           styles.formSectionTitle,
@@ -5641,7 +5705,7 @@ export default function App() {
                                 styles.removeOptionText
                               }
                             >
-                              ×
+                              ✕
                             </Text>
                           </TouchableOpacity>
                         </View>
@@ -6158,7 +6222,12 @@ export default function App() {
                     styles.formSectionHeader
                   }
                 >
-                  <View>
+                  <View
+                    style={{
+                      flex: 1,
+                      paddingRight: 10
+                    }}
+                  >
                     <Text
                       style={[
                         styles.formSectionTitle,
@@ -6281,7 +6350,7 @@ export default function App() {
                               styles.removeOptionText
                             }
                           >
-                            ×
+                            ✕
                           </Text>
                         </TouchableOpacity>
                       </View>
@@ -6786,10 +6855,6 @@ export default function App() {
     </SafeAreaView>
   );
 }
-
-/* -------------------------------------------------------------------------- */
-/*                                  STİLLER                                    */
-/* -------------------------------------------------------------------------- */
 
 function createStyles(
   theme,
@@ -7668,8 +7733,10 @@ function createStyles(
 
     appearanceModal: {
       width:
-        isMobile ? '96%' : 620,
-      maxHeight: '90%',
+        isMobile
+          ? '96%'
+          : 760,
+      maxHeight: '92%',
       borderWidth: 1,
       borderRadius: 18,
       padding: 20
@@ -7677,10 +7744,14 @@ function createStyles(
 
     subscriptionModal: {
       width:
-        isMobile ? '98%' : '94%',
+        isMobile
+          ? '98%'
+          : '94%',
       maxWidth: 980,
       height:
-        isMobile ? '96%' : '92%',
+        isMobile
+          ? '96%'
+          : '92%',
       maxHeight: 850,
       borderWidth: 1,
       borderRadius: 18,
@@ -7717,13 +7788,24 @@ function createStyles(
       height: 34,
       borderRadius: 9,
       borderWidth: 1,
+      padding: 0,
+      margin: 0,
       alignItems: 'center',
       justifyContent: 'center'
     },
 
     modalCloseText: {
-      fontSize: font(17),
-      fontWeight: 'bold'
+      width: 30,
+      height: 30,
+      color: '#ffffff',
+      fontSize: font(12),
+      fontWeight: '700',
+      lineHeight: 30,
+      textAlign: 'center',
+      textAlignVertical: 'center',
+      includeFontPadding: false,
+      padding: 0,
+      margin: 0
     },
 
     appearanceSectionTitle: {
@@ -7741,10 +7823,16 @@ function createStyles(
 
     appearanceThemeOption: {
       width:
-        isMobile ? '47%' : '23%',
+        isMobile
+          ? '47%'
+          : '31.5%',
+      minWidth:
+        isMobile
+          ? 130
+          : 150,
       borderWidth: 2,
-      borderRadius: 10,
-      padding: 8
+      borderRadius: 12,
+      padding: 9
     },
 
     appearanceOptionActive: {
@@ -7906,7 +7994,7 @@ function createStyles(
       height: 38,
       borderRadius: 8,
       paddingLeft: 12,
-      paddingRight: 28,
+      paddingRight: 32,
       justifyContent: 'center'
     },
 
@@ -7922,7 +8010,7 @@ function createStyles(
       borderRadius: 8,
       borderWidth: 1,
       paddingLeft: 12,
-      paddingRight: 28,
+      paddingRight: 32,
       justifyContent: 'center'
     },
 
@@ -7940,26 +8028,35 @@ function createStyles(
 
     removeOptionButton: {
       position: 'absolute',
-      top: 7,
+      top: 6,
       right: 6,
-      width: 17,
-      height: 17,
-      borderRadius: 4,
+      width: 18,
+      height: 18,
+      borderRadius: 5,
       backgroundColor:
-        'rgba(20,24,31,0.60)',
+        'rgba(15,23,42,0.82)',
       borderWidth: 1,
       borderColor:
-        'rgba(255,255,255,0.18)',
+        'rgba(255,255,255,0.24)',
       alignItems: 'center',
       justifyContent: 'center',
+      padding: 0,
+      margin: 0,
       zIndex: 3
     },
 
     removeOptionText: {
+      width: 16,
+      height: 16,
       color: '#ffffff',
-      fontSize: font(11),
-      fontWeight: 'bold',
-      lineHeight: font(12)
+      fontSize: font(9),
+      fontWeight: '700',
+      lineHeight: 16,
+      textAlign: 'center',
+      textAlignVertical: 'center',
+      includeFontPadding: false,
+      padding: 0,
+      margin: 0
     },
 
     inlineForm: {
