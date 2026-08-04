@@ -131,6 +131,25 @@ export default function App() {
   // Bildirim izni durumu
   const [notificationPermission, setNotificationPermission] = useState('default');
 
+  // Aboneliğin seçili takvim gününde aktif olup olmadığını hesaplar
+  const isSubActiveOnDay = (sub, day) => {
+    if (!sub) return false;
+    const billingDay = Number(sub.billingDay) || 1;
+    if (sub.period === 'monthly') {
+      return billingDay === day;
+    } else if (sub.period === 'yearly') {
+      const subMonth = Number(sub.billingMonth || 1) - 1;
+      const subYear = Number(sub.billingYear || 2026);
+      return billingDay === day && subMonth === calMonth && subYear === calYear;
+    }
+    return false;
+  };
+
+  // Abonelik silme fonksiyonu
+  const handleDelete = (id) => {
+    setSubscriptions(safeList.filter(s => s.id !== id));
+  };
+
   // Form State
   const [formName, setFormName] = useState('');
   const [formPrice, setFormPrice] = useState('');
@@ -903,6 +922,10 @@ export default function App() {
             {!editingId && (
               <View style={{ marginBottom: 16 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            {/* HIZLI EKLE (POPÜLER SERVİSLER) - TAŞMA SIZDIRMASIZ WRAP GRID */}
+            {!editingId && (
+              <View style={{ marginBottom: 16 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                   <Text style={[styles.fieldLabel, { color: theme.textSecondary, marginBottom: 0 }]}>Hızlı Ekle (Popüler Servisler):</Text>
                   <TouchableOpacity onPress={() => setIsAddingNewService(!isAddingNewService)}>
                     <Text style={{ color: theme.accent, fontSize: 12, fontWeight: 'bold' }}>
@@ -936,18 +959,24 @@ export default function App() {
                   </View>
                 )}
 
-                <ScrollView 
-                  horizontal 
-                  showsHorizontalScrollIndicator={false} 
-                  contentContainerStyle={{ paddingRight: 24, gap: 8, alignItems: 'center' }}
-                  style={{ flexDirection: 'row', marginTop: 4 }}
-                >
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
                   {popularServicesList.map((s, idx) => (
-                    <TouchableOpacity key={idx} style={[styles.chipBtn, { borderColor: s.color || '#6366F1', borderWidth: 1 }]} onPress={() => selectPopularService(s)}>
+                    <TouchableOpacity 
+                      key={idx} 
+                      style={[
+                        styles.chipBtn, 
+                        { 
+                          borderColor: s.color || '#6366F1', 
+                          borderWidth: 1,
+                          backgroundColor: formName.toLowerCase() === s.name.toLowerCase() ? (s.color || '#6366F1') + '22' : 'transparent'
+                        }
+                      ]} 
+                      onPress={() => selectPopularService(s)}
+                    >
                       <Text style={{ color: s.color || '#6366F1', fontSize: 12, fontWeight: 'bold' }}>{s.name}</Text>
                     </TouchableOpacity>
                   ))}
-                </ScrollView>
+                </View>
               </View>
             )}
 
@@ -965,12 +994,7 @@ export default function App() {
             />
 
             <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Kategori:</Text>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false} 
-              contentContainerStyle={{ paddingRight: 24, gap: 8 }}
-              style={{ flexDirection: 'row', marginBottom: 12 }}
-            >
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
               {CATEGORIES.map((cat) => (
                 <TouchableOpacity 
                   key={cat} 
@@ -980,9 +1004,9 @@ export default function App() {
                   <Text style={[styles.categoryText, { color: theme.textSecondary }, formCategory === cat && styles.categoryTextActive]}>{cat}</Text>
                 </TouchableOpacity>
               ))}
-            </ScrollView>
+            </View>
 
-            {/* ÖDEME YAPILAN KART / YÖNTEM - TAŞMA DÜZELTİLMİŞ + ÖZEL KART EKLEME */}
+            {/* ÖDEME YAPILAN KART / YÖNTEM - TAŞMASIZ WRAP GRID */}
             <View style={{ marginBottom: 12 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                 <Text style={[styles.fieldLabel, { color: theme.textSecondary, marginBottom: 0 }]}>Ödeme Yapılan Kart / Yöntem:</Text>
@@ -1010,12 +1034,7 @@ export default function App() {
                 </View>
               )}
 
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false} 
-                contentContainerStyle={{ paddingRight: 24, gap: 8 }}
-                style={{ flexDirection: 'row', marginTop: 4 }}
-              >
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
                 {paymentMethodsList.map((method) => (
                   <TouchableOpacity 
                     key={method} 
@@ -1025,7 +1044,7 @@ export default function App() {
                     <Text style={[styles.categoryText, { color: theme.textSecondary }, formPaymentMethod === method && styles.categoryTextActive]}>💳 {method}</Text>
                   </TouchableOpacity>
                 ))}
-              </ScrollView>
+              </View>
             </View>
 
             {/* BİLDİRİM / HATIRLATICI ZAMANLAYICI (AÇILIR KAPANIR DROPDOWN LİSTE) */}
