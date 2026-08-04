@@ -100,15 +100,12 @@ export default function App() {
   // Custom Listeler
   const [paymentMethodsList, setPaymentMethodsList] = useState(PAYMENT_METHODS);
   const [popularServicesList, setPopularServicesList] = useState(DEFAULT_POPULAR_SERVICES);
-  const [isAddingNewPaymentMethod, setIsAddingNewPaymentMethod] = useState(false);
-  const [newCustomPaymentMethod, setNewCustomPaymentMethod] = useState('');
 
   const [activeTab, setActiveTab] = useState('list'); 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [duplicateWarning, setDuplicateWarning] = useState('');
 
-  const [calMonth, setCalMonth] = useState(7); // Ağustos (0-indexed 7)
+  const [calMonth, setCalMonth] = useState(7); // Ağustos
   const [calYear, setCalYear] = useState(2026);
   const [selectedAnalysisYear, setSelectedAnalysisYear] = useState(2026);
 
@@ -132,7 +129,6 @@ export default function App() {
       if (savedSubs) {
         setSubscriptions(JSON.parse(savedSubs));
       } else {
-        // Örnek Başlangıç Verileri
         setSubscriptions([
           { id: '1', name: 'Netflix', price: '229', currency: 'TRY', category: 'Eğlence', paymentMethod: 'Garanti Bonus', period: 'monthly', billingDay: '15', billingMonth: '8', billingYear: '2026', notificationDays: 2, cancelUrl: 'https://www.netflix.com/youraccount', color: '#E50914' },
           { id: '2', name: 'ChatGPT Plus', price: '20', currency: 'USD', category: 'Yazılım & AI', paymentMethod: 'Enpara Kart', period: 'monthly', billingDay: '28', billingMonth: '8', billingYear: '2026', notificationDays: 1, cancelUrl: 'https://chatgpt.com', color: '#10A37F' },
@@ -140,7 +136,7 @@ export default function App() {
         ]);
       }
     } catch (e) {
-      console.log('Localstorage erişim hatası:', e);
+      console.log('Localstorage hata:', e);
     }
     setIsLoaded(true);
   }, []);
@@ -157,18 +153,18 @@ export default function App() {
 
   const safeList = Array.isArray(subscriptions) ? subscriptions : [];
 
-  // Gözü yormayan dinlendirici Gündüz (Light) Modu ve Karanlık (Dark) Mod renk paletleri
+  // Gözü yormayan yumuşak renk paleti (Light mode için kırık beyaz / warm gray, Dark için derin lacivert)
   const theme = {
-    bg: isDarkMode ? '#090d16' : '#f8fafc',
+    bg: isDarkMode ? '#090d16' : '#f1f5f9',
     headerBg: isDarkMode ? '#0f172a' : '#ffffff',
     cardBg: isDarkMode ? '#151f30' : '#ffffff',
     summaryBg: isDarkMode ? '#1e1b4b' : '#312e81',
     summaryBorder: isDarkMode ? '#312e81' : '#4338ca',
-    cardBorder: isDarkMode ? '#1e293b' : '#e2e8f0',
+    cardBorder: isDarkMode ? '#1e293b' : '#cbd5e1',
     textPrimary: isDarkMode ? '#f8fafc' : '#0f172a',
-    textSecondary: isDarkMode ? '#cbd5e1' : '#334155',
+    textSecondary: isDarkMode ? '#cbd5e1' : '#475569',
     textMuted: isDarkMode ? '#94a3b8' : '#64748b',
-    inputBg: isDarkMode ? '#0f172a' : '#f1f5f9',
+    inputBg: isDarkMode ? '#0f172a' : '#f8fafc',
     accent: isDarkMode ? '#38bdf8' : '#0284c7',
   };
 
@@ -176,15 +172,17 @@ export default function App() {
     setSubscriptions(safeList.filter(s => s.id !== id));
   };
 
+  // CSV Excel Türkçe Karakter (UTF-8 BOM) Düzeltmesi
   const handleExportCSV = () => {
     if (safeList.length === 0) return;
-    let csvContent = "data:text/csv;charset=utf-8,Servis Adi,Fiyat,Para Birimi,Kategori,Odeme Yontemi,Periyot,Gonderim Gunu\n";
+    let csvContent = "\uFEFFServis Adi;Fiyat;Para Birimi;Kategori;Odeme Yontemi;Periyot;Gonderim Gunu\n";
     safeList.forEach(s => {
-      csvContent += `"${s.name}",${s.price},"${s.currency}","${s.category}","${s.paymentMethod}","${s.period}",${s.billingDay}\n`;
+      csvContent += `"${s.name}";${s.price};"${s.currency}";"${s.category}";"${s.paymentMethod}";"${s.period}";${s.billingDay}\n`;
     });
-    const encodedUri = encodeURI(csvContent);
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
+    link.setAttribute("href", url);
     link.setAttribute("download", `cebin_abonelikler_${calYear}.csv`);
     document.body.appendChild(link);
     link.click();
@@ -197,24 +195,6 @@ export default function App() {
     dlAnchorElem.setAttribute("href", dataStr);
     dlAnchorElem.setAttribute("download", `cebin_yedek_${Date.now()}.json`);
     dlAnchorElem.click();
-  };
-
-  const handleImportJSON = (event) => {
-    const fileReader = new FileReader();
-    if (event.target.files && event.target.files[0]) {
-      fileReader.readAsText(event.target.files[0], "UTF-8");
-      fileReader.onload = (e) => {
-        try {
-          const parsed = JSON.parse(e.target.result);
-          if (Array.isArray(parsed)) {
-            setSubscriptions(parsed);
-            alert("✅ Veriler başarıyla içe aktarıldı!");
-          }
-        } catch (err) {
-          alert("❌ Geçersiz yedek dosyası!");
-        }
-      };
-    }
   };
 
   const filteredSubscriptions = safeList.filter(sub => {
@@ -258,7 +238,6 @@ export default function App() {
 
       monthlyTotals[monthIdx] = monthSum;
 
-      // O ay en çok harcama yapılan kategorinin rengini çubuğa atama
       let maxCatAmount = 0;
       let dominantCat = 'Eğlence';
       Object.entries(categorySumsInMonth).forEach(([cat, amt]) => {
@@ -327,7 +306,6 @@ export default function App() {
       setFormColor('#6366F1');
       setFormNotificationDays(2);
     }
-    setDuplicateWarning('');
     setIsModalOpen(true);
   };
 
@@ -371,7 +349,7 @@ export default function App() {
       
       <View style={[styles.appWrapper, isDesktop && styles.appWrapperDesktop]}>
 
-        {/* MASAÜSTÜ SIDEBAR (Geniş Ekranlar) */}
+        {/* MASAÜSTÜ SIDEBAR */}
         {isDesktop && (
           <View style={[styles.sidebarContainer, { backgroundColor: theme.headerBg, borderRightColor: theme.cardBorder }]}>
             <View style={styles.sidebarHeader}>
@@ -416,12 +394,11 @@ export default function App() {
               </TouchableOpacity>
             </View>
 
-            {/* HIZLI DIŞA AKTAR / YEDEKLEME ALANI */}
             <View style={{ marginTop: 'auto', gap: 8 }}>
-              <TouchableOpacity style={[styles.exportBtn, { backgroundColor: theme.inputBg }]} onPress={handleExportCSV}>
-                <Text style={{ color: theme.textPrimary, fontSize: 12, fontWeight: 'bold' }}>📄 CSV / Excel İndir</Text>
+              <TouchableOpacity style={[styles.exportBtn, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder, borderWidth: 1 }]} onPress={handleExportCSV}>
+                <Text style={{ color: theme.textPrimary, fontSize: 12, fontWeight: 'bold' }}>📄 CSV Excel İndir</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.exportBtn, { backgroundColor: theme.inputBg }]} onPress={handleExportJSON}>
+              <TouchableOpacity style={[styles.exportBtn, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder, borderWidth: 1 }]} onPress={handleExportJSON}>
                 <Text style={{ color: theme.accent, fontSize: 12, fontWeight: 'bold' }}>💾 JSON Yedek Al</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.addBtn} onPress={() => openForm()}>
@@ -442,11 +419,13 @@ export default function App() {
             </View>
             
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              {/* Sadece İkonik Tema Değiştirici (Güneş / Ay) */}
               <TouchableOpacity 
-                style={[styles.themeToggleBtn, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} 
+                style={[styles.themeToggleIconBtn, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} 
                 onPress={() => setIsDarkMode(!isDarkMode)}
+                title="Tema Değiştir"
               >
-                <Text style={{ fontSize: 16 }}>{isDarkMode ? '☀️ Light' : '🌙 Dark'}</Text>
+                <Text style={{ fontSize: 18 }}>{isDarkMode ? '☀️' : '🌙'}</Text>
               </TouchableOpacity>
               
               {!isDesktop && (
@@ -475,7 +454,6 @@ export default function App() {
             {/* TAB 1: ABONELİK LİSTESİ */}
             {activeTab === 'list' && (
               <>
-                {/* FİNANSAL ÖZET KARTI */}
                 <View style={[styles.summaryCard, { backgroundColor: theme.summaryBg, borderColor: theme.summaryBorder }]}>
                   <Text style={styles.summaryLabel}>Toplam Aylık Taahhüt</Text>
                   <Text style={styles.summaryValue}>{formatCurrency(monthlyTotalTL, 'TRY')}</Text>
@@ -516,7 +494,6 @@ export default function App() {
                   </ScrollView>
                 </View>
 
-                {/* KARTLARIN LİSTELENMESİ */}
                 <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
                   Kayıtlı Abonelikler ({filteredSubscriptions.length})
                 </Text>
@@ -546,12 +523,12 @@ export default function App() {
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                               <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>{item.name}</Text>
                               {item.paymentMethod && (
-                                <View style={[styles.cardTag, { backgroundColor: theme.inputBg }]}>
+                                <View style={[styles.cardTag, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder, borderWidth: 1 }]}>
                                   <Text style={[styles.cardTagText, { color: theme.textSecondary }]}>💳 {item.paymentMethod}</Text>
                                 </View>
                               )}
                               {notifOpt.value !== -1 && (
-                                <View style={[styles.cardTag, { backgroundColor: theme.inputBg }]}>
+                                <View style={[styles.cardTag, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder, borderWidth: 1 }]}>
                                   <Text style={[styles.cardTagText, { color: theme.accent }]}>
                                     {notifOpt.badgeLabel}
                                   </Text>
@@ -574,15 +551,15 @@ export default function App() {
                             </Text>
                           )}
                           <View style={styles.actionButtons}>
-                            <TouchableOpacity style={[styles.editBtn, { backgroundColor: theme.inputBg }]} onPress={() => openForm(item)}>
+                            <TouchableOpacity style={[styles.editBtn, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder, borderWidth: 1 }]} onPress={() => openForm(item)}>
                               <Text style={{ color: theme.textSecondary, fontSize: 11, fontWeight: 'bold' }}>Düzenle</Text>
                             </TouchableOpacity>
                             {item.cancelUrl ? (
-                              <TouchableOpacity style={[styles.cancelBtn, { backgroundColor: theme.inputBg }]} onPress={() => Linking.openURL(item.cancelUrl)}>
+                              <TouchableOpacity style={[styles.cancelBtn, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder, borderWidth: 1 }]} onPress={() => Linking.openURL(item.cancelUrl)}>
                                 <Text style={styles.cancelText}>İptal 🔗</Text>
                               </TouchableOpacity>
                             ) : null}
-                            <TouchableOpacity onPress={() => handleDelete(item.id)} style={[styles.deleteBtn, { backgroundColor: theme.inputBg }]}>
+                            <TouchableOpacity onPress={() => handleDelete(item.id)} style={[styles.deleteBtn, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder, borderWidth: 1 }]}>
                               <Text style={{ color: '#ef4444', fontSize: 12 }}>🗑️</Text>
                             </TouchableOpacity>
                           </View>
@@ -599,13 +576,13 @@ export default function App() {
               <View style={{ marginTop: 10 }}>
                 <View style={styles.calendarHeaderNav}>
                   <TouchableOpacity 
-                    style={[styles.arrowBtn, { backgroundColor: theme.inputBg }]} 
+                    style={[styles.arrowBtn, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder, borderWidth: 1 }]} 
                     onPress={() => {
                       if (calMonth === 0) { setCalMonth(11); setCalYear(calYear - 1); }
                       else { setCalMonth(calMonth - 1); }
                     }}
                   >
-                    <Text style={styles.arrowText}>◀ Önceki</Text>
+                    <Text style={[styles.arrowText, { color: theme.accent }]}>◀ Önceki</Text>
                   </TouchableOpacity>
                   
                   <Text style={[styles.calendarTitleText, { color: theme.textPrimary }]}>
@@ -613,17 +590,16 @@ export default function App() {
                   </Text>
 
                   <TouchableOpacity 
-                    style={[styles.arrowBtn, { backgroundColor: theme.inputBg }]} 
+                    style={[styles.arrowBtn, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder, borderWidth: 1 }]} 
                     onPress={() => {
                       if (calMonth === 11) { setCalMonth(0); setCalYear(calYear + 1); }
                       else { setCalMonth(calMonth + 1); }
                     }}
                   >
-                    <Text style={styles.arrowText}>Sonraki ▶</Text>
+                    <Text style={[styles.arrowText, { color: theme.accent }]}>Sonraki ▶</Text>
                   </TouchableOpacity>
                 </View>
 
-                {/* TAKVİM IZGARASI */}
                 <View style={styles.calendarWrapper}>
                   <View style={styles.weekHeaderRow}>
                     {['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].map((d, i) => (
@@ -678,12 +654,11 @@ export default function App() {
                   Aylık harcama dağılımları, ödeme yöntemi analizi ve trendler
                 </Text>
 
-                {/* Yıl Seçici Chips */}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
                   {YEARS.map(y => (
                     <TouchableOpacity 
                       key={y} 
-                      style={[styles.yearChip, { backgroundColor: theme.cardBg }, selectedAnalysisYear === y && styles.yearChipActive]}
+                      style={[styles.yearChip, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderWidth: 1 }, selectedAnalysisYear === y && styles.yearChipActive]}
                       onPress={() => setSelectedAnalysisYear(y)}
                     >
                       <Text style={[styles.yearChipText, { color: theme.textSecondary }, selectedAnalysisYear === y && styles.yearChipTextActive]}>{y}</Text>
@@ -691,7 +666,7 @@ export default function App() {
                   ))}
                 </ScrollView>
 
-                {/* AYLIK HARCAMA ÇUBUK GRAFİĞİ (DİNAMİK KATEGORİ RENKLİ ÇUBUKLAR) */}
+                {/* AYLIK HARCAMA ÇUBUK GRAFİĞİ (DİNAMİK KATEGORİ RENKLİ) */}
                 <View style={[styles.chartContainer, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
                   <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.textPrimary, marginBottom: 14 }}>
                     {selectedAnalysisYear} Aylık Harcama Grafiği (TL)
@@ -700,7 +675,6 @@ export default function App() {
                   <View style={styles.barsAreaContainer}>
                     {monthlyTotals.map((tot, mIdx) => {
                       const heightPercent = maxMonthlyExpense > 0 ? (tot / maxMonthlyExpense) * 100 : 0;
-                      // Çubuk rengi o ayın baskın harcama kategorisinin rengiyle eşleşir
                       const barColor = tot > 0 ? monthlyDominantColor[mIdx] : 'transparent';
                       
                       return (
@@ -715,7 +689,7 @@ export default function App() {
                     })}
                   </View>
 
-                  {/* YILLIK TOPLAM HARCAMA ALANI - YÜKSEK KONTRASTLI VE NET */}
+                  {/* YILLIK TOPLAM HARCAMA - GÜÇLÜ KONTRASTLI NET METİN */}
                   <View style={[styles.chartFooter, { borderTopColor: theme.cardBorder }]}>
                     <Text style={{ color: theme.textPrimary, fontSize: 14, fontWeight: 'bold' }}>
                       Yıllık Toplam Harcama ({selectedAnalysisYear}):
@@ -781,16 +755,16 @@ export default function App() {
                   })
                 )}
 
-                {/* Dışa Aktar ve İçe Aktar (Yedekleme) Bölümü */}
+                {/* Veri Yedekleme Paneli */}
                 <View style={[styles.backupPanel, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, marginTop: 20 }]}>
                   <Text style={{ color: theme.textPrimary, fontWeight: 'bold', fontSize: 14, marginBottom: 6 }}>💾 Veri Yedekleme & Dışa Aktar</Text>
-                  <Text style={{ color: theme.textSecondary, fontSize: 12, marginBottom: 12 }}>Abonelik verilerinizi Excel (CSV) veya JSON formatında bilgisayarınıza indirebilir, daha sonra geri yükleyebilirsiniz.</Text>
+                  <Text style={{ color: theme.textSecondary, fontSize: 12, marginBottom: 12 }}>Abonelik verilerinizi Excel (CSV - Türkçe Karakter Uyumlu) veya JSON formatında bilgisayarınıza indirebilirsiniz.</Text>
                   
                   <View style={{ flexDirection: 'row', gap: 10 }}>
-                    <TouchableOpacity style={[styles.exportBtn, { flex: 1, backgroundColor: theme.inputBg }]} onPress={handleExportCSV}>
-                      <Text style={{ color: theme.textPrimary, fontSize: 12, fontWeight: 'bold' }}>📄 CSV Indir</Text>
+                    <TouchableOpacity style={[styles.exportBtn, { flex: 1, backgroundColor: theme.inputBg, borderColor: theme.cardBorder, borderWidth: 1 }]} onPress={handleExportCSV}>
+                      <Text style={{ color: theme.textPrimary, fontSize: 12, fontWeight: 'bold' }}>📄 CSV İndir</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={[styles.exportBtn, { flex: 1, backgroundColor: theme.inputBg }]} onPress={handleExportJSON}>
+                    <TouchableOpacity style={[styles.exportBtn, { flex: 1, backgroundColor: theme.inputBg, borderColor: theme.cardBorder, borderWidth: 1 }]} onPress={handleExportJSON}>
                       <Text style={{ color: theme.accent, fontSize: 12, fontWeight: 'bold' }}>💾 JSON Yedek Al</Text>
                     </TouchableOpacity>
                   </View>
@@ -823,16 +797,15 @@ export default function App() {
 
       </View>
 
-      {/* FORM MODAL (EKLE / DÜZENLE) */}
-      <Modal visible={isModalOpen} animationType="slide" transparent>
+      {/* FORM MODAL (EKLE / DÜZENLE) - FONT VE KONTRAST İYİLEŞTİRMELERİ */}
+      <Modal visible={isModalOpen} animationType="fade" transparent>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
             <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>
               {editingId ? 'Abonelik Düzenle' : 'Yeni Abonelik Ekle'}
             </Text>
 
-            <ScrollView style={{ maxHeight: 450 }}>
-              {/* Hazır Servis Şablonları */}
+            <ScrollView style={{ maxHeight: 460 }} showsVerticalScrollIndicator={false}>
               {!editingId && (
                 <View style={{ marginBottom: 12 }}>
                   <Text style={{ color: theme.textSecondary, fontSize: 11, fontWeight: 'bold', marginBottom: 6 }}>HIZLI ŞABLON SEÇ:</Text>
@@ -856,7 +829,6 @@ export default function App() {
                 </View>
               )}
 
-              {/* Servis Adı */}
               <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Servis / Abonelik Adı</Text>
               <TextInput 
                 style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} 
@@ -866,7 +838,6 @@ export default function App() {
                 onChangeText={setFormName}
               />
 
-              {/* Fiyat ve Para Birimi */}
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <View style={{ flex: 2 }}>
                   <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Tutar / Fiyat</Text>
@@ -886,7 +857,7 @@ export default function App() {
                     {['TRY', 'USD', 'EUR'].map(curr => (
                       <TouchableOpacity 
                         key={curr} 
-                        style={[styles.currBtn, { backgroundColor: theme.inputBg }, formCurrency === curr && styles.currBtnActive]}
+                        style={[styles.currBtn, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder, borderWidth: 1 }, formCurrency === curr && styles.currBtnActive]}
                         onPress={() => setFormCurrency(curr)}
                       >
                         <Text style={[styles.currBtnText, { color: theme.textSecondary }, formCurrency === curr && styles.currBtnTextActive]}>{curr}</Text>
@@ -896,24 +867,22 @@ export default function App() {
                 </View>
               </View>
 
-              {/* Periyot Seçimi */}
               <Text style={[styles.inputLabel, { color: theme.textSecondary, marginTop: 10 }]}>Ödeme Periyodu</Text>
               <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
                 <TouchableOpacity 
-                  style={[styles.periodBtn, { backgroundColor: theme.inputBg }, formPeriod === 'monthly' && styles.periodBtnActive]}
+                  style={[styles.periodBtn, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder, borderWidth: 1 }, formPeriod === 'monthly' && styles.periodBtnActive]}
                   onPress={() => setFormPeriod('monthly')}
                 >
                   <Text style={[styles.periodBtnText, { color: theme.textSecondary }, formPeriod === 'monthly' && styles.periodBtnTextActive]}>Aylık</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
-                  style={[styles.periodBtn, { backgroundColor: theme.inputBg }, formPeriod === 'yearly' && styles.periodBtnActive]}
+                  style={[styles.periodBtn, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder, borderWidth: 1 }, formPeriod === 'yearly' && styles.periodBtnActive]}
                   onPress={() => setFormPeriod('yearly')}
                 >
                   <Text style={[styles.periodBtnText, { color: theme.textSecondary }, formPeriod === 'yearly' && styles.periodBtnTextActive]}>Yıllık</Text>
                 </TouchableOpacity>
               </View>
 
-              {/* Ödeme Yöntemi Kart Seçimi */}
               <Text style={[styles.inputLabel, { color: theme.textSecondary, marginTop: 10 }]}>Ödeme Yapılan Kart / Hesap</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, marginTop: 4 }}>
                 {paymentMethodsList.map(pm => (
@@ -927,7 +896,6 @@ export default function App() {
                 ))}
               </ScrollView>
 
-              {/* Hatırlatıcı Bildirim Kuralı */}
               <Text style={[styles.inputLabel, { color: theme.textSecondary, marginTop: 10 }]}>Hatırlatıcı Kuralı</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, marginTop: 4 }}>
                 {NOTIFICATION_OPTIONS.map(opt => (
@@ -941,7 +909,6 @@ export default function App() {
                 ))}
               </ScrollView>
 
-              {/* İptal Bağlantısı (URL) */}
               <Text style={[styles.inputLabel, { color: theme.textSecondary, marginTop: 10 }]}>Hızlı İptal Web Bağlantısı (Opsiyonel)</Text>
               <TextInput 
                 style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} 
@@ -953,7 +920,7 @@ export default function App() {
             </ScrollView>
 
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
-              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: theme.inputBg }]} onPress={() => setIsModalOpen(false)}>
+              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder, borderWidth: 1 }]} onPress={() => setIsModalOpen(false)}>
                 <Text style={{ color: theme.textSecondary, fontWeight: 'bold' }}>İptal</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.modalBtn, { backgroundColor: '#6366f1', flex: 2 }]} onPress={handleSaveForm}>
@@ -1013,7 +980,7 @@ const styles = StyleSheet.create({
   headerSubtitle: { fontSize: 11, marginTop: 2 },
   proBadge: { backgroundColor: '#6366f1', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   proBadgeText: { color: '#ffffff', fontSize: 9, fontWeight: 'bold' },
-  themeToggleBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1 },
+  themeToggleIconBtn: { width: 38, height: 38, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   addBtn: { backgroundColor: '#6366f1', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
   addBtnText: { color: '#ffffff', fontWeight: 'bold', fontSize: 13 },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 100, paddingTop: 16 },
@@ -1057,8 +1024,8 @@ const styles = StyleSheet.create({
 
   calendarHeaderNav: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   calendarTitleText: { fontSize: 18, fontWeight: 'bold' },
-  arrowBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-  arrowText: { color: '#38bdf8', fontSize: 13, fontWeight: 'bold' },
+  arrowBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1 },
+  arrowText: { fontSize: 13, fontWeight: 'bold' },
 
   calendarWrapper: { width: '100%' },
   weekHeaderRow: { flexDirection: 'row', marginBottom: 6 },
@@ -1073,8 +1040,8 @@ const styles = StyleSheet.create({
   daySubText: { color: '#fff', fontSize: 9, fontWeight: 'bold' },
   daySubPrice: { color: '#ffffff', fontSize: 8, fontWeight: '600' },
 
-  yearChip: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20, marginRight: 8 },
-  yearChipActive: { backgroundColor: '#6366f1' },
+  yearChip: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20, marginRight: 8, borderWidth: 1 },
+  yearChipActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
   yearChipText: { fontWeight: '600', fontSize: 13 },
   yearChipTextActive: { color: '#ffffff', fontWeight: 'bold' },
 
@@ -1103,14 +1070,14 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 14 },
   inputLabel: { fontSize: 12, fontWeight: 'bold', marginBottom: 4 },
   textInput: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1, fontSize: 14, marginBottom: 10 },
-  currBtn: { flex: 1, paddingVertical: 8, borderRadius: 6, alignItems: 'center' },
-  currBtnActive: { backgroundColor: '#6366f1' },
+  currBtn: { flex: 1, paddingVertical: 8, borderRadius: 6, alignItems: 'center', borderWidth: 1 },
+  currBtnActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
   currBtnText: { fontSize: 11, fontWeight: 'bold' },
   currBtnTextActive: { color: '#fff' },
-  periodBtn: { flex: 1, paddingVertical: 8, borderRadius: 6, alignItems: 'center' },
-  periodBtnActive: { backgroundColor: '#6366f1' },
+  periodBtn: { flex: 1, paddingVertical: 8, borderRadius: 6, alignItems: 'center', borderWidth: 1 },
+  periodBtnActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
   periodBtnText: { fontSize: 12, fontWeight: 'bold' },
   periodBtnTextActive: { color: '#fff' },
   templateChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6 },
-  modalBtn: { paddingVertical: 10, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  modalBtn: { paddingVertical: 10, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
 });
