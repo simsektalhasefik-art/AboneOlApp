@@ -701,10 +701,10 @@ export default function App() {
     useWindowDimensions();
 
 const isDesktop =
-  width >= 900;
+  width >= 1024;
 
- const isMobile =
-  width < 768;
+const isMobile =
+  width < 1024;
 
   /*
     Ana sayfanın kaydırma alanı.
@@ -7333,9 +7333,16 @@ function createStyles(
 container: {
   flex: 1,
   width: '100%',
-  height: '100vh',
   minHeight: 0,
-  overflow: 'hidden'
+  overflow: 'hidden',
+
+  ...(Platform.OS === 'web'
+    ? {
+        height: '100dvh'
+      }
+    : {
+        height: '100%'
+      })
 },
 
    appWrapper: {
@@ -8267,18 +8274,31 @@ currencyBadgeText: {
       borderRadius: 3
     },
 
-  bottomNavigation: {
-  position: 'absolute',
+bottomNavigation: {
+  position:
+    Platform.OS === 'web'
+      ? 'fixed'
+      : 'absolute',
+
   left: 0,
   right: 0,
   bottom: 0,
-  height: 64,
+
+  height: 70,
+
   flexDirection: 'row',
   justifyContent: 'space-around',
   alignItems: 'center',
+
   borderTopWidth: 1,
-  zIndex: 999,
-  elevation: 20
+
+  zIndex: 9999,
+  elevation: 30,
+
+  paddingBottom:
+    Platform.OS === 'web'
+      ? 6
+      : 0
 },
 
     bottomNavigationItem: {
