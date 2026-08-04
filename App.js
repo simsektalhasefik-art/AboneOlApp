@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -10,11 +10,10 @@ import {
   SafeAreaView,
   StatusBar,
   useWindowDimensions,
-  Linking,
-  Alert
+  Linking
 } from 'react-native';
 
-const DEFAULT_RATES = { USD: 36.50, EUR: 39.80 };
+const DEFAULT_RATES = { USD: 47.56, EUR: 54.77 };
 
 const CATEGORY_COLORS = {
   'Eğlence': '#ef4444',
@@ -60,6 +59,10 @@ const MONTH_NAMES = [
 
 const YEARS = [2025, 2026, 2027, 2028, 2029, 2030];
 
+const getDaysInMonth = (month, year) => {
+  return new Date(year, month + 1, 0).getDate();
+};
+
 const formatCurrency = (val, currency = 'TRY') => {
   const num = Number(val) || 0;
   const symbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : '₺';
@@ -74,8 +77,8 @@ const formatShortCurrency = (val, currency = 'TRY') => {
 
 const convertToTL = (price, currency, rates = DEFAULT_RATES) => {
   const p = Number(price) || 0;
-  if (currency === 'USD') return p * (rates.USD || 36.50);
-  if (currency === 'EUR') return p * (rates.EUR || 39.80);
+  if (currency === 'USD') return p * (rates.USD || 47.56);
+  if (currency === 'EUR') return p * (rates.EUR || 54.77);
   return p;
 };
 
@@ -96,8 +99,8 @@ export default function App() {
   const [selectedPaymentFilter, setSelectedPaymentFilter] = useState('ALL');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('ALL');
 
-  const [paymentMethodsList, setPaymentMethodsList] = useState(PAYMENT_METHODS);
-  const [popularServicesList, setPopularServicesList] = useState(DEFAULT_POPULAR_SERVICES);
+  const [paymentMethodsList] = useState(PAYMENT_METHODS);
+  const [popularServicesList] = useState(DEFAULT_POPULAR_SERVICES);
 
   const [activeTab, setActiveTab] = useState('list'); 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -122,7 +125,7 @@ export default function App() {
 
   useEffect(() => {
     try {
-      const savedSubs = localStorage.getItem('cebin_subscriptions_v4');
+      const savedSubs = localStorage.getItem('cebin_subscriptions_v5');
       if (savedSubs) {
         setSubscriptions(JSON.parse(savedSubs));
       } else {
@@ -141,7 +144,7 @@ export default function App() {
   useEffect(() => {
     if (isLoaded) {
       try {
-        localStorage.setItem('cebin_subscriptions_v4', JSON.stringify(subscriptions));
+        localStorage.setItem('cebin_subscriptions_v5', JSON.stringify(subscriptions));
       } catch (e) {
         console.log('Kaydetme hatası:', e);
       }
@@ -151,16 +154,16 @@ export default function App() {
   const safeList = Array.isArray(subscriptions) ? subscriptions : [];
 
   const theme = {
-    bg: isDarkMode ? '#0f172a' : '#f8fafc',
-    headerBg: isDarkMode ? '#1e293b' : '#ffffff',
-    cardBg: isDarkMode ? '#1e293b' : '#ffffff',
-    summaryBg: isDarkMode ? '#312e81' : '#4338ca',
+    bg: isDarkMode ? '#090d16' : '#f1f5f9',
+    headerBg: isDarkMode ? '#131b2e' : '#ffffff',
+    cardBg: isDarkMode ? '#131b2e' : '#ffffff',
+    summaryBg: isDarkMode ? '#312e81' : '#4f46e5',
     summaryBorder: isDarkMode ? '#4338ca' : '#6366f1',
-    cardBorder: isDarkMode ? '#334155' : '#e2e8f0',
-    textPrimary: isDarkMode ? '#f1f5f9' : '#1e293b',
-    textSecondary: isDarkMode ? '#cbd5e1' : '#475569',
-    textMuted: isDarkMode ? '#94a3b8' : '#64748b',
-    inputBg: isDarkMode ? '#0f172a' : '#f1f5f9',
+    cardBorder: isDarkMode ? '#222f49' : '#cbd5e1',
+    textPrimary: isDarkMode ? '#f1f5f9' : '#0f172a',
+    textSecondary: isDarkMode ? '#94a3b8' : '#475569',
+    textMuted: isDarkMode ? '#64748b' : '#94a3b8',
+    inputBg: isDarkMode ? '#0b111d' : '#e2e8f0',
     accent: isDarkMode ? '#38bdf8' : '#0284c7',
   };
 
@@ -334,6 +337,8 @@ export default function App() {
     }
     setIsModalOpen(false);
   };
+
+  const daysInCurrentMonth = getDaysInMonth(calMonth, calYear);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
@@ -572,7 +577,7 @@ export default function App() {
                   </TouchableOpacity>
                   
                   <Text style={[styles.calendarTitleText, { color: theme.textPrimary }]}>
-                    {MONTH_NAMES[calMonth]} {calYear}
+                    {MONTH_NAMES[calMonth]} {calYear} ({daysInCurrentMonth} Gün)
                   </Text>
 
                   <TouchableOpacity 
@@ -586,7 +591,7 @@ export default function App() {
                   </TouchableOpacity>
                 </View>
 
-                {/* Yıl Seçim Çubuğu (2025 - 2030) */}
+                {/* Yıl Seçim Çubuğu */}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
                   {YEARS.map(y => (
                     <TouchableOpacity 
@@ -609,7 +614,7 @@ export default function App() {
                   </View>
 
                   <View style={styles.calendarGrid}>
-                    {Array.from({ length: 31 }).map((_, idx) => {
+                    {Array.from({ length: daysInCurrentMonth }).map((_, idx) => {
                       const dayNum = idx + 1;
                       const subsOnDay = safeList.filter(s => {
                         if (s.period === 'monthly') return Number(s.billingDay) === dayNum;
@@ -789,7 +794,7 @@ export default function App() {
 
       </View>
 
-      {/* FORM MODAL - TEMİZLENMİŞ GÖRÜNÜM */}
+      {/* FORM MODAL */}
       <Modal visible={isModalOpen} animationType="fade" transparent>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
