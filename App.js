@@ -3295,31 +3295,43 @@ export default function App() {
               }
             ]}
           >
-            <View>
-              <Text
-                style={[
-                  styles.headerTitle,
-                  {
-                    color:
-                      theme.textPrimary
-                  }
-                ]}
-              >
-                Cebin
-              </Text>
+           <View
+  style={
+    styles.pageHeaderInfo
+  }
+>
+  <Text
+    style={[
+      styles.pageHeaderTitle,
+      {
+        color:
+          theme.textPrimary
+      }
+    ]}
+  >
+    {activeTab === 'list'
+      ? 'Abonelikler'
+      : activeTab === 'calendar'
+        ? 'Ödeme Takvimi'
+        : 'Finansal Analiz'}
+  </Text>
 
-              <Text
-                style={[
-                  styles.headerSubtitle,
-                  {
-                    color:
-                      theme.textSecondary
-                  }
-                ]}
-              >
-                Abonelik & Sabit Gider Takibi
-              </Text>
-            </View>
+  <Text
+    style={[
+      styles.pageHeaderDescription,
+      {
+        color:
+          theme.textSecondary
+      }
+    ]}
+  >
+    {activeTab === 'list'
+      ? 'Aboneliklerinizi ve düzenli ödemelerinizi yönetin.'
+      : activeTab === 'calendar'
+        ? 'Yaklaşan ödeme tarihlerini takvim üzerinden takip edin.'
+        : 'Harcama eğilimlerinizi ve yıllık maliyetlerinizi inceleyin.'}
+  </Text>
+</View>
 
             <View
               style={
@@ -7252,6 +7264,33 @@ container: {
       fontSize: font(11),
       marginTop: 3
     },
+    pageHeaderInfo: {
+  flex: 1,
+  minWidth: 0,
+  paddingRight: 16
+},
+
+pageHeaderEyebrow: {
+  fontSize: font(9),
+  fontWeight: '800',
+  letterSpacing: 1.2,
+  marginBottom: 3
+},
+
+pageHeaderTitle: {
+  fontSize:
+    isMobile
+      ? font(18)
+      : font(22),
+  fontWeight: '700',
+  letterSpacing: -0.3
+},
+
+pageHeaderDescription: {
+  fontSize: font(11),
+  marginTop: 4,
+  lineHeight: font(16)
+},
 
     proBadge: {
       backgroundColor: '#6965e8',
