@@ -7257,45 +7257,42 @@ const [
               </Text>
             </View>
 
-            <Text
-              style={[
-                styles.warningTitle,
-                {
-                  color:
-                    theme.textPrimary
-                }
-              ]}
-            >
-              Mükerrer Kayıt
-            </Text>
+           <Text
+  style={[
+    styles.warningTitle,
+    {
+      color:
+        theme.textPrimary
+    }
+  ]}
+>
+  Bu Abonelik Zaten Kayıtlı
+</Text>
 
-            <Text
-              style={[
-                styles.warningMessage,
-                {
-                  color:
-                    theme.textSecondary
-                }
-              ]}
-            >
-              “{duplicateWarning.name}”
-              isimli abonelik zaten
-              kayıtlı.
-            </Text>
+<Text
+  style={[
+    styles.warningMessage,
+    {
+      color:
+        theme.textSecondary
+    }
+  ]}
+>
+  “{duplicateWarning.name}” isimli abonelik zaten listenizde bulunuyor.
+</Text>
 
-            <Text
-              style={[
-                styles.warningHint,
-                {
-                  color:
-                    theme.textMuted
-                }
-              ]}
-            >
-              Mevcut kaydı düzenleyebilir
-              veya farklı bir ad
-              kullanabilirsiniz.
-            </Text>
+<Text
+  style={[
+    styles.warningHint,
+    {
+      color:
+        theme.textMuted
+    }
+  ]}
+>
+  Mevcut kaydı düzenleyebilir veya aboneliği farklı bir adla ekleyebilirsiniz.
+</Text>
+
 
             <TouchableOpacity
               style={
