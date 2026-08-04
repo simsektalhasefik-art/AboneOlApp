@@ -124,7 +124,6 @@ export default function App() {
 
   const [calMonth, setCalMonth] = useState(7); // Ağustos (0-indexed 7)
   const [calYear, setCalYear] = useState(2026);
-  const [calendarViewMode, setCalendarViewMode] = useState('monthly');
   const [selectedAnalysisYear, setSelectedAnalysisYear] = useState(2026);
 
   const [notificationPermission, setNotificationPermission] = useState('default');
@@ -558,7 +557,7 @@ export default function App() {
             </View>
           )}
 
-          {}
+          {/* TAB 1: LISTE GÖRÜNÜMÜ */}
           {activeTab === 'list' && (
             <>
               {/* ÖZET KARTI */}
@@ -643,97 +642,57 @@ export default function App() {
             </>
           )}
 
-          {}
+          {/* TAB 2: AYLIK ÖDEME TAKVİMİ */}
           {activeTab === 'calendar' && (
             <View style={{ marginTop: 10 }}>
               <View style={styles.calendarHeaderNav}>
                 <TouchableOpacity style={[styles.arrowBtn, { backgroundColor: theme.cardBg }]} onPress={handlePrevMonth}>
                   <Text style={styles.arrowText}>◀</Text>
                 </TouchableOpacity>
-                <Text style={[styles.calendarTitleText, { color: theme.textPrimary }]}>
-                  {MONTH_NAMES[calMonth]} {calYear}
-                </Text>
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={[styles.calendarTitleText, { color: theme.textPrimary }]}>
+                    {MONTH_NAMES[calMonth]} {calYear}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: theme.textSecondary, marginTop: 2 }}>Aylık Ödeme Takvimi</Text>
+                </View>
                 <TouchableOpacity style={[styles.arrowBtn, { backgroundColor: theme.cardBg }]} onPress={handleNextMonth}>
                   <Text style={styles.arrowText}>▶</Text>
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.viewModeContainer}>
-                <TouchableOpacity
-                  style={[styles.viewModeBtn, { backgroundColor: theme.cardBg }, calendarViewMode === 'daily' && styles.viewModeBtnActive]}
-                  onPress={() => setCalendarViewMode('daily')}
-                >
-                  <Text style={[styles.viewModeText, { color: theme.textSecondary }, calendarViewMode === 'daily' && styles.viewModeTextActive]}>Günlük Akış</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.viewModeBtn, { backgroundColor: theme.cardBg }, calendarViewMode === 'monthly' && styles.viewModeBtnActive]}
-                  onPress={() => setCalendarViewMode('monthly')}
-                >
-                  <Text style={[styles.viewModeText, { color: theme.textSecondary }, calendarViewMode === 'monthly' && styles.viewModeTextActive]}>Aylık Matris</Text>
-                </TouchableOpacity>
-              </View>
+              <View style={styles.calendarWrapper}>
+                <View style={styles.weekHeaderRow}>
+                  {WEEK_DAYS.map(wd => (
+                    <View key={wd} style={styles.weekHeaderCell}>
+                      <Text style={[styles.weekHeaderText, { color: theme.textSecondary }]}>{wd}</Text>
+                    </View>
+                  ))}
+                </View>
 
-              {calendarViewMode === 'daily' && (
-                <View style={{ gap: 8 }}>
+                <View style={styles.calendarGrid}>
+                  {Array.from({ length: getFirstDayOffset(calMonth, calYear) }).map((_, idx) => (
+                    <View key={`offset-${idx}`} style={[styles.calendarDayBox, styles.emptyDayBox, { backgroundColor: 'transparent' }]} />
+                  ))}
+
                   {Array.from({ length: getDaysInMonth(calMonth, calYear) }, (_, i) => i + 1).map((day) => {
                     const daySubs = safeList.filter(s => isSubActiveOnDay(s, day));
-
                     return (
-                      <View key={day} style={[styles.dailyRow, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-                        <Text style={[styles.dailyDayText, { color: theme.textSecondary }]}>{day} {MONTH_NAMES[calMonth]}</Text>
-                        <View style={{ flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-                          {daySubs.length > 0 ? daySubs.map(s => {
-                            const sColor = s.color || getServiceColor(s.name);
-                            return (
-                              <View key={s.id} style={[styles.brandBadge, { backgroundColor: sColor }]}>
-                                <Text style={styles.brandBadgeText}>{s.name} ({formatCurrency(s.price, s.currency)})</Text>
-                              </View>
-                            );
-                          }) : (
-                            <Text style={{ color: theme.textSecondary, fontSize: 12 }}>Ödeme planı yok</Text>
-                          )}
-                        </View>
+                      <View key={day} style={[styles.calendarDayBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }, daySubs.length > 0 && styles.activeDayBox]}>
+                        <Text style={[styles.dayNumber, { color: theme.textSecondary }]}>{day}</Text>
+                        {daySubs.map(s => {
+                          const sColor = s.color || getServiceColor(s.name);
+                          return (
+                            <View key={s.id} style={[styles.daySubBadge, { backgroundColor: sColor }]}>
+                              <Text style={styles.daySubText} numberOfLines={1}>{s.name}</Text>
+                              <Text style={styles.daySubPrice}>{formatShortCurrency(s.price, s.currency)}</Text>
+                            </View>
+                          );
+                        })}
                       </View>
                     );
                   })}
                 </View>
-              )}
-
-              {calendarViewMode === 'monthly' && (
-                <View style={styles.calendarWrapper}>
-                  <View style={styles.weekHeaderRow}>
-                    {WEEK_DAYS.map(wd => (
-                      <View key={wd} style={styles.weekHeaderCell}>
-                        <Text style={[styles.weekHeaderText, { color: theme.textSecondary }]}>{wd}</Text>
-                      </View>
-                    ))}
-                  </View>
-
-                  <View style={styles.calendarGrid}>
-                    {Array.from({ length: getFirstDayOffset(calMonth, calYear) }).map((_, idx) => (
-                      <View key={`offset-${idx}`} style={[styles.calendarDayBox, styles.emptyDayBox, { backgroundColor: 'transparent' }]} />
-                    ))}
-
-                    {Array.from({ length: getDaysInMonth(calMonth, calYear) }, (_, i) => i + 1).map((day) => {
-                      const daySubs = safeList.filter(s => isSubActiveOnDay(s, day));
-                      return (
-                        <View key={day} style={[styles.calendarDayBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }, daySubs.length > 0 && styles.activeDayBox]}>
-                          <Text style={[styles.dayNumber, { color: theme.textSecondary }]}>{day}</Text>
-                          {daySubs.map(s => {
-                            const sColor = s.color || getServiceColor(s.name);
-                            return (
-                              <View key={s.id} style={[styles.daySubBadge, { backgroundColor: sColor }]}>
-                                <Text style={styles.daySubText} numberOfLines={1}>{s.name}</Text>
-                                <Text style={styles.daySubPrice}>{formatShortCurrency(s.price, s.currency)}</Text>
-                              </View>
-                            );
-                          })}
-                        </View>
-                      );
-                    })}
-                  </View>
-                </View>
-              )}
+              </View>
 
               <View style={[styles.monthTotalFooterCard, { backgroundColor: theme.headerBg, borderColor: theme.cardBorder }]}>
                 <Text style={{ color: theme.textSecondary, fontSize: 14, fontWeight: '600' }}>
@@ -746,7 +705,7 @@ export default function App() {
             </View>
           )}
 
-          {}
+          {/* TAB 3: ANALIZ VE GRAFIKLER */}
           {activeTab === 'analytics' && (
             <View style={{ marginTop: 10 }}>
               <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.textPrimary, marginBottom: 4 }}>Finansal Analiz & Grafikler</Text>
@@ -849,7 +808,7 @@ export default function App() {
 
         </ScrollView>
 
-        {}
+        {/* BOTTOM NAVIGATION BAR */}
         <View style={[styles.bottomNavContainer, { backgroundColor: theme.headerBg, borderTopColor: theme.cardBorder }]}>
           <TouchableOpacity 
             style={[styles.navTabBtn, activeTab === 'list' && styles.navTabBtnActive]} 
@@ -893,7 +852,7 @@ export default function App() {
 
       </View>
 
-      {}
+      {/* FORM MODAL (EKLE / DÜZENLE) */}
       <Modal visible={isModalOpen} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <ScrollView contentContainerStyle={[styles.modalContent, { backgroundColor: theme.cardBg }]}>
@@ -1022,13 +981,12 @@ export default function App() {
                     style={[styles.categoryChip, { backgroundColor: theme.inputBg }, formPaymentMethod === method && styles.categoryChipActive]}
                     onPress={() => setFormPaymentMethod(method)}
                   >
-                    <Text style={[styles.categoryText, { color: theme.textSecondary }, formPaymentMethod === method && styles.categoryTextActive]}>💳 {method}</Text>
+                    <Text style={[styles.categoryText, { color: theme.textSecondary }, formPaymentMethod === method && styles.categoryChipActive]}>💳 {method}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
             </View>
 
-            {}
             <View style={{ marginBottom: 14 }}>
               <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Hatırlatıcı / Bildirim Zamanı:</Text>
               <TouchableOpacity 
@@ -1236,26 +1194,17 @@ const styles = StyleSheet.create({
   cancelText: { color: '#38bdf8', fontSize: 11, fontWeight: '600' },
   deleteBtn: { padding: 4, borderRadius: 6 },
 
-  calendarHeaderNav: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  calendarHeaderNav: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   calendarTitleText: { fontSize: 18, fontWeight: 'bold' },
   arrowBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
   arrowText: { color: '#38bdf8', fontSize: 14, fontWeight: 'bold' },
-  viewModeContainer: { flexDirection: 'row', gap: 8, marginBottom: 16 },
-  viewModeBtn: { flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
-  viewModeBtnActive: { backgroundColor: '#6366f1' },
-  viewModeText: { fontSize: 12 },
-  viewModeTextActive: { color: '#fff', fontWeight: 'bold' },
 
   calendarWrapper: { width: '100%' },
   weekHeaderRow: { flexDirection: 'row', marginBottom: 6 },
   weekHeaderCell: { width: '14.28%', alignItems: 'center' },
   weekHeaderText: { fontSize: 12, fontWeight: 'bold' },
 
-  dailyRow: { padding: 12, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1 },
-  dailyDayText: { fontSize: 12, width: 85, fontWeight: '600' },
-  brandBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
-  brandBadgeText: { color: '#ffffff', fontSize: 11, fontWeight: 'bold' },
-  monthTotalFooterCard: { borderWidth: 1, padding: 16, borderRadius: 12, marginTop: 12, alignItems: 'center' },
+  monthTotalFooterCard: { borderWidth: 1, padding: 16, borderRadius: 12, marginTop: 16, alignItems: 'center' },
 
   calendarGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   calendarDayBox: { width: '14.28%', minHeight: 82, borderRadius: 8, padding: 4, borderWidth: 1, marginBottom: 4 },
