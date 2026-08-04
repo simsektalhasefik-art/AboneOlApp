@@ -409,6 +409,7 @@ const FONT_SCALE_OPTIONS = [
     scale: 1.24
   }
 ];
+
 const getDaysInMonth = (
   month,
   year
@@ -695,16 +696,15 @@ const getSubscriptionCostForMonth = (
       : 0
   );
 };
-
 export default function App() {
   const { width } =
     useWindowDimensions();
 
-  const isDesktop =
-    width >= 900;
+const isDesktop =
+  width >= 900;
 
-  const isMobile =
-    width < 768;
+ const isMobile =
+  width < 768;
 
   /*
     Ana sayfanın kaydırma alanı.
@@ -814,14 +814,13 @@ export default function App() {
     isSubscriptionModalOpen,
     setIsSubscriptionModalOpen
   ] = useState(false);
-
-  const [
-    duplicateWarning,
-    setDuplicateWarning
-  ] = useState({
-    visible: false,
-    name: ''
-  });
+const [
+  duplicateWarning,
+  setDuplicateWarning
+] = useState({
+  visible: false,
+  name: ''
+});
 
   const [
     editingId,
@@ -970,7 +969,8 @@ export default function App() {
     newPaymentMethodName,
     setNewPaymentMethodName
   ] = useState('');
-    /* ---------------------------------------------------------------------- */
+
+  /* ---------------------------------------------------------------------- */
   /*                         LOCALSTORAGE YÜKLEME                            */
   /* ---------------------------------------------------------------------- */
 
@@ -1135,105 +1135,99 @@ export default function App() {
     subscriptions,
     isLoaded
   ]);
-
-  /* ---------------------------------------------------------------------- */
-  /*                         GÜNCEL DÖVİZ KURLARI                            */
-  /* ---------------------------------------------------------------------- */
-
   useEffect(() => {
-    let isMounted = true;
+  let isMounted = true;
 
-    const fetchExchangeRates =
-      async () => {
-        try {
-          const [
-            usdResponse,
-            eurResponse
-          ] = await Promise.all([
-            fetch(
-              'https://api.frankfurter.dev/v2/rate/USD/TRY?providers=TCMB'
-            ),
-            fetch(
-              'https://api.frankfurter.dev/v2/rate/EUR/TRY?providers=TCMB'
-            )
-          ]);
+  const fetchExchangeRates =
+    async () => {
+      try {
+        const [
+          usdResponse,
+          eurResponse
+        ] = await Promise.all([
+          fetch(
+            'https://api.frankfurter.dev/v2/rate/USD/TRY?providers=TCMB'
+          ),
+          fetch(
+            'https://api.frankfurter.dev/v2/rate/EUR/TRY?providers=TCMB'
+          )
+        ]);
 
-          if (
-            !usdResponse.ok ||
-            !eurResponse.ok
-          ) {
-            throw new Error(
-              'Kur servisi yanıt vermedi.'
-            );
-          }
+        if (
+          !usdResponse.ok ||
+          !eurResponse.ok
+        ) {
+          throw new Error(
+            'Kur servisi yanıt vermedi.'
+          );
+        }
 
-          const usdData =
-            await usdResponse.json();
+        const usdData =
+          await usdResponse.json();
 
-          const eurData =
-            await eurResponse.json();
+        const eurData =
+          await eurResponse.json();
 
-          if (!isMounted) {
-            return;
-          }
+        if (!isMounted) {
+          return;
+        }
 
-          const usdRate =
-            Number(
-              usdData?.rate
-            );
-
-          const eurRate =
-            Number(
-              eurData?.rate
-            );
-
-          if (
-            !Number.isFinite(
-              usdRate
-            ) ||
-            !Number.isFinite(
-              eurRate
-            )
-          ) {
-            throw new Error(
-              'Kur değerleri geçersiz.'
-            );
-          }
-
-          setExchangeRates({
-            USD: usdRate,
-            EUR: eurRate
-          });
-        } catch (error) {
-          console.log(
-            'Güncel döviz kurları alınamadı:',
-            error
+        const usdRate =
+          Number(
+            usdData?.rate
           );
 
-          /*
-            API çalışmazsa localStorage'daki
-            veya varsayılan kur değerleri kullanılmaya
-            devam eder.
-          */
+        const eurRate =
+          Number(
+            eurData?.rate
+          );
+
+        if (
+          !Number.isFinite(
+            usdRate
+          ) ||
+          !Number.isFinite(
+            eurRate
+          )
+        ) {
+          throw new Error(
+            'Kur değerleri geçersiz.'
+          );
         }
-      };
 
-    fetchExchangeRates();
+        setExchangeRates({
+          USD: usdRate,
+          EUR: eurRate
+        });
+      } catch (error) {
+        console.log(
+          'Güncel döviz kurları alınamadı:',
+          error
+        );
 
-    const intervalId =
-      setInterval(
-        fetchExchangeRates,
-        6 * 60 * 60 * 1000
-      );
-
-    return () => {
-      isMounted = false;
-
-      clearInterval(
-        intervalId
-      );
+        /*
+          API çalışmazsa mevcut veya localStorage'dan
+          yüklenen kur değerleri kullanılmaya devam eder.
+        */
+      }
     };
-  }, []);
+
+  fetchExchangeRates();
+
+  const intervalId =
+    setInterval(
+      fetchExchangeRates,
+      6 * 60 * 60 * 1000
+    );
+
+  return () => {
+    isMounted = false;
+
+    clearInterval(
+      intervalId
+    );
+  };
+}, []);
 
   useEffect(() => {
     if (!isLoaded) {
@@ -1333,9 +1327,8 @@ export default function App() {
     Sadece sekme veya analiz yılı değiştiğinde
     sayfa en üste alınır.
 
-    Abonelik ekleme veya düzenleme subscriptions
-    değerini değiştirdiğinde sayfa otomatik olarak
-    en üste çıkmaz.
+    Abonelik ekleme/düzenleme subscriptions değerini
+    değiştirdiğinde sayfa artık otomatik yukarı çıkmaz.
   */
   useEffect(() => {
     scrollMainToTop(false);
@@ -1380,7 +1373,7 @@ export default function App() {
     activeButtonSoft:
       '#7772ff26'
   };
-
+  
   const safeList =
     Array.isArray(
       subscriptions
@@ -1482,7 +1475,7 @@ export default function App() {
                 nextRenewal -
                 todayStart
               ) /
-              86400000
+                86400000
             );
 
           return (
@@ -1559,7 +1552,8 @@ export default function App() {
         viewFilter
     )?.label ||
     'Tüm Abonelikler';
-    /* ---------------------------------------------------------------------- */
+
+  /* ---------------------------------------------------------------------- */
   /*                         ÖZET HESAPLAMALARI                              */
   /* ---------------------------------------------------------------------- */
 
@@ -1608,7 +1602,6 @@ export default function App() {
 
   const yearlyProjectionTL =
     monthlyTotalTL * 12;
-
   /* ---------------------------------------------------------------------- */
   /*                         ANALİZ HESAPLAMALARI                            */
   /* ---------------------------------------------------------------------- */
@@ -2311,7 +2304,8 @@ export default function App() {
             subscription.id ===
             editingId
         );
-         const payload = {
+
+      const payload = {
         ...existingSubscription,
 
         id:
@@ -2570,8 +2564,7 @@ export default function App() {
         )
       );
     };
-
-  /* ---------------------------------------------------------------------- */
+   /* ---------------------------------------------------------------------- */
   /*                         ÖDEME YÖNTEMLERİ                                */
   /* ---------------------------------------------------------------------- */
 
@@ -2671,7 +2664,7 @@ export default function App() {
     };
 
   /* ---------------------------------------------------------------------- */
-  /*                         CSV VE JSON İŞLEMLERİ                           */
+  /*                         CSV VE JSON İŞLEMLERİ                            */
   /* ---------------------------------------------------------------------- */
 
   const handleExportCSV = () => {
@@ -2856,7 +2849,8 @@ export default function App() {
             JSON.parse(
               fileText
             );
-                   const importedSubscriptions =
+
+          const importedSubscriptions =
             Array.isArray(
               parsedBackup
             )
@@ -3287,11 +3281,11 @@ export default function App() {
           </View>
         )}
 
-        <View
-          style={
-            styles.contentWrapper
-          }
-        >
+       <View
+  style={
+    styles.contentWrapper
+  }
+>
           <View
             style={[
               styles.header,
@@ -3304,43 +3298,43 @@ export default function App() {
               }
             ]}
           >
-            <View
-              style={
-                styles.pageHeaderInfo
-              }
-            >
-              <Text
-                style={[
-                  styles.pageHeaderTitle,
-                  {
-                    color:
-                      theme.textPrimary
-                  }
-                ]}
-              >
-                {activeTab === 'list'
-                  ? 'Abonelikler'
-                  : activeTab === 'calendar'
-                    ? 'Ödeme Takvimi'
-                    : 'Finansal Analiz'}
-              </Text>
+           <View
+  style={
+    styles.pageHeaderInfo
+  }
+>
+  <Text
+    style={[
+      styles.pageHeaderTitle,
+      {
+        color:
+          theme.textPrimary
+      }
+    ]}
+  >
+    {activeTab === 'list'
+      ? 'Abonelikler'
+      : activeTab === 'calendar'
+        ? 'Ödeme Takvimi'
+        : 'Finansal Analiz'}
+  </Text>
 
-              <Text
-                style={[
-                  styles.pageHeaderDescription,
-                  {
-                    color:
-                      theme.textSecondary
-                  }
-                ]}
-              >
-                {activeTab === 'list'
-                  ? 'Aboneliklerinizi ve düzenli ödemelerinizi yönetin.'
-                  : activeTab === 'calendar'
-                    ? 'Yaklaşan ödeme tarihlerini takvim üzerinden takip edin.'
-                    : 'Harcama eğilimlerinizi ve yıllık maliyetlerinizi inceleyin.'}
-              </Text>
-            </View>
+  <Text
+    style={[
+      styles.pageHeaderDescription,
+      {
+        color:
+          theme.textSecondary
+      }
+    ]}
+  >
+    {activeTab === 'list'
+      ? 'Aboneliklerinizi ve düzenli ödemelerinizi yönetin.'
+      : activeTab === 'calendar'
+        ? 'Yaklaşan ödeme tarihlerini takvim üzerinden takip edin.'
+        : 'Harcama eğilimlerinizi ve yıllık maliyetlerinizi inceleyin.'}
+  </Text>
+</View>
 
             <View
               style={
@@ -3395,151 +3389,149 @@ export default function App() {
           </View>
 
           <ScrollView
-            ref={
-              mainScrollRef
+  ref={
+    mainScrollRef
+  }
+  style={[
+    styles.mainScroll,
+    {
+      overflowAnchor: 'none',
+
+      scrollbarWidth:
+        'thin',
+
+      scrollbarColor:
+        `${theme.cardBorder} transparent`
+    }
+  ]}
+  contentContainerStyle={
+    styles.scrollContent
+  }
+  showsVerticalScrollIndicator={
+    true
+  }
+  scrollEventThrottle={16}
+  onScroll={event => {
+    mainScrollPositionRef.current =
+      event.nativeEvent.contentOffset.y;
+  }}
+>
+           {activeTab !==
+  'analytics' && (
+  <View
+    style={[
+      styles.currencyBar,
+      {
+        backgroundColor:
+          theme.cardBg,
+
+        borderColor:
+          theme.cardBorder
+      }
+    ]}
+  >
+    <View
+      style={
+        styles.currencyBarLeft
+      }
+    >
+      <View
+        style={[
+          styles.currencyIconBox,
+          {
+            backgroundColor:
+              theme.activeButtonSoft,
+
+            borderColor:
+              theme.activeButtonBorder
+          }
+        ]}
+      >
+        <Text
+          style={
+            styles.currencyBarIcon
+          }
+        >
+          💱
+        </Text>
+      </View>
+
+      <Text
+        style={[
+          styles.currencyBarTitle,
+          {
+            color:
+              theme.textPrimary
+          }
+        ]}
+      >
+        Döviz Kurları
+      </Text>
+    </View>
+
+    <View
+      style={
+        styles.currencyBadgeGroup
+      }
+    >
+      <View
+        style={[
+          styles.currencyBadge,
+          {
+            backgroundColor:
+              theme.activeButtonSoft,
+
+            borderColor:
+              theme.activeButtonBorder
+          }
+        ]}
+      >
+        <Text
+          style={[
+            styles.currencyBadgeText,
+            {
+              color:
+                theme.accent
             }
-            style={[
-              styles.mainScroll,
-              {
-                overflowAnchor:
-                  'none',
+          ]}
+        >
+          USD:{' '}
+          {Number(
+            exchangeRates.USD
+          ).toFixed(2)} ₺
+        </Text>
+      </View>
 
-                scrollbarWidth:
-                  'thin',
+      <View
+        style={[
+          styles.currencyBadge,
+          {
+            backgroundColor:
+              theme.activeButtonSoft,
 
-                scrollbarColor:
-                  `${theme.cardBorder} transparent`
-              }
-            ]}
-            contentContainerStyle={
-              styles.scrollContent
+            borderColor:
+              theme.activeButtonBorder
+          }
+        ]}
+      >
+        <Text
+          style={[
+            styles.currencyBadgeText,
+            {
+              color:
+                theme.accent
             }
-            showsVerticalScrollIndicator={
-              true
-            }
-            scrollEventThrottle={16}
-            onScroll={event => {
-              mainScrollPositionRef.current =
-                event.nativeEvent
-                  .contentOffset.y;
-            }}
-          >
-            {activeTab !==
-              'analytics' && (
-              <View
-                style={[
-                  styles.currencyBar,
-                  {
-                    backgroundColor:
-                      theme.cardBg,
-
-                    borderColor:
-                      theme.cardBorder
-                  }
-                ]}
-              >
-                <View
-                  style={
-                    styles.currencyBarLeft
-                  }
-                >
-                  <View
-                    style={[
-                      styles.currencyIconBox,
-                      {
-                        backgroundColor:
-                          theme.activeButtonSoft,
-
-                        borderColor:
-                          theme.activeButtonBorder
-                      }
-                    ]}
-                  >
-                    <Text
-                      style={
-                        styles.currencyBarIcon
-                      }
-                    >
-                      💱
-                    </Text>
-                  </View>
-
-                  <Text
-                    style={[
-                      styles.currencyBarTitle,
-                      {
-                        color:
-                          theme.textPrimary
-                      }
-                    ]}
-                  >
-                    Döviz Kurları
-                  </Text>
-                </View>
-
-                <View
-                  style={
-                    styles.currencyBadgeGroup
-                  }
-                >
-                  <View
-                    style={[
-                      styles.currencyBadge,
-                      {
-                        backgroundColor:
-                          theme.activeButtonSoft,
-
-                        borderColor:
-                          theme.activeButtonBorder
-                      }
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.currencyBadgeText,
-                        {
-                          color:
-                            theme.accent
-                        }
-                      ]}
-                    >
-                      USD:{' '}
-                      {Number(
-                        exchangeRates.USD
-                      ).toFixed(2)} ₺
-                    </Text>
-                  </View>
-
-                  <View
-                    style={[
-                      styles.currencyBadge,
-                      {
-                        backgroundColor:
-                          theme.activeButtonSoft,
-
-                        borderColor:
-                          theme.activeButtonBorder
-                      }
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.currencyBadgeText,
-                        {
-                          color:
-                            theme.accent
-                        }
-                      ]}
-                    >
-                      EUR:{' '}
-                      {Number(
-                        exchangeRates.EUR
-                      ).toFixed(2)} ₺
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            )}
+          ]}
+        >
+          EUR:{' '}
+          {Number(
+            exchangeRates.EUR
+          ).toFixed(2)} ₺
+        </Text>
+      </View>
+    </View>
+  </View>
+)}
 
             {activeTab ===
               'list' && (
@@ -3729,7 +3721,8 @@ export default function App() {
                       )
                     )}
                   </ScrollView>
-                </View> 
+                </View>
+
                 <View
                   style={
                     styles.sectionTitleRow
@@ -3758,8 +3751,7 @@ export default function App() {
                   >
                     {filteredSubscriptions.length} kayıt
                   </Text>
-                </View>
-
+                </View> 
                 {filteredSubscriptions.length ===
                 0 ? (
                   <View
@@ -5433,6 +5425,7 @@ export default function App() {
               </View>
             )}
           </ScrollView>
+
           {!isDesktop && (
             <View
               style={[
@@ -5601,25 +5594,21 @@ export default function App() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView
-              id="appearance-modal-scroll"
-              style={[
-                Platform.OS ===
-                  'web' && {
-                  scrollbarWidth:
-                    'thin',
-
-                  scrollbarColor:
-                    `${theme.cardBorder} ${theme.inputBg}`
-                }
-              ]}
-              showsVerticalScrollIndicator={
-                true
-              }
-              contentContainerStyle={{
-                paddingBottom: 8
-              }}
-            >
+       <ScrollView
+  id="appearance-modal-scroll"
+  style={[
+    Platform.OS === 'web' && {
+      scrollbarWidth: 'thin',
+      scrollbarColor: `${theme.cardBorder} ${theme.inputBg}`
+    }
+  ]}
+  showsVerticalScrollIndicator={
+    true
+  }
+  contentContainerStyle={{
+    paddingBottom: 8
+  }}
+>
               <Text
                 style={[
                   styles.appearanceSectionTitle,
@@ -5822,7 +5811,6 @@ export default function App() {
           </View>
         </View>
       </Modal>
-
       <Modal
         visible={
           isSubscriptionModalOpen
@@ -5917,27 +5905,22 @@ export default function App() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView
-              id="subscription-modal-scroll"
-              style={[
-                styles.subscriptionModalScroll,
-
-                Platform.OS ===
-                  'web' && {
-                  scrollbarWidth:
-                    'thin',
-
-                  scrollbarColor:
-                    `${theme.cardBorder} ${theme.inputBg}`
-                }
-              ]}
-              contentContainerStyle={
-                styles.subscriptionModalContent
-              }
-              showsVerticalScrollIndicator={
-                true
-              }
-            >
+           <ScrollView
+  id="subscription-modal-scroll"
+  style={[
+    styles.subscriptionModalScroll,
+    Platform.OS === 'web' && {
+      scrollbarWidth: 'thin',
+      scrollbarColor: `${theme.cardBorder} ${theme.inputBg}`
+    }
+  ]}
+  contentContainerStyle={
+    styles.subscriptionModalContent
+  }
+  showsVerticalScrollIndicator={
+    true
+  }
+>
               {!editingId && (
                 <View
                   style={
@@ -6057,9 +6040,7 @@ export default function App() {
                               style={
                                 styles.templateOptionText
                               }
-                              numberOfLines={
-                                1
-                              }
+                              numberOfLines={1}
                             >
                               {template.name}
                             </Text>
@@ -6087,6 +6068,7 @@ export default function App() {
                       )
                     )}
                   </ScrollView>
+
                   {showTemplateForm && (
                     <View
                       style={[
@@ -6899,7 +6881,7 @@ export default function App() {
                     styles.dateInputRow
                   }
                 >
-                             <View
+                  <View
                     style={
                       styles.dateInputField
                     }
@@ -7250,7 +7232,6 @@ export default function App() {
               {
                 backgroundColor:
                   theme.cardBg,
-
                 borderColor:
                   theme.cardBorder
               }
@@ -7262,7 +7243,6 @@ export default function App() {
                 {
                   backgroundColor:
                     theme.activeButtonSoft,
-
                   borderColor:
                     theme.activeButtonBorder
                 }
@@ -7342,7 +7322,6 @@ export default function App() {
     </SafeAreaView>
   );
 }
-
 function createStyles(
   theme,
   isMobile,
@@ -7354,30 +7333,398 @@ function createStyles(
     );
 
   return StyleSheet.create({
-    container: {
-      flex: 1,
-      width: '100%',
-      height: '100vh',
-      minHeight: 0,
-      overflow: 'hidden'
+container: {
+  flex: 1,
+  width: '100%',
+  height: '100vh',
+  minHeight: 0,
+  overflow: 'hidden'
+},
+
+   appWrapper: {
+  flex: 1,
+  width: '100%',
+  height: '100%',
+  minHeight: 0,
+  overflow: 'hidden'
+},
+   appWrapperDesktop: {
+  flexDirection: 'row',
+  width: '100%',
+  height: '100%',
+  minHeight: 0,
+  overflow: 'hidden'
+},
+    sidebarContainer: {
+      width: 250,
+      minWidth: 250,
+      flexShrink: 0,
+      padding: 20,
+      borderRightWidth: 1
     },
 
-    appWrapper: {
-      flex: 1,
-      width: '100%',
-      height: '100%',
-      minHeight: 0,
-      overflow: 'hidden'
-    },
-
-    appWrapperDesktop: {
+    sidebarHeader: {
       flexDirection: 'row',
-      width: '100%',
-      height: '100%',
-      minHeight: 0,
-      overflow: 'hidden'
+      alignItems: 'center',
+      gap: 6
     },
-      emptyDescription: {
+
+    headerTitle: {
+      fontSize: font(22),
+      fontWeight: 'bold'
+    },
+
+    headerSubtitle: {
+      fontSize: font(11),
+      marginTop: 3
+    },
+    pageHeaderInfo: {
+  flex: 1,
+  minWidth: 0,
+  paddingRight: 16
+},
+
+pageHeaderEyebrow: {
+  fontSize: font(9),
+  fontWeight: '800',
+  letterSpacing: 1.2,
+  marginBottom: 3
+},
+
+pageHeaderTitle: {
+  fontSize:
+    isMobile
+      ? font(18)
+      : font(22),
+  fontWeight: '700',
+  letterSpacing: -0.3
+},
+
+pageHeaderDescription: {
+  fontSize: font(11),
+  marginTop: 4,
+  lineHeight: font(16)
+},
+
+    proBadge: {
+      backgroundColor: '#6965e8',
+      borderRadius: 4,
+      paddingHorizontal: 6,
+      paddingVertical: 2
+    },
+
+    proBadgeText: {
+      color: '#ffffff',
+      fontSize: font(8),
+      fontWeight: 'bold'
+    },
+
+    sidebarNavGroup: {
+      marginTop: 28,
+      gap: 8
+    },
+
+    sidebarNavButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      borderRadius: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 11
+    },
+
+    sidebarNavButtonActive: {
+      backgroundColor:
+        theme.activeButtonSoft
+    },
+
+    sidebarNavIcon: {
+      fontSize: font(17)
+    },
+
+    sidebarNavText: {
+      fontSize: font(13),
+      fontWeight: 'bold'
+    },
+
+    sidebarFooter: {
+      marginTop: 'auto',
+      gap: 8
+    },
+
+    secondaryButton: {
+      borderWidth: 1,
+      borderRadius: 8,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      alignItems: 'center'
+    },
+
+    secondaryButtonText: {
+      fontSize: font(11),
+      fontWeight: 'bold'
+    },
+
+    primaryButton: {
+      backgroundColor:
+        theme.activeButton,
+      borderRadius: 8,
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+      alignItems: 'center',
+      justifyContent: 'center'
+    },
+
+    primaryButtonText: {
+      color: '#ffffff',
+      fontSize: font(12),
+      fontWeight: 'bold'
+    },
+
+contentWrapper: {
+  flex: 1,
+  minWidth: 0,
+  minHeight: 0,
+  height: '100%',
+  width: 'auto',
+  position: 'relative',
+  overflow: 'hidden'
+},
+
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent:
+        'space-between',
+        flexShrink: 0,
+      paddingHorizontal:
+        isMobile ? 14 : 20,
+      paddingTop: 18,
+      paddingBottom: 14,
+      borderBottomWidth: 1
+    },
+
+    headerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8
+    },
+
+    iconButton: {
+      width: 38,
+      height: 38,
+      borderRadius: 10,
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center'
+    },
+
+    iconButtonText: {
+      fontSize: font(17)
+    },
+
+mainScroll: {
+  flex: 1,
+  minHeight: 0,
+  width: '100%'
+},
+
+   scrollContent: {
+  width: '100%',
+  flexGrow: 1,
+  paddingHorizontal:
+    isMobile ? 12 : 20,
+  paddingTop: 14,
+  paddingBottom:
+    isMobile ? 100 : 30
+},
+
+   currencyBar: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent:
+    'space-between',
+  flexWrap: 'wrap',
+  gap: 10,
+  borderWidth: 1,
+  borderRadius: 12,
+  paddingHorizontal: 14,
+  paddingVertical: 11,
+  marginBottom: 12
+},
+
+currencyBarLeft: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 9
+},
+
+currencyIconBox: {
+  width: 32,
+  height: 32,
+  borderWidth: 1,
+  borderRadius: 9,
+  alignItems: 'center',
+  justifyContent: 'center'
+},
+
+currencyBarIcon: {
+  fontSize: font(17)
+},
+
+currencyBarTitle: {
+  fontSize: font(12),
+  fontWeight: 'bold'
+},
+
+currencyBadgeGroup: {
+  flexDirection: 'row',
+  flexWrap: 'wrap',
+  gap: 8
+},
+
+currencyBadge: {
+  borderWidth: 1,
+  borderRadius: 8,
+  paddingHorizontal: 10,
+  paddingVertical: 6
+},
+
+currencyBadgeText: {
+  fontSize: font(11),
+  fontWeight: 'bold'
+},
+    summaryCard: {
+      borderRadius: 14,
+      borderWidth: 1,
+      padding: 16,
+      marginBottom: 14
+    },
+
+    summaryLabel: {
+      color: '#ffffff',
+      fontSize: font(11),
+      fontWeight: 'bold'
+    },
+
+    summaryValue: {
+      color: '#ffffff',
+      fontSize: font(27),
+      fontWeight: 'bold',
+      marginVertical: 5
+    },
+
+    summaryStatsRow: {
+      flexDirection: 'row',
+      gap: 10,
+      marginTop: 8
+    },
+
+    summaryStatBox: {
+      flex: 1,
+      backgroundColor:
+        'rgba(255,255,255,0.15)',
+      borderRadius: 8,
+      padding: 9
+    },
+
+    summaryStatLabel: {
+      color: '#ffffff',
+      fontSize: font(10),
+      opacity: 0.9
+    },
+
+    summaryStatValue: {
+      color: '#ffffff',
+      fontSize: font(12),
+      fontWeight: 'bold',
+      marginTop: 3
+    },
+
+    searchInput: {
+      borderWidth: 1,
+      borderRadius: 9,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: font(12),
+      marginBottom: 12
+    },
+
+    singleFilterSection: {
+      marginBottom: 14
+    },
+
+    sectionLabel: {
+      fontSize: font(12),
+      fontWeight: 'bold',
+      marginBottom: 7
+    },
+
+    horizontalOptionRow: {
+      flexDirection: 'row',
+      gap: 7,
+      paddingRight: 10
+    },
+
+    filterOption: {
+      borderWidth: 1,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 8
+    },
+
+    filterOptionActive: {
+      backgroundColor:
+        theme.activeButton,
+      borderColor:
+        theme.activeButtonBorder
+    },
+
+    filterOptionText: {
+      fontSize: font(11),
+      fontWeight: '600'
+    },
+
+    filterOptionTextActive: {
+      color: '#ffffff',
+      fontWeight: 'bold'
+    },
+
+    sectionTitleRow: {
+      flexDirection: 'row',
+      justifyContent:
+        'space-between',
+      alignItems: 'center',
+      marginBottom: 9
+    },
+
+    sectionTitle: {
+      fontSize: font(14),
+      fontWeight: 'bold'
+    },
+
+    resultCount: {
+      fontSize: font(11)
+    },
+
+    emptyCard: {
+      borderWidth: 1,
+      borderRadius: 12,
+      padding: 22,
+      alignItems: 'center'
+    },
+
+    emptyIcon: {
+      fontSize: font(30)
+    },
+
+    emptyTitle: {
+      fontSize: font(15),
+      fontWeight: 'bold',
+      marginTop: 8
+    },
+
+    emptyDescription: {
       fontSize: font(11),
       textAlign: 'center',
       marginTop: 5
@@ -7923,19 +8270,19 @@ function createStyles(
       borderRadius: 3
     },
 
-    bottomNavigation: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      bottom: 0,
-      height: 64,
-      flexDirection: 'row',
-      justifyContent: 'space-around',
-      alignItems: 'center',
-      borderTopWidth: 1,
-      zIndex: 999,
-      elevation: 20
-    },
+  bottomNavigation: {
+  position: 'absolute',
+  left: 0,
+  right: 0,
+  bottom: 0,
+  height: 64,
+  flexDirection: 'row',
+  justifyContent: 'space-around',
+  alignItems: 'center',
+  borderTopWidth: 1,
+  zIndex: 999,
+  elevation: 20
+},
 
     bottomNavigationItem: {
       alignItems: 'center'
@@ -7959,6 +8306,87 @@ function createStyles(
       alignItems: 'center',
       padding:
         isMobile ? 8 : 18
+    },
+
+    warningOverlay: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor:
+        'rgba(0,0,0,0.62)',
+      paddingHorizontal: 20
+    },
+
+    warningCard: {
+      width: '100%',
+      maxWidth: 390,
+      borderWidth: 1,
+      borderRadius: 22,
+      paddingHorizontal: 24,
+      paddingTop: 26,
+      paddingBottom: 22,
+      alignItems: 'center',
+      shadowColor: '#000000',
+      shadowOffset: {
+        width: 0,
+        height: 12
+      },
+      shadowOpacity: 0.35,
+      shadowRadius: 24,
+      elevation: 20
+    },
+
+    warningIconBox: {
+      width: 58,
+      height: 58,
+      borderRadius: 18,
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 16
+    },
+
+    warningIcon: {
+      fontSize: font(28)
+    },
+
+    warningTitle: {
+      fontSize: font(19),
+      fontWeight: '800',
+      letterSpacing: -0.2,
+      marginBottom: 8
+    },
+
+    warningMessage: {
+      fontSize: font(13),
+      fontWeight: '600',
+      lineHeight: font(19),
+      textAlign: 'center'
+    },
+
+    warningHint: {
+      fontSize: font(11),
+      lineHeight: font(17),
+      textAlign: 'center',
+      marginTop: 8,
+      marginBottom: 20
+    },
+
+    warningButton: {
+      minWidth: 130,
+      minHeight: 44,
+      borderRadius: 12,
+      paddingHorizontal: 24,
+      backgroundColor:
+        theme.activeButton,
+      alignItems: 'center',
+      justifyContent: 'center'
+    },
+
+    warningButtonText: {
+      color: '#ffffff',
+      fontSize: font(13),
+      fontWeight: '800'
     },
 
     appearanceModal: {
@@ -8374,7 +8802,8 @@ function createStyles(
       color: '#ffffff',
       fontWeight: 'bold'
     },
-     periodOptionRow: {
+
+    periodOptionRow: {
       flexDirection: 'row',
       gap: 8
     },
@@ -8472,77 +8901,6 @@ function createStyles(
       color: '#ffffff',
       fontSize: font(12),
       fontWeight: 'bold'
-    },
-
-    warningOverlay: {
-      flex: 1,
-      backgroundColor:
-        'rgba(15,23,42,0.72)',
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: 20
-    },
-
-    warningCard: {
-      width: '100%',
-      maxWidth: 420,
-      borderWidth: 1,
-      borderRadius: 18,
-      paddingHorizontal: 24,
-      paddingVertical: 26,
-      alignItems: 'center'
-    },
-
-    warningIconBox: {
-      width: 58,
-      height: 58,
-      borderWidth: 1,
-      borderRadius: 29,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: 15
-    },
-
-    warningIcon: {
-      fontSize: font(27)
-    },
-
-    warningTitle: {
-      fontSize: font(19),
-      fontWeight: 'bold',
-      textAlign: 'center'
-    },
-
-    warningMessage: {
-      fontSize: font(13),
-      fontWeight: '600',
-      lineHeight: font(20),
-      textAlign: 'center',
-      marginTop: 10
-    },
-
-    warningHint: {
-      fontSize: font(11),
-      lineHeight: font(17),
-      textAlign: 'center',
-      marginTop: 8
-    },
-
-    warningButton: {
-      width: '100%',
-      minHeight: 42,
-      backgroundColor:
-        theme.activeButton,
-      borderRadius: 9,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginTop: 20
-    },
-
-    warningButtonText: {
-      color: '#ffffff',
-      fontSize: font(12),
-      fontWeight: 'bold'
     }
   });
-}   
+}
