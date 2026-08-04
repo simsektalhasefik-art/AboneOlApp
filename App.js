@@ -23,20 +23,30 @@ const CURRENCY_SYMBOLS = {
   EUR: '€'
 };
 
-// Varsayılan Döviz Kurları (TL karşılığı)
+// Güncellenmiş Döviz Kurları (TL karşılığı)
 const DEFAULT_RATES = {
   TRY: 1,
-  USD: 33.50,
-  EUR: 36.50
+  USD: 36.40,
+  EUR: 39.80
 };
 
-const DEFAULT_SUBSCRIPTIONS = [
-  { id: '1', name: 'Netflix', price: 345, currency: 'TRY', category: 'Eğlence', paymentMethod: 'Garanti Bonus', billingDay: 7, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://www.netflix.com/youraccount', color: '#E50914' },
-  { id: '2', name: 'YouTube Premium', price: 79, currency: 'TRY', category: 'Eğlence', paymentMethod: 'Enpara', billingDay: 15, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://www.youtube.com/paid_memberships', color: '#FF0000' },
-  { id: '3', name: 'ChatGPT Plus', price: 20, currency: 'USD', category: 'Yazılım & AI', paymentMethod: 'Papara', billingDay: 12, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://chatgpt.com/#settings', color: '#10A37F' }
+const NOTIFICATION_OPTIONS = [
+  { label: '🚫 Bildirim Yok', value: -1 },
+  { label: '⚡ Ödeme Günü (Aynı Gün)', value: 0 },
+  { label: '🔔 1 Gün Önce', value: 1 },
+  { label: '🔔 2 Gün Önce', value: 2 },
+  { label: '🔔 3 Gün Önce', value: 3 },
+  { label: '🔔 5 Gün Önce', value: 5 },
+  { label: '🔔 7 Gün (1 Hafta) Önce', value: 7 },
 ];
 
-const POPULAR_SERVICES = [
+const DEFAULT_SUBSCRIPTIONS = [
+  { id: '1', name: 'Netflix', price: 345, currency: 'TRY', category: 'Eğlence', paymentMethod: 'Garanti Bonus', billingDay: 7, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://www.netflix.com/youraccount', color: '#E50914', notificationDays: 2 },
+  { id: '2', name: 'YouTube Premium', price: 79, currency: 'TRY', category: 'Eğlence', paymentMethod: 'Enpara', billingDay: 15, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://www.youtube.com/paid_memberships', color: '#FF0000', notificationDays: 1 },
+  { id: '3', name: 'ChatGPT Plus', price: 20, currency: 'USD', category: 'Yazılım & AI', paymentMethod: 'Papara', billingDay: 12, billingMonth: 8, billingYear: 2026, period: 'monthly', cancelUrl: 'https://chatgpt.com/#settings', color: '#10A37F', notificationDays: 3 }
+];
+
+const DEFAULT_POPULAR_SERVICES = [
   { name: 'Netflix', price: 345, currency: 'TRY', category: 'Eğlence', color: '#E50914', cancelUrl: 'https://www.netflix.com/youraccount' },
   { name: 'Exxen', price: 160, currency: 'TRY', category: 'Eğlence', color: '#FACC15', cancelUrl: 'https://www.exxen.com/tr/account' },
   { name: 'YouTube Premium', price: 79, currency: 'TRY', category: 'Eğlence', color: '#FF0000', cancelUrl: 'https://www.youtube.com/paid_memberships' },
@@ -98,10 +108,20 @@ export default function App() {
   const [exchangeRates, setExchangeRates] = useState(DEFAULT_RATES);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  // Kullanıcı tarafından eklenebilen liste durumları
+  const [paymentMethodsList, setPaymentMethodsList] = useState(PAYMENT_METHODS);
+  const [popularServicesList, setPopularServicesList] = useState(DEFAULT_POPULAR_SERVICES);
+  const [isAddingNewPaymentMethod, setIsAddingNewPaymentMethod] = useState(false);
+  const [newCustomPaymentMethod, setNewCustomPaymentMethod] = useState('');
+  const [isAddingNewService, setIsAddingNewService] = useState(false);
+  const [newCustomServiceName, setNewCustomServiceName] = useState('');
+  const [newCustomServicePrice, setNewCustomServicePrice] = useState('');
+
   const [activeTab, setActiveTab] = useState('list'); 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [duplicateWarning, setDuplicateWarning] = useState('');
+  const [isNotificationDropdownOpen, setIsNotificationDropdownOpen] = useState(false);
 
   const [calMonth, setCalMonth] = useState(7); // Ağustos (0-indexed 7)
   const [calYear, setCalYear] = useState(2026);
@@ -123,6 +143,30 @@ export default function App() {
   const [formPeriod, setFormPeriod] = useState('monthly');
   const [formCancelUrl, setFormCancelUrl] = useState('');
   const [formColor, setFormColor] = useState('#6366F1');
+  const [formNotificationDays, setFormNotificationDays] = useState(2); // Varsayılan: 2 Gün Önce
+
+  // Canlı Döviz Kuru Çekme
+  useEffect(() => {
+    const fetchRates = async () => {
+      try {
+        const response = await fetch('https://open.er-api.com/v6/latest/USD');
+        const data = await response.json();
+        if (data && data.rates && data.rates.TRY) {
+          const usdTry = data.rates.TRY;
+          const eurTry = data.rates.TRY / (data.rates.EUR || 0.92);
+          setExchangeRates({
+            TRY: 1,
+            USD: Number(usdTry.toFixed(2)),
+            EUR: Number(eurTry.toFixed(2))
+          });
+        }
+      } catch (e) {
+        console.log('Canlı kur çekilemedi, varsayılan kurlar kullanılıyor:', e);
+      }
+    };
+
+    fetchRates();
+  }, []);
 
   useEffect(() => {
     const loadStoredData = async () => {
@@ -230,12 +274,14 @@ export default function App() {
 
   const currentCalMonthTotalTL = calculateMonthTotalTL(calMonth, calYear);
 
-  // Yaklaşan Ödemeler (Önümüzdeki 5 gün içindeki ödemeler)
+  // Yaklaşan Ödemeler (Her aboneliğin kendi bildirim gününe göre hesaplama)
   const getUpcomingPayments = () => {
     const todayDay = 8; // Örnek referans gün
     return safeList.filter(s => {
+      const notifDays = s.notificationDays !== undefined ? s.notificationDays : 2;
+      if (notifDays === -1) return false; // Bildirim yok
       const dayDiff = Number(s.billingDay) - todayDay;
-      return dayDiff >= 0 && dayDiff <= 5;
+      return dayDiff >= 0 && dayDiff <= notifDays;
     });
   };
 
@@ -304,6 +350,10 @@ export default function App() {
 
   const openForm = (item = null) => {
     setDuplicateWarning('');
+    setIsNotificationDropdownOpen(false);
+    setIsAddingNewPaymentMethod(false);
+    setIsAddingNewService(false);
+
     if (item) {
       setEditingId(item.id);
       setFormName(item.name || '');
@@ -317,6 +367,7 @@ export default function App() {
       setFormPeriod(item.period || 'monthly');
       setFormCancelUrl(item.cancelUrl || '');
       setFormColor(item.color || getServiceColor(item.name));
+      setFormNotificationDays(item.notificationDays !== undefined ? item.notificationDays : 2);
     } else {
       setEditingId(null);
       setFormName('');
@@ -330,17 +381,48 @@ export default function App() {
       setFormPeriod('monthly');
       setFormCancelUrl('');
       setFormColor('#6366F1');
+      setFormNotificationDays(2);
     }
     setIsModalOpen(true);
+  };
+
+  const handleAddCustomPaymentMethod = () => {
+    if (!newCustomPaymentMethod.trim()) return;
+    const addedName = newCustomPaymentMethod.trim();
+    if (!paymentMethodsList.includes(addedName)) {
+      setPaymentMethodsList([...paymentMethodsList, addedName]);
+    }
+    setFormPaymentMethod(addedName);
+    setNewCustomPaymentMethod('');
+    setIsAddingNewPaymentMethod(false);
+  };
+
+  const handleAddCustomService = () => {
+    if (!newCustomServiceName.trim()) return;
+    const name = newCustomServiceName.trim();
+    const price = Number(newCustomServicePrice) || 0;
+    const newService = {
+      name,
+      price,
+      currency: 'TRY',
+      category: 'Diğer',
+      color: getServiceColor(name),
+      cancelUrl: ''
+    };
+    setPopularServicesList([...popularServicesList, newService]);
+    selectPopularService(newService);
+    setNewCustomServiceName('');
+    setNewCustomServicePrice('');
+    setIsAddingNewService(false);
   };
 
   const selectPopularService = (service) => {
     setFormName(service.name);
     setFormPrice(String(service.price));
     setFormCurrency(service.currency || 'TRY');
-    setFormCategory(service.category);
-    setFormCancelUrl(service.cancelUrl);
-    setFormColor(service.color);
+    setFormCategory(service.category || 'Eğlence');
+    setFormCancelUrl(service.cancelUrl || '');
+    setFormColor(service.color || getServiceColor(service.name));
     checkDuplicate(service.name);
   };
 
@@ -379,6 +461,7 @@ export default function App() {
       category: formCategory,
       paymentMethod: formPaymentMethod,
       period: formPeriod,
+      notificationDays: formNotificationDays,
       cancelUrl: formCancelUrl || `https://www.google.com/search?q=${formName}+iptal+et`,
       color: formColor || getServiceColor(formName),
     };
@@ -389,18 +472,6 @@ export default function App() {
       setSubscriptions([...safeList, { ...subData, id: Date.now().toString() }]);
     }
     setIsModalOpen(false);
-  };
-
-  const handleDelete = (id) => {
-    setSubscriptions(safeList.filter(s => s.id !== id));
-  };
-
-  const isSubActiveOnDay = (sub, day) => {
-    if (sub.period === 'monthly') {
-      return Number(sub.billingDay) === day;
-    } else {
-      return Number(sub.billingDay) === day && (Number(sub.billingMonth) === (calMonth + 1)) && (Number(sub.billingYear) === calYear);
-    }
   };
 
   return (
@@ -423,7 +494,6 @@ export default function App() {
           </View>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            {/* Bildirim Aktifleştirme Butonu */}
             <TouchableOpacity 
               style={[
                 styles.iconBtn, 
@@ -452,7 +522,7 @@ export default function App() {
 
           {/* DÖVİZ KURLARI BİLGİ BARI */}
           <View style={[styles.currencyBar, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-            <Text style={[styles.currencyBarTitle, { color: theme.textSecondary }]}>Güncel Canlı Kurlar:</Text>
+            <Text style={[styles.currencyBarTitle, { color: theme.textSecondary }]}>Güncel Canlı Kurlar (TL):</Text>
             <View style={styles.currencyBadgeGroup}>
               <View style={styles.currencyBadge}>
                 <Text style={styles.currencyBadgeText}>USD: {exchangeRates.USD} ₺</Text>
@@ -469,16 +539,19 @@ export default function App() {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Text style={{ fontSize: 20 }}>⏰</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: '#f59e0b', fontWeight: 'bold', fontSize: 13 }}>Yaklaşan Ödemeleriniz Var!</Text>
+                  <Text style={{ color: '#f59e0b', fontWeight: 'bold', fontSize: 13 }}>Hatırlatma: Yaklaşan Ödemeleriniz Var!</Text>
                   <Text style={{ color: theme.textSecondary, fontSize: 12 }}>
-                    {upcomingPayments.map(p => `${p.name} (${p.billingDay} Ağs)`).join(', ')} için son gün yaklaşıyor.
+                    {upcomingPayments.map(p => {
+                      const notifText = p.notificationDays === 0 ? 'Bugün' : `${p.notificationDays || 2} gün içinde`;
+                      return `${p.name} (${p.billingDay} Ağs - ${notifText})`;
+                    }).join(', ')} için son ödeme yaklaşıyor.
                   </Text>
                 </View>
               </View>
             </View>
           )}
-          
-          {/* TAB 1: ABONELİKLER LİSTESİ */}
+
+          {/* ... existing code tabs ... */}
           {activeTab === 'list' && (
             <>
               {/* ÖZET KARTI */}
@@ -509,6 +582,7 @@ export default function App() {
                   const isYearly = item.period === 'yearly';
                   const serviceColor = item.color || getServiceColor(item.name);
                   const priceInTL = convertToTL(item.price, item.currency || 'TRY');
+                  const notifOpt = NOTIFICATION_OPTIONS.find(o => o.value === item.notificationDays) || NOTIFICATION_OPTIONS[2];
 
                   return (
                     <View key={item.id} style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
@@ -517,13 +591,16 @@ export default function App() {
                           <Text style={styles.brandIconText}>{item.name ? item.name.charAt(0).toUpperCase() : 'C'}</Text>
                         </View>
                         <View>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                             <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>{item.name}</Text>
                             {item.paymentMethod && (
                               <View style={[styles.cardTag, { backgroundColor: theme.inputBg }]}>
                                 <Text style={[styles.cardTagText, { color: theme.textSecondary }]}>💳 {item.paymentMethod}</Text>
                               </View>
                             )}
+                            <View style={[styles.cardTag, { backgroundColor: theme.inputBg }]}>
+                              <Text style={[styles.cardTagText, { color: theme.accent }]}>{notifOpt.label}</Text>
+                            </View>
                           </View>
                           <Text style={[styles.cardSubtitle, { color: theme.textSecondary }]}>
                             {item.category} • {isYearly ? `${item.billingDay}/${item.billingMonth}/${item.billingYear}` : `Her ayın ${item.billingDay}. günü`}
@@ -559,8 +636,8 @@ export default function App() {
             </>
           )}
 
-          {/* TAB 2: GERÇEK TAKVİM MİMARİSİ (PZT-PAZ) */}
           {activeTab === 'calendar' && (
+            /* ... existing calendar content ... */
             <View style={{ marginTop: 10 }}>
               <View style={styles.calendarHeaderNav}>
                 <TouchableOpacity style={[styles.arrowBtn, { backgroundColor: theme.cardBg }]} onPress={handlePrevMonth}>
@@ -617,7 +694,6 @@ export default function App() {
 
               {calendarViewMode === 'monthly' && (
                 <View style={styles.calendarWrapper}>
-                  {/* HAFTANIN GÜNLERİ BAŞLIKLARI (PZT-PAZ) */}
                   <View style={styles.weekHeaderRow}>
                     {WEEK_DAYS.map(wd => (
                       <View key={wd} style={styles.weekHeaderCell}>
@@ -626,14 +702,11 @@ export default function App() {
                     ))}
                   </View>
 
-                  {/* TAKVİM IZGARASI */}
                   <View style={styles.calendarGrid}>
-                    {/* Ayın 1. Gününden Önceki Boş Kutular (Offset) */}
                     {Array.from({ length: getFirstDayOffset(calMonth, calYear) }).map((_, idx) => (
                       <View key={`offset-${idx}`} style={[styles.calendarDayBox, styles.emptyDayBox, { backgroundColor: 'transparent' }]} />
                     ))}
 
-                    {/* Ayın Gerçek Gün Kutuları */}
                     {Array.from({ length: getDaysInMonth(calMonth, calYear) }, (_, i) => i + 1).map((day) => {
                       const daySubs = safeList.filter(s => isSubActiveOnDay(s, day));
                       return (
@@ -663,12 +736,11 @@ export default function App() {
                   {formatCurrency(currentCalMonthTotalTL, 'TRY')}
                 </Text>
               </View>
-
             </View>
           )}
 
-          {/* TAB 3: FİNANS & ANALİZ */}
           {activeTab === 'analytics' && (
+            /* ... existing analytics content ... */
             <View style={{ marginTop: 10 }}>
               <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.textPrimary, marginBottom: 4 }}>Finansal Analiz & Grafikler</Text>
               <Text style={{ color: theme.textSecondary, fontSize: 13, marginBottom: 16 }}>Aylık harcama dağılımları ve yıllık trendler</Text>
@@ -699,7 +771,6 @@ export default function App() {
                   ))}
                 </View>
 
-                {/* YENİLENMİŞ OKUNABİLİR BAR GRAFİK ALANI */}
                 <View style={styles.barsAreaContainer}>
                   {MONTH_NAMES.map((mName, idx) => {
                     const totalVal = monthlyTotals[idx];
@@ -728,10 +799,7 @@ export default function App() {
                           </View>
                         </View>
 
-                        {/* Büyütülmüş Ay İsimleri */}
                         <Text style={[styles.barLabel, { color: theme.textPrimary }]}>{mName.substr(0, 3)}</Text>
-                        
-                        {/* Büyütülmüş Tutar Rakamları */}
                         <Text style={[styles.barAmountText, { color: totalVal > 0 ? theme.accent : theme.textSecondary }]}>
                           {formatShortCurrency(totalVal, 'TRY')}
                         </Text>
@@ -774,22 +842,51 @@ export default function App() {
 
         </ScrollView>
 
-        {/* MASAÜSTÜ İLE UYUMLU ALT NAVİGASYON BAR */}
-        <View style={[styles.bottomNav, { backgroundColor: theme.headerBg, borderTopColor: theme.cardBorder }]}>
-          <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('list')}>
-            <Text style={[styles.navText, { color: theme.textSecondary }, activeTab === 'list' && styles.navTextActive]}>💳 Abonelikler</Text>
+        {/* YENİLENMİŞ YÜKSEK GÖRSEL AÇILIMLI ALT NAVİGASYON BAR (RESİM 2 DÜZELTMESİ) */}
+        <View style={[styles.bottomNavContainer, { backgroundColor: theme.headerBg, borderTopColor: theme.cardBorder }]}>
+          <TouchableOpacity 
+            style={[styles.navTabBtn, activeTab === 'list' && styles.navTabBtnActive]} 
+            onPress={() => setActiveTab('list')}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.navIconCircle, activeTab === 'list' && styles.navIconCircleActive]}>
+              <Text style={{ fontSize: 22 }}>💳</Text>
+            </View>
+            <Text style={[styles.navTabText, { color: activeTab === 'list' ? '#6366f1' : theme.textSecondary }]}>
+              Abonelikler
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('calendar')}>
-            <Text style={[styles.navText, { color: theme.textSecondary }, activeTab === 'calendar' && styles.navTextActive]}>📅 Takvim</Text>
+
+          <TouchableOpacity 
+            style={[styles.navTabBtn, activeTab === 'calendar' && styles.navTabBtnActive]} 
+            onPress={() => setActiveTab('calendar')}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.navIconCircle, activeTab === 'calendar' && styles.navIconCircleActive]}>
+              <Text style={{ fontSize: 22 }}>📅</Text>
+            </View>
+            <Text style={[styles.navTabText, { color: activeTab === 'calendar' ? '#6366f1' : theme.textSecondary }]}>
+              Takvim
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('analytics')}>
-            <Text style={[styles.navText, { color: theme.textSecondary }, activeTab === 'analytics' && styles.navTextActive]}>📊 Analiz</Text>
+
+          <TouchableOpacity 
+            style={[styles.navTabBtn, activeTab === 'analytics' && styles.navTabBtnActive]} 
+            onPress={() => setActiveTab('analytics')}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.navIconCircle, activeTab === 'analytics' && styles.navIconCircleActive]}>
+              <Text style={{ fontSize: 22 }}>📊</Text>
+            </View>
+            <Text style={[styles.navTabText, { color: activeTab === 'analytics' ? '#6366f1' : theme.textSecondary }]}>
+              Analiz
+            </Text>
           </TouchableOpacity>
         </View>
 
       </View>
 
-      {/* FORM VE DÜZENLEME MODALI */}
+      {/* DÜZELTİLMİŞ VE KULLANICI EKLEMELİ FORM MODALI */}
       <Modal visible={isModalOpen} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <ScrollView contentContainerStyle={[styles.modalContent, { backgroundColor: theme.cardBg }]}>
@@ -802,13 +899,52 @@ export default function App() {
               </View>
             ) : null}
 
+            {/* HIZLI EKLE (POPÜLER SERVİSLER) - DÜZELTİLMİŞ TAŞMA SIZDIRMASIZ SCROLL + KULLANICI EKLEME */}
             {!editingId && (
               <View style={{ marginBottom: 16 }}>
-                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Hızlı Ekle (Popüler Servisler):</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
-                  {POPULAR_SERVICES.map((s, idx) => (
-                    <TouchableOpacity key={idx} style={[styles.chipBtn, { borderColor: s.color, borderWidth: 1 }]} onPress={() => selectPopularService(s)}>
-                      <Text style={{ color: s.color, fontSize: 12, fontWeight: 'bold' }}>{s.name}</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <Text style={[styles.fieldLabel, { color: theme.textSecondary, marginBottom: 0 }]}>Hızlı Ekle (Popüler Servisler):</Text>
+                  <TouchableOpacity onPress={() => setIsAddingNewService(!isAddingNewService)}>
+                    <Text style={{ color: theme.accent, fontSize: 12, fontWeight: 'bold' }}>
+                      {isAddingNewService ? '✕ Kapat' : '+ Özel Servis Ekle'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {isAddingNewService && (
+                  <View style={[styles.inlineAddBox, { backgroundColor: theme.inputBg }]}>
+                    <TextInput 
+                      placeholder="Servis Adı (ör: Disney+)" 
+                      placeholderTextColor="#64748b" 
+                      style={[styles.input, { backgroundColor: theme.cardBg, color: theme.textPrimary, marginBottom: 8 }]}
+                      value={newCustomServiceName}
+                      onChangeText={setNewCustomServiceName}
+                    />
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <TextInput 
+                        placeholder="Fiyat (₺)" 
+                        placeholderTextColor="#64748b" 
+                        keyboardType="numeric"
+                        style={[styles.input, { backgroundColor: theme.cardBg, color: theme.textPrimary, flex: 1, marginBottom: 0 }]}
+                        value={newCustomServicePrice}
+                        onChangeText={setNewCustomServicePrice}
+                      />
+                      <TouchableOpacity style={styles.inlineSaveBtn} onPress={handleAddCustomService}>
+                        <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 12 }}>Ekle</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false} 
+                  contentContainerStyle={{ paddingRight: 24, gap: 8, alignItems: 'center' }}
+                  style={{ flexDirection: 'row', marginTop: 4 }}
+                >
+                  {popularServicesList.map((s, idx) => (
+                    <TouchableOpacity key={idx} style={[styles.chipBtn, { borderColor: s.color || '#6366F1', borderWidth: 1 }]} onPress={() => selectPopularService(s)}>
+                      <Text style={{ color: s.color || '#6366F1', fontSize: 12, fontWeight: 'bold' }}>{s.name}</Text>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
@@ -829,7 +965,12 @@ export default function App() {
             />
 
             <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Kategori:</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false} 
+              contentContainerStyle={{ paddingRight: 24, gap: 8 }}
+              style={{ flexDirection: 'row', marginBottom: 12 }}
+            >
               {CATEGORIES.map((cat) => (
                 <TouchableOpacity 
                   key={cat} 
@@ -841,18 +982,92 @@ export default function App() {
               ))}
             </ScrollView>
 
-            <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Ödeme Yapılan Kart / Yöntem:</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
-              {PAYMENT_METHODS.map((method) => (
-                <TouchableOpacity 
-                  key={method} 
-                  style={[styles.categoryChip, { backgroundColor: theme.inputBg }, formPaymentMethod === method && styles.categoryChipActive]}
-                  onPress={() => setFormPaymentMethod(method)}
-                >
-                  <Text style={[styles.categoryText, { color: theme.textSecondary }, formPaymentMethod === method && styles.categoryTextActive]}>💳 {method}</Text>
+            {/* ÖDEME YAPILAN KART / YÖNTEM - TAŞMA DÜZELTİLMİŞ + ÖZEL KART EKLEME */}
+            <View style={{ marginBottom: 12 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <Text style={[styles.fieldLabel, { color: theme.textSecondary, marginBottom: 0 }]}>Ödeme Yapılan Kart / Yöntem:</Text>
+                <TouchableOpacity onPress={() => setIsAddingNewPaymentMethod(!isAddingNewPaymentMethod)}>
+                  <Text style={{ color: theme.accent, fontSize: 12, fontWeight: 'bold' }}>
+                    {isAddingNewPaymentMethod ? '✕ Kapat' : '+ Özel Kart Ekle'}
+                  </Text>
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
+              </View>
+
+              {isAddingNewPaymentMethod && (
+                <View style={[styles.inlineAddBox, { backgroundColor: theme.inputBg }]}>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <TextInput 
+                      placeholder="Kart / Yöntem İsmi (ör: DenizBank)" 
+                      placeholderTextColor="#64748b" 
+                      style={[styles.input, { backgroundColor: theme.cardBg, color: theme.textPrimary, flex: 1, marginBottom: 0 }]}
+                      value={newCustomPaymentMethod}
+                      onChangeText={setNewCustomPaymentMethod}
+                    />
+                    <TouchableOpacity style={styles.inlineSaveBtn} onPress={handleAddCustomPaymentMethod}>
+                      <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 12 }}>Kaydet</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false} 
+                contentContainerStyle={{ paddingRight: 24, gap: 8 }}
+                style={{ flexDirection: 'row', marginTop: 4 }}
+              >
+                {paymentMethodsList.map((method) => (
+                  <TouchableOpacity 
+                    key={method} 
+                    style={[styles.categoryChip, { backgroundColor: theme.inputBg }, formPaymentMethod === method && styles.categoryChipActive]}
+                    onPress={() => setFormPaymentMethod(method)}
+                  >
+                    <Text style={[styles.categoryText, { color: theme.textSecondary }, formPaymentMethod === method && styles.categoryTextActive]}>💳 {method}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* BİLDİRİM / HATIRLATICI ZAMANLAYICI (AÇILIR KAPANIR DROPDOWN LİSTE) */}
+            <View style={{ marginBottom: 14 }}>
+              <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Hatırlatıcı / Bildirim Zamanı:</Text>
+              <TouchableOpacity 
+                style={[styles.dropdownHeader, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}
+                onPress={() => setIsNotificationDropdownOpen(!isNotificationDropdownOpen)}
+              >
+                <Text style={{ color: theme.textPrimary, fontWeight: '600', fontSize: 13 }}>
+                  {(NOTIFICATION_OPTIONS.find(o => o.value === formNotificationDays) || NOTIFICATION_OPTIONS[2]).label}
+                </Text>
+                <Text style={{ color: theme.textSecondary }}>{isNotificationDropdownOpen ? '▲' : '▼'}</Text>
+              </TouchableOpacity>
+
+              {isNotificationDropdownOpen && (
+                <View style={[styles.dropdownBody, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}>
+                  {NOTIFICATION_OPTIONS.map((opt) => (
+                    <TouchableOpacity 
+                      key={opt.value} 
+                      style={[
+                        styles.dropdownItem, 
+                        formNotificationDays === opt.value && { backgroundColor: '#6366f122' }
+                      ]}
+                      onPress={() => {
+                        setFormNotificationDays(opt.value);
+                        setIsNotificationDropdownOpen(false);
+                      }}
+                    >
+                      <Text style={{ 
+                        color: formNotificationDays === opt.value ? '#6366f1' : theme.textPrimary,
+                        fontWeight: formNotificationDays === opt.value ? 'bold' : 'normal',
+                        fontSize: 13 
+                      }}>
+                        {opt.label}
+                      </Text>
+                      {formNotificationDays === opt.value && <Text style={{ color: '#6366f1' }}>✓</Text>}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
 
             <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Ödeme Periyodu:</Text>
             <View style={styles.periodSelector}>
@@ -968,8 +1183,8 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
+  // ... existing styles ...
   container: { flex: 1 },
-  // Masaüstü ekranlarda kartların aşırı yayılmasını önleyen duyarlı genişlik sınırı
   responsiveWrapper: {
     maxWidth: 1000,
     width: '100%',
@@ -986,7 +1201,7 @@ const styles = StyleSheet.create({
   themeToggleBtn: { padding: 8, borderRadius: 8, borderWidth: 1 },
   addBtn: { backgroundColor: '#6366f1', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
   addBtnText: { color: '#ffffff', fontWeight: 'bold', fontSize: 13 },
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 100, paddingTop: 16 },
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 110, paddingTop: 16 },
   
   currencyBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 10, borderRadius: 8, borderWidth: 1, marginBottom: 12 },
   currencyBarTitle: { fontSize: 12, fontWeight: '600' },
@@ -1022,7 +1237,6 @@ const styles = StyleSheet.create({
   cancelText: { color: '#38bdf8', fontSize: 11, fontWeight: '600' },
   deleteBtn: { padding: 4, borderRadius: 6 },
 
-  // Real Calendar Grid
   calendarHeaderNav: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   calendarTitleText: { fontSize: 18, fontWeight: 'bold' },
   arrowBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
@@ -1076,20 +1290,59 @@ const styles = StyleSheet.create({
   progressBarBg: { height: 6, borderRadius: 3, overflow: 'hidden' },
   progressBarFill: { height: '100%', borderRadius: 3 },
 
-  // Bottom Nav
-  bottomNav: { position: 'absolute', bottom: 0, left: 0, right: 0, borderTopWidth: 1, flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 14 },
-  navItem: { paddingHorizontal: 12 },
-  navText: { fontSize: 12, fontWeight: '600' },
-  navTextActive: { color: '#6366f1', fontWeight: 'bold' },
+  // GÖRSEL ELEMANLARI BÜYÜTÜLMÜŞ VE ŞIKLAŞTIRILMIŞ ALT NAVİGASYON BAR (RESİM 2 İÇİN)
+  bottomNavContainer: { 
+    position: 'absolute', 
+    bottom: 0, 
+    left: 0, 
+    right: 0, 
+    borderTopWidth: 1, 
+    flexDirection: 'row', 
+    justify: 'space-around', 
+    alignItems: 'center',
+    paddingVertical: 10, 
+    paddingHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  navTabBtn: { 
+    flex: 1, 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  navTabBtnActive: {
+    backgroundColor: '#6366f115'
+  },
+  navIconCircle: {
+    width: 44,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justify: 'center',
+    marginBottom: 2
+  },
+  navIconCircleActive: {
+    backgroundColor: '#6366f125',
+  },
+  navTabText: { 
+    fontSize: 12, 
+    fontWeight: 'bold',
+    letterSpacing: 0.3
+  },
 
-  // Modal
+  // Modal & Dropdown Styles
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: 20 },
   modalContent: { borderRadius: 16, padding: 20, marginVertical: 40, maxWidth: 600, width: '100%', alignSelf: 'center' },
   modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 16 },
   fieldLabel: { fontSize: 12, marginBottom: 4 },
   input: { padding: 12, borderRadius: 8, marginBottom: 12 },
-  chipBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, marginRight: 8 },
-  categoryChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, marginRight: 8 },
+  chipBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
+  categoryChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
   categoryChipActive: { backgroundColor: '#6366f1' },
   categoryText: { fontSize: 12 },
   categoryTextActive: { color: '#fff', fontWeight: 'bold' },
@@ -1103,6 +1356,13 @@ const styles = StyleSheet.create({
   currencySelectorBtnActive: { backgroundColor: '#6366f1' },
   currencySelectorText: { fontSize: 12, fontWeight: 'bold' },
   currencySelectorTextActive: { color: '#fff' },
+
+  inlineAddBox: { padding: 10, borderRadius: 10, marginBottom: 10 },
+  inlineSaveBtn: { backgroundColor: '#6366f1', paddingHorizontal: 16, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+
+  dropdownHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, borderRadius: 8, borderWidth: 1 },
+  dropdownBody: { marginTop: 4, borderRadius: 8, borderWidth: 1, overflow: 'hidden' },
+  dropdownItem: { padding: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 0.5, borderBottomColor: '#334155' },
 
   warningBox: { backgroundColor: '#ef444422', borderColor: '#ef4444', borderWidth: 1, padding: 10, borderRadius: 8, marginBottom: 12 },
   warningText: { color: '#ef4444', fontSize: 12, fontWeight: 'bold' },
