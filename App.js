@@ -5,17 +5,16 @@ import React, {
 } from 'react';
 
 import {
-  StyleSheet,
-  Text,
+  SafeAreaView,
   View,
+  Text,
   ScrollView,
   TouchableOpacity,
   TextInput,
   Modal,
-  SafeAreaView,
-  StatusBar,
-  useWindowDimensions,
-  Linking
+  StyleSheet,
+  Alert,
+  Platform
 } from 'react-native';
 
 const DEFAULT_RATES = {
@@ -1272,6 +1271,78 @@ export default function App() {
     activeButtonSoft:
       '#7772ff26'
   };
+  useEffect(() => {
+  if (
+    Platform.OS !== 'web' ||
+    typeof document === 'undefined'
+  ) {
+    return;
+  }
+
+  const styleId =
+    'cebin-themed-scrollbars';
+
+  const oldStyle =
+    document.getElementById(
+      styleId
+    );
+
+  if (oldStyle) {
+    oldStyle.remove();
+  }
+
+  const styleElement =
+    document.createElement(
+      'style'
+    );
+
+  styleElement.id = styleId;
+
+  styleElement.innerHTML = `
+    #subscription-modal-scroll {
+      scrollbar-width: thin;
+      scrollbar-color: ${theme.cardBorder} ${theme.inputBg};
+    }
+
+    #subscription-modal-scroll::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    #subscription-modal-scroll::-webkit-scrollbar-track {
+      background: ${theme.inputBg};
+      border-radius: 10px;
+    }
+
+    #subscription-modal-scroll::-webkit-scrollbar-thumb {
+      background: ${theme.activeButtonSoft};
+      border: 2px solid ${theme.inputBg};
+      border-radius: 10px;
+    }
+
+    #subscription-modal-scroll::-webkit-scrollbar-thumb:hover {
+      background: ${theme.accent};
+    }
+  `;
+
+  document.head.appendChild(
+    styleElement
+  );
+
+  return () => {
+    const currentStyle =
+      document.getElementById(
+        styleId
+      );
+
+    if (currentStyle) {
+      currentStyle.remove();
+    }
+  };
+}, [
+  theme.cardBorder,
+  theme.inputBg,
+  theme.accent
+]);
 
   const safeList =
     Array.isArray(
@@ -5432,14 +5503,21 @@ export default function App() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView
-              showsVerticalScrollIndicator={
-                false
-              }
-              contentContainerStyle={{
-                paddingBottom: 8
-              }}
-            >
+       <ScrollView
+  id="appearance-modal-scroll"
+  style={[
+    Platform.OS === 'web' && {
+      scrollbarWidth: 'thin',
+      scrollbarColor: `${theme.cardBorder} ${theme.inputBg}`
+    }
+  ]}
+  showsVerticalScrollIndicator={
+    true
+  }
+  contentContainerStyle={{
+    paddingBottom: 8
+  }}
+>
               <Text
                 style={[
                   styles.appearanceSectionTitle,
@@ -5736,17 +5814,22 @@ export default function App() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView
-              style={
-                styles.subscriptionModalScroll
-              }
-              contentContainerStyle={
-                styles.subscriptionModalContent
-              }
-              showsVerticalScrollIndicator={
-                true
-              }
-            >
+           <ScrollView
+  id="subscription-modal-scroll"
+  style={[
+    styles.subscriptionModalScroll,
+    Platform.OS === 'web' && {
+      scrollbarWidth: 'thin',
+      scrollbarColor: `${theme.cardBorder} ${theme.inputBg}`
+    }
+  ]}
+  contentContainerStyle={
+    styles.subscriptionModalContent
+  }
+  showsVerticalScrollIndicator={
+    true
+  }
+>
               {!editingId && (
                 <View
                   style={
