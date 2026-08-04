@@ -2110,12 +2110,36 @@ export default function App() {
         return;
       }
 
-      const existingSubscription =
-        safeList.find(
-          subscription =>
-            subscription.id ===
-            editingId
-        );
+     const duplicateSubscription =
+  safeList.find(
+    subscription =>
+      subscription.id !== editingId &&
+      normalizeText(subscription.name) ===
+        normalizeText(formName) &&
+      subscription.period === formPeriod &&
+      subscription.status !== 'cancelled'
+  );
+
+if (duplicateSubscription) {
+  const continueAnyway =
+    confirmAction(
+      `“${duplicateSubscription.name}” isimli ${
+        duplicateSubscription.period === 'yearly'
+          ? 'yıllık'
+          : 'aylık'
+      } bir kayıt zaten bulunuyor.\n\nYine de mükerrer kayıt oluşturulsun mu?`
+    );
+
+  if (!continueAnyway) {
+    return;
+  }
+}
+
+const existingSubscription =
+  safeList.find(
+    subscription =>
+      subscription.id === editingId
+  );
 
       const payload = {
         ...existingSubscription,
