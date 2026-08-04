@@ -918,10 +918,6 @@ export default function App() {
               </View>
             ) : null}
 
-            {/* HIZLI EKLE (POPÜLER SERVİSLER) - DÜZELTİLMİŞ TAŞMA SIZDIRMASIZ SCROLL + KULLANICI EKLEME */}
-            {!editingId && (
-              <View style={{ marginBottom: 16 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
             {/* HIZLI EKLE (POPÜLER SERVİSLER) - TAŞMA SIZDIRMASIZ WRAP GRID */}
             {!editingId && (
               <View style={{ marginBottom: 16 }}>
