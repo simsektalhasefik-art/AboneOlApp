@@ -71,7 +71,6 @@ const getDaysInMonth = (monthIndex, year) => {
   return new Date(Number(year) || 2026, (Number(monthIndex) || 0) + 1, 0).getDate();
 };
 
-// Ayın 1. gününün haftanın hangi günü olduğunu hesaplar (0: Pazartesi ... 6: Pazar)
 const getFirstDayOffset = (monthIndex, year) => {
   const day = new Date(Number(year) || 2026, Number(monthIndex) || 0, 1).getDay();
   return day === 0 ? 6 : day - 1; 
@@ -108,7 +107,7 @@ export default function App() {
   const [exchangeRates, setExchangeRates] = useState(DEFAULT_RATES);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Kullanıcı tarafından eklenebilen liste durumları
+  // Custom list states
   const [paymentMethodsList, setPaymentMethodsList] = useState(PAYMENT_METHODS);
   const [popularServicesList, setPopularServicesList] = useState(DEFAULT_POPULAR_SERVICES);
   const [isAddingNewPaymentMethod, setIsAddingNewPaymentMethod] = useState(false);
@@ -128,29 +127,8 @@ export default function App() {
   const [calendarViewMode, setCalendarViewMode] = useState('monthly');
   const [selectedAnalysisYear, setSelectedAnalysisYear] = useState(2026);
 
-  // Bildirim izni durumu
   const [notificationPermission, setNotificationPermission] = useState('default');
 
-  // Aboneliğin seçili takvim gününde aktif olup olmadığını hesaplar
-  const isSubActiveOnDay = (sub, day) => {
-    if (!sub) return false;
-    const billingDay = Number(sub.billingDay) || 1;
-    if (sub.period === 'monthly') {
-      return billingDay === day;
-    } else if (sub.period === 'yearly') {
-      const subMonth = Number(sub.billingMonth || 1) - 1;
-      const subYear = Number(sub.billingYear || 2026);
-      return billingDay === day && subMonth === calMonth && subYear === calYear;
-    }
-    return false;
-  };
-
-  // Abonelik silme fonksiyonu
-  const handleDelete = (id) => {
-    setSubscriptions(safeList.filter(s => s.id !== id));
-  };
-
-  // Form State
   const [formName, setFormName] = useState('');
   const [formPrice, setFormPrice] = useState('');
   const [formCurrency, setFormCurrency] = useState('TRY');
@@ -162,9 +140,8 @@ export default function App() {
   const [formPeriod, setFormPeriod] = useState('monthly');
   const [formCancelUrl, setFormCancelUrl] = useState('');
   const [formColor, setFormColor] = useState('#6366F1');
-  const [formNotificationDays, setFormNotificationDays] = useState(2); // Varsayılan: 2 Gün Önce
+  const [formNotificationDays, setFormNotificationDays] = useState(2);
 
-  // Canlı Döviz Kuru Çekme
   useEffect(() => {
     const fetchRates = async () => {
       try {
@@ -201,7 +178,6 @@ export default function App() {
           setSubscriptions(DEFAULT_SUBSCRIPTIONS);
         }
 
-        // Web Notification Izni Kontrolu
         if (typeof window !== 'undefined' && 'Notification' in window) {
           setNotificationPermission(Notification.permission);
         }
@@ -248,10 +224,26 @@ export default function App() {
 
   const safeList = Array.isArray(subscriptions) ? subscriptions : [];
 
-  // Tutar TL Çevirici Yardımcı Fonksiyon
   const convertToTL = (price, currency) => {
     const rate = exchangeRates[currency] || 1;
     return (Number(price) || 0) * rate;
+  };
+
+  const isSubActiveOnDay = (sub, day) => {
+    if (!sub) return false;
+    const billingDay = Number(sub.billingDay) || 1;
+    if (sub.period === 'monthly') {
+      return billingDay === day;
+    } else if (sub.period === 'yearly') {
+      const subMonth = Number(sub.billingMonth || 1) - 1;
+      const subYear = Number(sub.billingYear || 2026);
+      return billingDay === day && subMonth === calMonth && subYear === calYear;
+    }
+    return false;
+  };
+
+  const handleDelete = (id) => {
+    setSubscriptions(safeList.filter(s => s.id !== id));
   };
 
   const theme = {
@@ -267,7 +259,6 @@ export default function App() {
     accent: isDarkMode ? '#38bdf8' : '#0284c7',
   };
 
-  // Toplam Aylık Taahhüt (Tüm para birimleri TL'ye dönüştürülerek hesaplanır)
   const monthlyTotalTL = safeList.reduce((sum, item) => {
     if (!item) return sum;
     const priceTL = convertToTL(item.price, item.currency || 'TRY');
@@ -293,12 +284,11 @@ export default function App() {
 
   const currentCalMonthTotalTL = calculateMonthTotalTL(calMonth, calYear);
 
-  // Yaklaşan Ödemeler (Her aboneliğin kendi bildirim gününe göre hesaplama)
   const getUpcomingPayments = () => {
-    const todayDay = 8; // Örnek referans gün
+    const todayDay = 8;
     return safeList.filter(s => {
       const notifDays = s.notificationDays !== undefined ? s.notificationDays : 2;
-      if (notifDays === -1) return false; // Bildirim yok
+      if (notifDays === -1) return false;
       const dayDiff = Number(s.billingDay) - todayDay;
       return dayDiff >= 0 && dayDiff <= notifDays;
     });
@@ -497,7 +487,6 @@ export default function App() {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
       <StatusBar style={isDarkMode ? 'light' : 'dark'} />
       
-      {/* Desktop Responsive Kapsayıcı Container */}
       <View style={styles.responsiveWrapper}>
 
         {/* Header */}
@@ -519,7 +508,6 @@ export default function App() {
                 { backgroundColor: notificationPermission === 'granted' ? '#10b98122' : theme.cardBg, borderColor: theme.cardBorder }
               ]} 
               onPress={requestNotificationAccess}
-              title="Bildirimleri Yönet"
             >
               <Text style={{ fontSize: 16 }}>{notificationPermission === 'granted' ? '🔔' : '🔕'}</Text>
             </TouchableOpacity>
@@ -552,7 +540,7 @@ export default function App() {
             </View>
           </View>
 
-          {/* YAKLAŞAN ÖDEMELER / BİLDİRİM BANNER'I */}
+          {/* YAKLAŞAN ÖDEMELER BANNER'I */}
           {upcomingPayments.length > 0 && (
             <View style={[styles.reminderBanner, { backgroundColor: '#f59e0b15', borderColor: '#f59e0b' }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -570,7 +558,7 @@ export default function App() {
             </View>
           )}
 
-          {/* ... existing code tabs ... */}
+          {}
           {activeTab === 'list' && (
             <>
               {/* ÖZET KARTI */}
@@ -655,8 +643,8 @@ export default function App() {
             </>
           )}
 
+          {}
           {activeTab === 'calendar' && (
-            /* ... existing calendar content ... */
             <View style={{ marginTop: 10 }}>
               <View style={styles.calendarHeaderNav}>
                 <TouchableOpacity style={[styles.arrowBtn, { backgroundColor: theme.cardBg }]} onPress={handlePrevMonth}>
@@ -758,8 +746,8 @@ export default function App() {
             </View>
           )}
 
+          {}
           {activeTab === 'analytics' && (
-            /* ... existing analytics content ... */
             <View style={{ marginTop: 10 }}>
               <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.textPrimary, marginBottom: 4 }}>Finansal Analiz & Grafikler</Text>
               <Text style={{ color: theme.textSecondary, fontSize: 13, marginBottom: 16 }}>Aylık harcama dağılımları ve yıllık trendler</Text>
@@ -861,7 +849,7 @@ export default function App() {
 
         </ScrollView>
 
-        {/* YENİLENMİŞ YÜKSEK GÖRSEL AÇILIMLI ALT NAVİGASYON BAR (RESİM 2 DÜZELTMESİ) */}
+        {}
         <View style={[styles.bottomNavContainer, { backgroundColor: theme.headerBg, borderTopColor: theme.cardBorder }]}>
           <TouchableOpacity 
             style={[styles.navTabBtn, activeTab === 'list' && styles.navTabBtnActive]} 
@@ -905,20 +893,18 @@ export default function App() {
 
       </View>
 
-      {/* DÜZELTİLMİŞ VE KULLANICI EKLEMELİ FORM MODALI */}
+      {}
       <Modal visible={isModalOpen} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <ScrollView contentContainerStyle={[styles.modalContent, { backgroundColor: theme.cardBg }]}>
             <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>{editingId ? 'Abonelik Bilgilerini Düzenle' : 'Yeni Abonelik Tanımla'}</Text>
 
-            {/* MÜKERRER KAYIT UYARISI BANNER'I */}
             {duplicateWarning ? (
               <View style={styles.warningBox}>
                 <Text style={styles.warningText}>{duplicateWarning}</Text>
               </View>
             ) : null}
 
-            {/* HIZLI EKLE (POPÜLER SERVİSLER) - TAŞMA SIZDIRMASIZ WRAP GRID */}
             {!editingId && (
               <View style={{ marginBottom: 16 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
@@ -1002,7 +988,6 @@ export default function App() {
               ))}
             </View>
 
-            {/* ÖDEME YAPILAN KART / YÖNTEM - TAŞMASIZ WRAP GRID */}
             <View style={{ marginBottom: 12 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                 <Text style={[styles.fieldLabel, { color: theme.textSecondary, marginBottom: 0 }]}>Ödeme Yapılan Kart / Yöntem:</Text>
@@ -1043,7 +1028,7 @@ export default function App() {
               </View>
             </View>
 
-            {/* BİLDİRİM / HATIRLATICI ZAMANLAYICI (AÇILIR KAPANIR DROPDOWN LİSTE) */}
+            {}
             <View style={{ marginBottom: 14 }}>
               <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Hatırlatıcı / Bildirim Zamanı:</Text>
               <TouchableOpacity 
@@ -1198,7 +1183,6 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  // ... existing styles ...
   container: { flex: 1 },
   responsiveWrapper: {
     maxWidth: 1000,
@@ -1305,7 +1289,6 @@ const styles = StyleSheet.create({
   progressBarBg: { height: 6, borderRadius: 3, overflow: 'hidden' },
   progressBarFill: { height: '100%', borderRadius: 3 },
 
-  // GÖRSEL ELEMANLARI BÜYÜTÜLMÜŞ VE ŞIKLAŞTIRILMIŞ ALT NAVİGASYON BAR (RESİM 2 İÇİN)
   bottomNavContainer: { 
     position: 'absolute', 
     bottom: 0, 
@@ -1313,7 +1296,7 @@ const styles = StyleSheet.create({
     right: 0, 
     borderTopWidth: 1, 
     flexDirection: 'row', 
-    justify: 'space-around', 
+    justifyContent: 'space-around', 
     alignItems: 'center',
     paddingVertical: 10, 
     paddingHorizontal: 16,
@@ -1350,7 +1333,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3
   },
 
-  // Modal & Dropdown Styles
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: 20 },
   modalContent: { borderRadius: 16, padding: 20, marginVertical: 40, maxWidth: 600, width: '100%', alignSelf: 'center' },
   modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 16 },
