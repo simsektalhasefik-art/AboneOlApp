@@ -699,11 +699,11 @@ export default function App() {
   const { width } =
     useWindowDimensions();
 
-  const isDesktop =
-    width >= 768;
+const isDesktop =
+  width >= 900;
 
-  const isMobile =
-    width < 480;
+ const isMobile =
+  width < 768;
 
   /*
     Ana sayfanın kaydırma alanı.
@@ -813,6 +813,23 @@ export default function App() {
     isSubscriptionModalOpen,
     setIsSubscriptionModalOpen
   ] = useState(false);
+  const [
+  isSubscriptionModalOpen,
+  setIsSubscriptionModalOpen
+] = useState(false);
+
+const [
+  duplicateWarning,
+  setDuplicateWarning
+] = useState({
+  visible: false,
+  name: ''
+});
+
+const [
+  selectedSubscription,
+  setSelectedSubscription
+] = useState(null);
 
   const [
     editingId,
@@ -3392,7 +3409,6 @@ export default function App() {
   style={[
     styles.mainScroll,
     {
-      overflowY: 'auto',
       overflowAnchor: 'none',
 
       scrollbarWidth:
@@ -7367,12 +7383,13 @@ pageHeaderDescription: {
       fontWeight: 'bold'
     },
 
-   contentWrapper: {
+contentWrapper: {
   flex: 1,
   minWidth: 0,
   minHeight: 0,
   height: '100%',
   width: 'auto',
+  position: 'relative',
   overflow: 'hidden'
 },
 
@@ -7408,11 +7425,10 @@ pageHeaderDescription: {
       fontSize: font(17)
     },
 
-  mainScroll: {
+mainScroll: {
   flex: 1,
   minHeight: 0,
-  width: '100%',
-  overflowY: 'auto'
+  width: '100%'
 },
 
    scrollContent: {
@@ -7422,7 +7438,7 @@ pageHeaderDescription: {
     isMobile ? 12 : 20,
   paddingTop: 14,
   paddingBottom:
-    isMobile ? 80 : 30
+    isMobile ? 100 : 30
 },
 
    currencyBar: {
@@ -8156,18 +8172,19 @@ currencyBadgeText: {
       borderRadius: 3
     },
 
-    bottomNavigation: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      bottom: 0,
-      height: 58,
-      flexDirection: 'row',
-      justifyContent:
-        'space-around',
-      alignItems: 'center',
-      borderTopWidth: 1
-    },
+  bottomNavigation: {
+  position: 'absolute',
+  left: 0,
+  right: 0,
+  bottom: 0,
+  height: 64,
+  flexDirection: 'row',
+  justifyContent: 'space-around',
+  alignItems: 'center',
+  borderTopWidth: 1,
+  zIndex: 999,
+  elevation: 20
+},
 
     bottomNavigationItem: {
       alignItems: 'center'
