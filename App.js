@@ -1,4 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, {
+  useEffect,
+  useRef,
+  useState
+} from 'react';
+
 import {
   StyleSheet,
   Text,
@@ -13,16 +18,25 @@ import {
   Linking
 } from 'react-native';
 
-const DEFAULT_RATES = { USD: 47.56, EUR: 54.77 };
+/* -------------------------------------------------------------------------- */
+/*                                SABİT VERİLER                                */
+/* -------------------------------------------------------------------------- */
+
+const DEFAULT_RATES = {
+  USD: 47.56,
+  EUR: 54.77
+};
 
 const CATEGORY_COLORS = {
-  'Eğlence': '#ef4444',
+  Eğlence: '#ef4444',
   'Yazılım & AI': '#8b5cf6',
-  'Müzik': '#10b981',
-  'Eğitim': '#f59e0b',
+  Müzik: '#10b981',
+  Eğitim: '#f59e0b',
   'Bulut & Depolama': '#3b82f6',
   'Spor & Sağlık': '#ec4899',
-  'Diğer': '#64748b',
+
+  // Füme arka planla karışmaması için turuncu kullanılıyor.
+  Diğer: '#f97316'
 };
 
 const DEFAULT_PAYMENT_METHODS = [
@@ -76,7 +90,7 @@ const DEFAULT_TEMPLATES = [
     currency: 'TRY',
     category: 'Eğlence',
     color: '#00A8E1'
-  },
+  }
 ];
 
 const TEMPLATE_COLOR_PALETTE = [
@@ -122,7 +136,7 @@ const NOTIFICATION_OPTIONS = [
     label: '1 Hafta Önce',
     badgeLabel: '🔔 1 Hafta Önce',
     value: 7
-  },
+  }
 ];
 
 const MONTH_NAMES = [
@@ -148,6 +162,134 @@ const YEARS = [
   2029,
   2030
 ];
+
+/*
+  Abonelikler sayfasında yalnızca tek filtre alanı kullanılacak.
+  Ödeme yöntemi, dönem ve sıralama ayrı ayrı gösterilmeyecek.
+*/
+const VIEW_FILTER_OPTIONS = [
+  {
+    key: 'ALL',
+    label: 'Tüm Abonelikler'
+  },
+  {
+    key: 'MONTHLY',
+    label: 'Aylık Ödemeler'
+  },
+  {
+    key: 'YEARLY',
+    label: 'Yıllık Ödemeler'
+  },
+  {
+    key: 'UPCOMING',
+    label: 'Yaklaşan Ödemeler'
+  },
+  {
+    key: 'EXPENSIVE',
+    label: 'En Yüksek Tutar'
+  },
+  {
+    key: 'NAME',
+    label: 'Ada Göre'
+  }
+];
+
+const BACKGROUND_PRESETS = {
+  smoke: {
+    label: 'Açık Füme',
+    dark: true,
+    bg: '#30353c',
+    sidebarBg: '#373d45',
+    headerBg: '#3a4048',
+    cardBg: '#414852',
+    inputBg: '#343a42',
+    cardBorder: '#58616d',
+    textPrimary: '#f4f6f8',
+    textSecondary: '#d2d7de',
+    textMuted: '#aeb7c2',
+    summaryBg: '#5b58d6',
+    summaryBorder: '#7470ef',
+    accent: '#63b3ff'
+  },
+
+  anthracite: {
+    label: 'Antrasit',
+    dark: true,
+    bg: '#20242a',
+    sidebarBg: '#272c33',
+    headerBg: '#2a3038',
+    cardBg: '#303741',
+    inputBg: '#252b33',
+    cardBorder: '#434c58',
+    textPrimary: '#f4f5f7',
+    textSecondary: '#cbd1d9',
+    textMuted: '#98a2af',
+    summaryBg: '#4f46c8',
+    summaryBorder: '#6860df',
+    accent: '#55aaff'
+  },
+
+  navy: {
+    label: 'Lacivert',
+    dark: true,
+    bg: '#111827',
+    sidebarBg: '#182131',
+    headerBg: '#1c2636',
+    cardBg: '#222d3d',
+    inputBg: '#172131',
+    cardBorder: '#344154',
+    textPrimary: '#f1f5f9',
+    textSecondary: '#cbd5e1',
+    textMuted: '#94a3b8',
+    summaryBg: '#3730a3',
+    summaryBorder: '#4f46e5',
+    accent: '#60a5fa'
+  },
+
+  light: {
+    label: 'Açık',
+    dark: false,
+    bg: '#edf1f5',
+    sidebarBg: '#ffffff',
+    headerBg: '#ffffff',
+    cardBg: '#ffffff',
+    inputBg: '#f1f4f8',
+    cardBorder: '#d8dee7',
+    textPrimary: '#1f2937',
+    textSecondary: '#566171',
+    textMuted: '#7d8999',
+    summaryBg: '#4f46e5',
+    summaryBorder: '#6366f1',
+    accent: '#2563eb'
+  }
+};
+
+const FONT_SCALE_OPTIONS = [
+  {
+    key: 'small',
+    label: 'Küçük',
+    scale: 0.9
+  },
+  {
+    key: 'normal',
+    label: 'Normal',
+    scale: 1
+  },
+  {
+    key: 'large',
+    label: 'Büyük',
+    scale: 1.12
+  },
+  {
+    key: 'xlarge',
+    label: 'Çok Büyük',
+    scale: 1.24
+  }
+];
+
+/* -------------------------------------------------------------------------- */
+/*                            YARDIMCI FONKSİYONLAR                             */
+/* -------------------------------------------------------------------------- */
 
 const getDaysInMonth = (
   month,
@@ -208,14 +350,14 @@ const convertToTL = (
   currency,
   rates = DEFAULT_RATES
 ) => {
-  const parsedPrice =
+  const numericPrice =
     Number(price) || 0;
 
   if (currency === 'USD') {
     return (
-      parsedPrice *
+      numericPrice *
       (
-        rates.USD ||
+        Number(rates.USD) ||
         DEFAULT_RATES.USD
       )
     );
@@ -223,35 +365,84 @@ const convertToTL = (
 
   if (currency === 'EUR') {
     return (
-      parsedPrice *
+      numericPrice *
       (
-        rates.EUR ||
+        Number(rates.EUR) ||
         DEFAULT_RATES.EUR
       )
     );
   }
 
-  return parsedPrice;
+  return numericPrice;
+};
+
+const normalizeText = (
+  value = ''
+) =>
+  String(value)
+    .toLocaleLowerCase(
+      'tr-TR'
+    )
+    .replace(
+      /\s+/g,
+      ' '
+    )
+    .trim();
+
+const confirmAction = message => {
+  if (
+    typeof window !== 'undefined' &&
+    typeof window.confirm === 'function'
+  ) {
+    return window.confirm(message);
+  }
+
+  return true;
+};
+
+const isValidUrl = value => {
+  if (!value) {
+    return true;
+  }
+
+  try {
+    const parsedUrl =
+      new URL(value);
+
+    return [
+      'http:',
+      'https:'
+    ].includes(
+      parsedUrl.protocol
+    );
+  } catch {
+    return false;
+  }
 };
 
 const getServiceColor = (
   name,
-  list
+  templates
 ) => {
   const source =
-    list && list.length
-      ? list
+    Array.isArray(templates) &&
+    templates.length > 0
+      ? templates
       : DEFAULT_TEMPLATES;
 
-  const match = source.find(
-    service =>
-      service.name.toLowerCase() ===
-      (name || '').toLowerCase()
-  );
+  const matchedTemplate =
+    source.find(
+      template =>
+        normalizeText(
+          template.name
+        ) ===
+        normalizeText(name)
+    );
 
-  return match
-    ? match.color
-    : '#6366f1';
+  return (
+    matchedTemplate?.color ||
+    '#6366f1'
+  );
 };
 
 const getNextRenewal = (
@@ -259,17 +450,25 @@ const getNextRenewal = (
   today
 ) => {
   const day =
-    Number(item.billingDay) || 1;
+    Number(
+      item.billingDay
+    ) || 1;
 
   if (
     item.period === 'yearly'
   ) {
     const month =
-      (
-        Number(
-          item.billingMonth
-        ) || 1
-      ) - 1;
+      Math.max(
+        0,
+        Math.min(
+          11,
+          (
+            Number(
+              item.billingMonth
+            ) || 1
+          ) - 1
+        )
+      );
 
     let renewalDate =
       new Date(
@@ -283,8 +482,7 @@ const getNextRenewal = (
     ) {
       renewalDate =
         new Date(
-          today.getFullYear() +
-            1,
+          today.getFullYear() + 1,
           month,
           day
         );
@@ -314,117 +512,75 @@ const getNextRenewal = (
   return renewalDate;
 };
 
-const normalizeText = (
-  value = ''
-) =>
-  String(value)
-    .toLocaleLowerCase(
-      'tr-TR'
-    )
-    .replace(
-      /\s+/g,
-      ' '
-    )
-    .trim();
-
-const confirmAction = (
-  message
+const getSubscriptionCostForMonth = (
+  item,
+  year,
+  monthIndex,
+  rates
 ) => {
   if (
-    typeof window !==
-      'undefined' &&
-    typeof window.confirm ===
-      'function'
+    !item ||
+    item.status === 'cancelled'
   ) {
-    return window.confirm(
-      message
+    return 0;
+  }
+
+  const priceInTL =
+    convertToTL(
+      item.price,
+      item.currency || 'TRY',
+      rates
     );
-  }
 
-  return true;
-};
+  const billingYear =
+    Number(
+      item.billingYear
+    ) || year;
 
-const isValidUrl = value => {
-  if (!value) {
-    return true;
-  }
-
-  try {
-    const url =
-      new URL(value);
-
-    return [
-      'http:',
-      'https:'
-    ].includes(
-      url.protocol
-    );
-  } catch {
-    return false;
-  }
-};
-
-const getSubscriptionCostForMonth =
-  (
-    item,
-    year,
-    monthIndex,
-    rates
-  ) => {
-    const priceTL =
-      convertToTL(
-        item.price,
-        item.currency ||
-          'TRY',
-        rates
-      );
-
-    const startYear =
-      Number(
-        item.billingYear ||
-          year
-      );
-
-    const startMonth =
-      Math.max(
-        0,
-        Math.min(
-          11,
+  const billingMonth =
+    Math.max(
+      0,
+      Math.min(
+        11,
+        (
           Number(
-            item.billingMonth ||
-              1
-          ) - 1
-        )
-      );
+            item.billingMonth
+          ) || 1
+        ) - 1
+      )
+    );
 
-    const targetKey =
-      year * 12 +
-      monthIndex;
+  const targetMonthKey =
+    year * 12 +
+    monthIndex;
 
-    const startKey =
-      startYear * 12 +
-      startMonth;
+  const billingMonthKey =
+    billingYear * 12 +
+    billingMonth;
 
-    if (
-      item.status ===
-        'cancelled' ||
-      targetKey < startKey
-    ) {
-      return 0;
-    }
+  if (
+    targetMonthKey <
+    billingMonthKey
+  ) {
+    return 0;
+  }
 
-    if (
-      item.period ===
-      'monthly'
-    ) {
-      return priceTL;
-    }
+  if (
+    item.period === 'monthly'
+  ) {
+    return priceInTL;
+  }
 
-    return monthIndex ===
-      startMonth
-      ? priceTL
-      : 0;
-  };
+  return (
+    monthIndex === billingMonth
+      ? priceInTL
+      : 0
+  );
+};
+
+/* -------------------------------------------------------------------------- */
+/*                              ANA UYGULAMA                                   */
+/* -------------------------------------------------------------------------- */
 
 export default function App() {
   const { width } =
@@ -436,10 +592,12 @@ export default function App() {
   const isMobile =
     width < 480;
 
-  const [
-    isDarkMode,
-    setIsDarkMode
-  ] = useState(true);
+  /*
+    Analiz yılı değiştiğinde ScrollView bu ref ile en üste alınacak.
+    Böylece 2025'ten 2026'ya geçerken üst bölüm kaybolmayacak.
+  */
+  const mainScrollRef =
+    useRef(null);
 
   const [
     subscriptions,
@@ -451,33 +609,6 @@ export default function App() {
     setExchangeRates
   ] = useState(
     DEFAULT_RATES
-  );
-
-  const [
-    isLoaded,
-    setIsLoaded
-  ] = useState(false);
-
-  const [
-    selectedPaymentFilter,
-    setSelectedPaymentFilter
-  ] = useState('ALL');
-
-  const [
-    selectedPeriodFilter,
-    setSelectedPeriodFilter
-  ] = useState('ALL');
-
-  const [
-    searchQuery,
-    setSearchQuery
-  ] = useState('');
-
-  const [
-    sortMode,
-    setSortMode
-  ] = useState(
-    'renewal'
   );
 
   const [
@@ -495,13 +626,43 @@ export default function App() {
   );
 
   const [
+    isLoaded,
+    setIsLoaded
+  ] = useState(false);
+
+  const [
     activeTab,
     setActiveTab
   ] = useState('list');
 
   const [
-    isModalOpen,
-    setIsModalOpen
+    viewFilter,
+    setViewFilter
+  ] = useState('ALL');
+
+  const [
+    searchQuery,
+    setSearchQuery
+  ] = useState('');
+
+  const [
+    backgroundPreset,
+    setBackgroundPreset
+  ] = useState('smoke');
+
+  const [
+    fontScaleKey,
+    setFontScaleKey
+  ] = useState('normal');
+
+  const [
+    isAppearanceModalOpen,
+    setIsAppearanceModalOpen
+  ] = useState(false);
+
+  const [
+    isSubscriptionModalOpen,
+    setIsSubscriptionModalOpen
   ] = useState(false);
 
   const [
@@ -509,7 +670,7 @@ export default function App() {
     setEditingId
   ] = useState(null);
 
-  const now =
+  const currentDate =
     new Date();
 
   const clampedYear =
@@ -517,23 +678,23 @@ export default function App() {
       2030,
       Math.max(
         2025,
-        now.getFullYear()
+        currentDate.getFullYear()
       )
     );
 
   const [
-    calMonth,
-    setCalMonth
+    calendarMonth,
+    setCalendarMonth
   ] = useState(
     clampedYear ===
-      now.getFullYear()
-      ? now.getMonth()
+      currentDate.getFullYear()
+      ? currentDate.getMonth()
       : 0
   );
 
   const [
-    calYear,
-    setCalYear
+    calendarYear,
+    setCalendarYear
   ] = useState(
     clampedYear
   );
@@ -544,6 +705,8 @@ export default function App() {
   ] = useState(
     clampedYear
   );
+
+  /* ----------------------------- Form alanları ----------------------------- */
 
   const [
     formName,
@@ -568,37 +731,35 @@ export default function App() {
   const [
     formMonth,
     setFormMonth
-  ] = useState('8');
+  ] = useState(
+    String(
+      currentDate.getMonth() + 1
+    )
+  );
 
   const [
     formYear,
     setFormYear
   ] = useState(
-    String(
-      clampedYear
-    )
+    String(clampedYear)
   );
 
   const [
     formCategory,
     setFormCategory
-  ] = useState(
-    'Eğlence'
-  );
+  ] = useState('Eğlence');
 
   const [
     formPaymentMethod,
     setFormPaymentMethod
   ] = useState(
-    'Garanti Bonus'
+    DEFAULT_PAYMENT_METHODS[0]
   );
 
   const [
     formPeriod,
     setFormPeriod
-  ] = useState(
-    'monthly'
-  );
+  ] = useState('monthly');
 
   const [
     formCancelUrl,
@@ -608,9 +769,7 @@ export default function App() {
   const [
     formColor,
     setFormColor
-  ] = useState(
-    '#6366F1'
-  );
+  ] = useState('#6366f1');
 
   const [
     formNotificationDays,
@@ -640,9 +799,7 @@ export default function App() {
   const [
     newTemplateCategory,
     setNewTemplateCategory
-  ] = useState(
-    'Diğer'
-  );
+  ] = useState('Diğer');
 
   const [
     showPaymentMethodForm,
@@ -653,6 +810,9 @@ export default function App() {
     newPaymentMethodName,
     setNewPaymentMethodName
   ] = useState('');
+  /* ------------------------------------------------------------------------ */
+  /*                         KAYITLI VERİLERİ YÜKLEME                          */
+  /* ------------------------------------------------------------------------ */
 
   useEffect(() => {
     try {
@@ -661,21 +821,59 @@ export default function App() {
           'cebin_subscriptions_v5'
         );
 
-      if (
-        savedSubscriptions
-      ) {
-        const parsed =
+      if (savedSubscriptions) {
+        const parsedSubscriptions =
           JSON.parse(
             savedSubscriptions
           );
 
         setSubscriptions(
-          Array.isArray(parsed)
-            ? parsed
+          Array.isArray(
+            parsedSubscriptions
+          )
+            ? parsedSubscriptions
             : []
         );
-      } else {
-        setSubscriptions([]);
+      }
+
+      const savedTemplates =
+        localStorage.getItem(
+          'cebin_templates_v1'
+        );
+
+      if (savedTemplates) {
+        const parsedTemplates =
+          JSON.parse(
+            savedTemplates
+          );
+
+        setTemplatesList(
+          Array.isArray(
+            parsedTemplates
+          )
+            ? parsedTemplates
+            : DEFAULT_TEMPLATES
+        );
+      }
+
+      const savedPaymentMethods =
+        localStorage.getItem(
+          'cebin_payment_methods_v1'
+        );
+
+      if (savedPaymentMethods) {
+        const parsedPaymentMethods =
+          JSON.parse(
+            savedPaymentMethods
+          );
+
+        setPaymentMethodsList(
+          Array.isArray(
+            parsedPaymentMethods
+          )
+            ? parsedPaymentMethods
+            : DEFAULT_PAYMENT_METHODS
+        );
       }
 
       const savedRates =
@@ -692,46 +890,58 @@ export default function App() {
         setExchangeRates({
           USD:
             Number(
-              parsedRates.USD
+              parsedRates?.USD
             ) ||
             DEFAULT_RATES.USD,
 
           EUR:
             Number(
-              parsedRates.EUR
+              parsedRates?.EUR
             ) ||
-            DEFAULT_RATES.EUR,
+            DEFAULT_RATES.EUR
         });
       }
 
-      const savedTemplates =
+      const savedAppearance =
         localStorage.getItem(
-          'cebin_templates_v1'
+          'cebin_appearance_v1'
         );
 
-      setTemplatesList(
-        savedTemplates
-          ? JSON.parse(
-              savedTemplates
-            )
-          : DEFAULT_TEMPLATES
-      );
+      if (savedAppearance) {
+        const parsedAppearance =
+          JSON.parse(
+            savedAppearance
+          );
 
-      const savedMethods =
-        localStorage.getItem(
-          'cebin_payment_methods_v1'
-        );
+        if (
+          BACKGROUND_PRESETS[
+            parsedAppearance
+              ?.backgroundPreset
+          ]
+        ) {
+          setBackgroundPreset(
+            parsedAppearance
+              .backgroundPreset
+          );
+        }
 
-      setPaymentMethodsList(
-        savedMethods
-          ? JSON.parse(
-              savedMethods
-            )
-          : DEFAULT_PAYMENT_METHODS
-      );
+        if (
+          FONT_SCALE_OPTIONS.some(
+            option =>
+              option.key ===
+              parsedAppearance
+                ?.fontScaleKey
+          )
+        ) {
+          setFontScaleKey(
+            parsedAppearance
+              .fontScaleKey
+          );
+        }
+      }
     } catch (error) {
       console.log(
-        'LocalStorage okuma hatası:',
+        'Kayıtlı veriler okunamadı:',
         error
       );
     }
@@ -752,7 +962,10 @@ export default function App() {
         )
       );
     } catch (error) {
-      console.log(error);
+      console.log(
+        'Abonelikler kaydedilemedi:',
+        error
+      );
     }
   }, [
     subscriptions,
@@ -772,7 +985,10 @@ export default function App() {
         )
       );
     } catch (error) {
-      console.log(error);
+      console.log(
+        'Şablonlar kaydedilemedi:',
+        error
+      );
     }
   }, [
     templatesList,
@@ -792,7 +1008,10 @@ export default function App() {
         )
       );
     } catch (error) {
-      console.log(error);
+      console.log(
+        'Ödeme yöntemleri kaydedilemedi:',
+        error
+      );
     }
   }, [
     paymentMethodsList,
@@ -812,12 +1031,133 @@ export default function App() {
         )
       );
     } catch (error) {
-      console.log(error);
+      console.log(
+        'Kurlar kaydedilemedi:',
+        error
+      );
     }
   }, [
     exchangeRates,
     isLoaded
   ]);
+
+  useEffect(() => {
+    if (!isLoaded) {
+      return;
+    }
+
+    try {
+      localStorage.setItem(
+        'cebin_appearance_v1',
+        JSON.stringify({
+          backgroundPreset,
+          fontScaleKey
+        })
+      );
+    } catch (error) {
+      console.log(
+        'Görünüm ayarları kaydedilemedi:',
+        error
+      );
+    }
+  }, [
+    backgroundPreset,
+    fontScaleKey,
+    isLoaded
+  ]);
+
+  /*
+    Analiz yılı değiştiğinde sayfa en üste alınır.
+    requestAnimationFrame kullanılması render tamamlandıktan sonra
+    scroll işleminin uygulanmasını sağlar.
+  */
+  useEffect(() => {
+    if (
+      activeTab !==
+      'analytics'
+    ) {
+      return;
+    }
+
+    const frameId =
+      requestAnimationFrame(
+        () => {
+          mainScrollRef.current
+            ?.scrollTo?.({
+              y: 0,
+              animated: false
+            });
+        }
+      );
+
+    return () =>
+      cancelAnimationFrame(
+        frameId
+      );
+  }, [
+    selectedAnalysisYear,
+    activeTab
+  ]);
+
+  /*
+    Sekme değiştirildiğinde de içerik en üstten başlar.
+  */
+  useEffect(() => {
+    const frameId =
+      requestAnimationFrame(
+        () => {
+          mainScrollRef.current
+            ?.scrollTo?.({
+              y: 0,
+              animated: false
+            });
+        }
+      );
+
+    return () =>
+      cancelAnimationFrame(
+        frameId
+      );
+  }, [activeTab]);
+
+  /* ------------------------------------------------------------------------ */
+  /*                            GÖRÜNÜM AYARLARI                               */
+  /* ------------------------------------------------------------------------ */
+
+  const selectedPreset =
+    BACKGROUND_PRESETS[
+      backgroundPreset
+    ] ||
+    BACKGROUND_PRESETS.smoke;
+
+  const selectedFontOption =
+    FONT_SCALE_OPTIONS.find(
+      option =>
+        option.key ===
+        fontScaleKey
+    ) ||
+    FONT_SCALE_OPTIONS[1];
+
+  const fontScale =
+    selectedFontOption.scale;
+
+  const theme = {
+    ...selectedPreset,
+
+    danger: '#f87171',
+
+    success: '#34d399',
+
+    warning: '#fbbf24',
+
+    activeButton: '#6965e8',
+
+    activeButtonBorder:
+      '#7772f0',
+
+    activeButtonSoft:
+      '#7772ff26'
+  };
 
   const safeList =
     Array.isArray(
@@ -826,332 +1166,29 @@ export default function App() {
       ? subscriptions
       : [];
 
-  const theme =
-    isDarkMode
-      ? {
-          bg: '#2f343b',
-          headerBg: '#383e46',
-          cardBg: '#3d444d',
-          summaryBg: '#5b58d6',
-          summaryBorder: '#7370eb',
-          cardBorder: '#565e69',
-          textPrimary: '#f3f4f6',
-          textSecondary: '#d1d5db',
-          textMuted: '#aeb6c2',
-          inputBg: '#343a43',
-          accent: '#63b3ff',
-          danger: '#ef4444',
-        }
-      : {
-          bg: '#eef1f6',
-          headerBg: '#ffffff',
-          cardBg: '#ffffff',
-          summaryBg: '#4f46e5',
-          summaryBorder: '#6366f1',
-          cardBorder: '#dfe3ea',
-          textPrimary: '#1b2230',
-          textSecondary: '#525c6e',
-          textMuted: '#7c8798',
-          inputBg: '#eef1f6',
-          accent: '#2563eb',
-          danger: '#dc2626',
-        };
+  const safeTemplates =
+    Array.isArray(
+      templatesList
+    )
+      ? templatesList
+      : [];
 
-  const handleDelete = id => {
-    const item =
-      safeList.find(
-        subscription =>
-          subscription.id ===
-          id
-      );
+  const safePaymentMethods =
+    Array.isArray(
+      paymentMethodsList
+    )
+      ? paymentMethodsList
+      : [];
 
-    const confirmed =
-      confirmAction(
-        `“${
-          item?.name ||
-          'Bu abonelik'
-        }” kalıcı olarak silinsin mi?`
-      );
+  /* ------------------------------------------------------------------------ */
+  /*                         ABONELİK LİSTESİ FİLTRESİ                         */
+  /* ------------------------------------------------------------------------ */
 
-    if (!confirmed) {
-      return;
-    }
+  const todayForFiltering =
+    new Date();
 
-    setSubscriptions(
-      safeList.filter(
-        subscription =>
-          subscription.id !==
-          id
-      )
-    );
-  };
-
-  const handleExportCSV =
-    () => {
-      if (
-        safeList.length === 0
-      ) {
-        alert(
-          'Dışa aktarılacak abonelik bulunmuyor.'
-        );
-
-        return;
-      }
-
-      let csvContent =
-        '\uFEFFServis Adi;Fiyat;Para Birimi;Kategori;Odeme Yontemi;Periyot;Odeme Gunu;Odeme Ayi;Odeme Yili\n';
-
-      safeList.forEach(
-        subscription => {
-          csvContent +=
-            `"${subscription.name}";` +
-            `${subscription.price};` +
-            `"${subscription.currency}";` +
-            `"${subscription.category}";` +
-            `"${subscription.paymentMethod}";` +
-            `"${subscription.period}";` +
-            `${subscription.billingDay};` +
-            `${subscription.billingMonth};` +
-            `${subscription.billingYear}\n`;
-        }
-      );
-
-      const blob =
-        new Blob(
-          [csvContent],
-          {
-            type: 'text/csv;charset=utf-8;'
-          }
-        );
-
-      const url =
-        URL.createObjectURL(
-          blob
-        );
-
-      const link =
-        document.createElement(
-          'a'
-        );
-
-      link.setAttribute(
-        'href',
-        url
-      );
-
-      link.setAttribute(
-        'download',
-        `cebin_abonelikler_${calYear}.csv`
-      );
-
-      document.body.appendChild(
-        link
-      );
-
-      link.click();
-
-      document.body.removeChild(
-        link
-      );
-
-      URL.revokeObjectURL(
-        url
-      );
-    };
-
-  const handleExportJSON =
-    () => {
-      const backup = {
-        version: 1,
-
-        exportedAt:
-          new Date().toISOString(),
-
-        subscriptions,
-
-        templates:
-          templatesList,
-
-        paymentMethods:
-          paymentMethodsList,
-
-        exchangeRates
-      };
-
-      const dataString =
-        'data:text/json;charset=utf-8,' +
-        encodeURIComponent(
-          JSON.stringify(
-            backup,
-            null,
-            2
-          )
-        );
-
-      const downloadElement =
-        document.createElement(
-          'a'
-        );
-
-      downloadElement.setAttribute(
-        'href',
-        dataString
-      );
-
-      downloadElement.setAttribute(
-        'download',
-        `cebin_yedek_${Date.now()}.json`
-      );
-
-      document.body.appendChild(
-        downloadElement
-      );
-
-      downloadElement.click();
-
-      document.body.removeChild(
-        downloadElement
-      );
-    };
-
-  const handleImportJSON =
-    () => {
-      if (
-        typeof document ===
-        'undefined'
-      ) {
-        return;
-      }
-
-      const input =
-        document.createElement(
-          'input'
-        );
-
-      input.type = 'file';
-
-      input.accept =
-        'application/json,.json';
-
-      input.onchange =
-        async event => {
-          try {
-            const file =
-              event.target
-                .files?.[0];
-
-            if (!file) {
-              return;
-            }
-
-            const fileText =
-              await file.text();
-
-            const parsed =
-              JSON.parse(
-                fileText
-              );
-
-            const importedSubscriptions =
-              Array.isArray(
-                parsed
-              )
-                ? parsed
-                : parsed.subscriptions;
-
-            if (
-              !Array.isArray(
-                importedSubscriptions
-              )
-            ) {
-              throw new Error(
-                'Geçersiz yedek biçimi'
-              );
-            }
-
-            const confirmed =
-              confirmAction(
-                `${importedSubscriptions.length} kayıt içe aktarılacak ve mevcut liste değiştirilecek. Devam edilsin mi?`
-              );
-
-            if (!confirmed) {
-              return;
-            }
-
-            setSubscriptions(
-              importedSubscriptions
-            );
-
-            if (
-              Array.isArray(
-                parsed.templates
-              )
-            ) {
-              setTemplatesList(
-                parsed.templates
-              );
-            }
-
-            if (
-              Array.isArray(
-                parsed.paymentMethods
-              )
-            ) {
-              setPaymentMethodsList(
-                parsed.paymentMethods
-              );
-            }
-
-            if (
-              parsed.exchangeRates
-            ) {
-              setExchangeRates({
-                USD:
-                  Number(
-                    parsed
-                      .exchangeRates
-                      .USD
-                  ) ||
-                  DEFAULT_RATES.USD,
-
-                EUR:
-                  Number(
-                    parsed
-                      .exchangeRates
-                      .EUR
-                  ) ||
-                  DEFAULT_RATES.EUR,
-              });
-            }
-
-            alert(
-              'Yedek başarıyla geri yüklendi.'
-            );
-          } catch (error) {
-            alert(
-              `Yedek yüklenemedi: ${error.message}`
-            );
-          }
-        };
-
-      input.click();
-    };
-    const filteredSubscriptions =
+  const filteredSubscriptions =
     safeList
-      .filter(
-        subscription =>
-          selectedPaymentFilter ===
-            'ALL' ||
-          subscription.paymentMethod ===
-            selectedPaymentFilter
-      )
-      .filter(
-        subscription =>
-          selectedPeriodFilter ===
-            'ALL' ||
-          subscription.period ===
-            selectedPeriodFilter
-      )
       .filter(subscription => {
         const query =
           normalizeText(
@@ -1173,10 +1210,75 @@ export default function App() {
           ).includes(query)
         );
       })
+      .filter(subscription => {
+        if (
+          viewFilter ===
+          'ALL'
+        ) {
+          return true;
+        }
+
+        if (
+          viewFilter ===
+          'MONTHLY'
+        ) {
+          return (
+            subscription.period ===
+            'monthly'
+          );
+        }
+
+        if (
+          viewFilter ===
+          'YEARLY'
+        ) {
+          return (
+            subscription.period ===
+            'yearly'
+          );
+        }
+
+        if (
+          viewFilter ===
+          'UPCOMING'
+        ) {
+          const nextRenewal =
+            getNextRenewal(
+              subscription,
+              todayForFiltering
+            );
+
+          const startOfToday =
+            new Date(
+              todayForFiltering
+                .getFullYear(),
+              todayForFiltering
+                .getMonth(),
+              todayForFiltering
+                .getDate()
+            );
+
+          const daysUntil =
+            Math.round(
+              (
+                nextRenewal -
+                startOfToday
+              ) /
+                86400000
+            );
+
+          return (
+            daysUntil >= 0 &&
+            daysUntil <= 14
+          );
+        }
+
+        return true;
+      })
       .sort((a, b) => {
         if (
-          sortMode ===
-          'price-desc'
+          viewFilter ===
+          'EXPENSIVE'
         ) {
           return (
             convertToTL(
@@ -1193,28 +1295,56 @@ export default function App() {
         }
 
         if (
-          sortMode ===
-          'name'
+          viewFilter ===
+          'NAME'
         ) {
           return String(
-            a.name
+            a.name || ''
           ).localeCompare(
-            String(b.name),
+            String(
+              b.name || ''
+            ),
             'tr'
           );
         }
 
-        return (
-          getNextRenewal(
-            a,
-            new Date()
-          ) -
-          getNextRenewal(
-            b,
-            new Date()
-          )
+        if (
+          viewFilter ===
+          'UPCOMING'
+        ) {
+          return (
+            getNextRenewal(
+              a,
+              todayForFiltering
+            ) -
+            getNextRenewal(
+              b,
+              todayForFiltering
+            )
+          );
+        }
+
+        return String(
+          a.name || ''
+        ).localeCompare(
+          String(
+            b.name || ''
+          ),
+          'tr'
         );
       });
+
+  const selectedViewFilterLabel =
+    VIEW_FILTER_OPTIONS.find(
+      option =>
+        option.key ===
+        viewFilter
+    )?.label ||
+    'Tüm Abonelikler';
+
+  /* ------------------------------------------------------------------------ */
+  /*                         ANA SAYFA HESAPLAMALARI                           */
+  /* ------------------------------------------------------------------------ */
 
   const monthlyTotalTL =
     safeList.reduce(
@@ -1230,7 +1360,7 @@ export default function App() {
           return total;
         }
 
-        const priceTL =
+        const priceInTL =
           convertToTL(
             subscription.price,
             subscription.currency ||
@@ -1238,18 +1368,33 @@ export default function App() {
             exchangeRates
           );
 
+        if (
+          subscription.period ===
+          'yearly'
+        ) {
+          return (
+            total +
+            priceInTL / 12
+          );
+        }
+
         return (
           total +
-          (
-            subscription.period ===
-            'yearly'
-              ? priceTL / 12
-              : priceTL
-          )
+          priceInTL
         );
       },
       0
     );
+
+  const dailyAverageTL =
+    monthlyTotalTL / 30;
+
+  const yearlyProjectionTL =
+    monthlyTotalTL * 12;
+
+  /* ------------------------------------------------------------------------ */
+  /*                           ANALİZ HESAPLAMALARI                            */
+  /* ------------------------------------------------------------------------ */
 
   const getDetailedMonthlyBreakdown =
     targetYear => {
@@ -1280,7 +1425,7 @@ export default function App() {
               subscription.category ||
               'Diğer';
 
-            const cost =
+            const amount =
               getSubscriptionCostForMonth(
                 subscription,
                 targetYear,
@@ -1288,18 +1433,20 @@ export default function App() {
                 exchangeRates
               );
 
-            if (cost > 0) {
-              monthTotal += cost;
-
-              categoryTotals[
-                category
-              ] =
-                (
-                  categoryTotals[
-                    category
-                  ] || 0
-                ) + cost;
+            if (amount <= 0) {
+              return;
             }
+
+            monthTotal += amount;
+
+            categoryTotals[
+              category
+            ] =
+              (
+                categoryTotals[
+                  category
+                ] || 0
+              ) + amount;
           }
         );
 
@@ -1314,7 +1461,8 @@ export default function App() {
         )
           .sort(
             (a, b) =>
-              b[1] - a[1]
+              b[1] -
+              a[1]
           )
           .map(
             ([
@@ -1323,11 +1471,13 @@ export default function App() {
             ]) => ({
               category,
               amount,
+
               color:
                 CATEGORY_COLORS[
                   category
                 ] ||
-                '#6366f1',
+                CATEGORY_COLORS
+                  .Diğer
             })
           );
       }
@@ -1346,7 +1496,7 @@ export default function App() {
       selectedAnalysisYear
     );
 
-  const totalYearlyExpenseForSelectedYear =
+  const totalYearlyExpense =
     monthlyTotals.reduce(
       (
         total,
@@ -1356,23 +1506,23 @@ export default function App() {
       0
     );
 
-  const maxMonthlyExpense =
-    Math.max(
-      ...monthlyTotals,
-      1
-    );
-
-  const monthsWithSpending =
+  const monthsWithExpense =
     monthlyTotals.filter(
       amount =>
         amount > 0
     ).length;
 
   const averageMonthlyExpense =
-    monthsWithSpending > 0
-      ? totalYearlyExpenseForSelectedYear /
-        monthsWithSpending
+    monthsWithExpense > 0
+      ? totalYearlyExpense /
+        monthsWithExpense
       : 0;
+
+  const maxMonthlyExpense =
+    Math.max(
+      ...monthlyTotals,
+      1
+    );
 
   const yearlyPaymentMethodStats =
     safeList.reduce(
@@ -1380,11 +1530,11 @@ export default function App() {
         accumulator,
         subscription
       ) => {
-        const method =
+        const paymentMethod =
           subscription.paymentMethod ||
-          'Diğer';
+          'Nakit / Diğer';
 
-        const amount =
+        const yearlyAmount =
           Array.from(
             {
               length: 12
@@ -1401,23 +1551,27 @@ export default function App() {
               )
           ).reduce(
             (
-              sum,
-              value
+              total,
+              amount
             ) =>
-              sum + value,
+              total + amount,
             0
           );
 
-        if (amount > 0) {
-          accumulator[
-            method
-          ] =
-            (
-              accumulator[
-                method
-              ] || 0
-            ) + amount;
+        if (
+          yearlyAmount <= 0
+        ) {
+          return accumulator;
         }
+
+        accumulator[
+          paymentMethod
+        ] =
+          (
+            accumulator[
+              paymentMethod
+            ] || 0
+          ) + yearlyAmount;
 
         return accumulator;
       },
@@ -1434,7 +1588,7 @@ export default function App() {
           subscription.category ||
           'Diğer';
 
-        const amount =
+        const yearlyAmount =
           Array.from(
             {
               length: 12
@@ -1451,23 +1605,27 @@ export default function App() {
               )
           ).reduce(
             (
-              sum,
-              value
+              total,
+              amount
             ) =>
-              sum + value,
+              total + amount,
             0
           );
 
-        if (amount > 0) {
-          accumulator[
-            category
-          ] =
-            (
-              accumulator[
-                category
-              ] || 0
-            ) + amount;
+        if (
+          yearlyAmount <= 0
+        ) {
+          return accumulator;
         }
+
+        accumulator[
+          category
+        ] =
+          (
+            accumulator[
+              category
+            ] || 0
+          ) + yearlyAmount;
 
         return accumulator;
       },
@@ -1479,7 +1637,8 @@ export default function App() {
       yearlyPaymentMethodStats
     ).sort(
       (a, b) =>
-        b[1] - a[1]
+        b[1] -
+        a[1]
     );
 
   const sortedCategoryEntries =
@@ -1487,7 +1646,8 @@ export default function App() {
       yearlyCategoryStats
     ).sort(
       (a, b) =>
-        b[1] - a[1]
+        b[1] -
+        a[1]
     );
 
   const topCategoryLabel =
@@ -1495,13 +1655,20 @@ export default function App() {
       0
     ]?.[0] || '-';
 
-  const mostExpensiveSub =
+  const mostExpensiveSubscription =
     safeList.reduce(
       (
-        currentTop,
+        currentHighest,
         subscription
       ) => {
-        const priceTL =
+        if (
+          subscription.status ===
+          'cancelled'
+        ) {
+          return currentHighest;
+        }
+
+        const priceInTL =
           convertToTL(
             subscription.price,
             subscription.currency ||
@@ -1512,13 +1679,14 @@ export default function App() {
         const monthlyEquivalent =
           subscription.period ===
           'yearly'
-            ? priceTL / 12
-            : priceTL;
+            ? priceInTL / 12
+            : priceInTL;
 
         if (
-          !currentTop ||
+          !currentHighest ||
           monthlyEquivalent >
-            currentTop.monthlyEquivalent
+            currentHighest
+              .monthlyEquivalent
         ) {
           return {
             item:
@@ -1528,7 +1696,7 @@ export default function App() {
           };
         }
 
-        return currentTop;
+        return currentHighest;
       },
       null
     );
@@ -1551,18 +1719,21 @@ export default function App() {
               todayForRenewals
             );
 
-          const startOfToday =
+          const todayStart =
             new Date(
-              todayForRenewals.getFullYear(),
-              todayForRenewals.getMonth(),
-              todayForRenewals.getDate()
+              todayForRenewals
+                .getFullYear(),
+              todayForRenewals
+                .getMonth(),
+              todayForRenewals
+                .getDate()
             );
 
           const daysUntil =
             Math.round(
               (
                 nextDate -
-                startOfToday
+                todayStart
               ) /
                 86400000
             );
@@ -1590,161 +1761,189 @@ export default function App() {
           b.daysUntil
       );
 
-  const openForm = (
-    item = null
-  ) => {
-    if (item) {
-      setEditingId(
-        item.id
-      );
+  /* ------------------------------------------------------------------------ */
+  /*                           ABONELİK FORMU                                  */
+  /* ------------------------------------------------------------------------ */
 
-      setFormName(
-        item.name || ''
-      );
+  const openSubscriptionForm =
+    (
+      item = null
+    ) => {
+      if (item) {
+        setEditingId(
+          item.id
+        );
 
-      setFormPrice(
-        String(
-          item.price || ''
-        )
-      );
+        setFormName(
+          item.name || ''
+        );
 
-      setFormCurrency(
-        item.currency ||
+        setFormPrice(
+          String(
+            item.price || ''
+          )
+        );
+
+        setFormCurrency(
+          item.currency ||
           'TRY'
-      );
+        );
 
-      setFormDay(
-        String(
-          item.billingDay ||
-            '1'
-        )
-      );
+        setFormDay(
+          String(
+            item.billingDay ||
+              '1'
+          )
+        );
 
-      setFormMonth(
-        String(
-          item.billingMonth ||
-            calMonth + 1
-        )
-      );
+        setFormMonth(
+          String(
+            item.billingMonth ||
+              calendarMonth + 1
+          )
+        );
 
-      setFormYear(
-        String(
-          item.billingYear ||
-            clampedYear
-        )
-      );
+        setFormYear(
+          String(
+            item.billingYear ||
+              calendarYear
+          )
+        );
 
-      setFormCategory(
-        item.category ||
-          'Eğlence'
-      );
+        setFormCategory(
+          item.category ||
+          'Diğer'
+        );
 
-      setFormPaymentMethod(
-        item.paymentMethod ||
-          paymentMethodsList[
+        setFormPaymentMethod(
+          item.paymentMethod ||
+          safePaymentMethods[
             0
           ] ||
           ''
-      );
+        );
 
-      setFormPeriod(
-        item.period ||
+        setFormPeriod(
+          item.period ||
           'monthly'
-      );
+        );
 
-      setFormCancelUrl(
-        item.cancelUrl ||
+        setFormCancelUrl(
+          item.cancelUrl ||
           ''
-      );
+        );
 
-      setFormColor(
-        item.color ||
+        setFormColor(
+          item.color ||
           getServiceColor(
             item.name,
-            templatesList
+            safeTemplates
           )
+        );
+
+        setFormNotificationDays(
+          item.notificationDays !==
+            undefined
+            ? item.notificationDays
+            : 2
+        );
+      } else {
+        setEditingId(null);
+
+        setFormName('');
+
+        setFormPrice('');
+
+        setFormCurrency(
+          'TRY'
+        );
+
+        setFormDay('1');
+
+        setFormMonth(
+          String(
+            currentDate.getMonth() +
+              1
+          )
+        );
+
+        setFormYear(
+          String(
+            clampedYear
+          )
+        );
+
+        setFormCategory(
+          'Eğlence'
+        );
+
+        setFormPaymentMethod(
+          safePaymentMethods[
+            0
+          ] ||
+          DEFAULT_PAYMENT_METHODS[
+            0
+          ]
+        );
+
+        setFormPeriod(
+          'monthly'
+        );
+
+        setFormCancelUrl('');
+
+        setFormColor(
+          '#6366f1'
+        );
+
+        setFormNotificationDays(
+          2
+        );
+      }
+
+      setShowTemplateForm(
+        false
       );
 
-      setFormNotificationDays(
-        item.notificationDays !==
-          undefined
-          ? item.notificationDays
-          : 2
+      setShowPaymentMethodForm(
+        false
       );
-    } else {
+
+      setIsSubscriptionModalOpen(
+        true
+      );
+    };
+
+  const closeSubscriptionForm =
+    () => {
+      setIsSubscriptionModalOpen(
+        false
+      );
+
       setEditingId(null);
 
-      setFormName('');
-
-      setFormPrice('');
-
-      setFormCurrency(
-        'TRY'
+      setShowTemplateForm(
+        false
       );
 
-      setFormDay('1');
-
-      setFormMonth(
-        String(
-          calMonth + 1
-        )
+      setShowPaymentMethodForm(
+        false
       );
+    };
 
-      setFormYear(
-        String(
-          calYear
-        )
-      );
-
-      setFormCategory(
-        'Eğlence'
-      );
-
-      setFormPaymentMethod(
-        paymentMethodsList[
-          0
-        ] ||
-          'Garanti Bonus'
-      );
-
-      setFormPeriod(
-        'monthly'
-      );
-
-      setFormCancelUrl('');
-
-      setFormColor(
-        '#6366F1'
-      );
-
-      setFormNotificationDays(
-        2
-      );
-    }
-
-    setShowTemplateForm(
-      false
-    );
-
-    setShowPaymentMethodForm(
-      false
-    );
-
-    setIsModalOpen(
-      true
-    );
-  };
-
-  const handleSaveForm =
+  const handleSaveSubscription =
     () => {
+      const normalizedPrice =
+        String(
+          formPrice
+        ).replace(
+          ',',
+          '.'
+        );
+
       const numericPrice =
         Number(
-          String(
-            formPrice
-          ).replace(
-            ',',
-            '.'
-          )
+          normalizedPrice
         );
 
       const numericDay =
@@ -1760,7 +1959,7 @@ export default function App() {
         !formName.trim()
       ) {
         alert(
-          'Lütfen servis adını giriniz.'
+          'Lütfen abonelik veya gider adını giriniz.'
         );
 
         return;
@@ -1773,21 +1972,7 @@ export default function App() {
         numericPrice <= 0
       ) {
         alert(
-          'Lütfen sıfırdan büyük geçerli bir fiyat giriniz.'
-        );
-
-        return;
-      }
-
-      if (
-        !Number.isInteger(
-          numericDay
-        ) ||
-        numericDay < 1 ||
-        numericDay > 31
-      ) {
-        alert(
-          'Ödeme günü 1 ile 31 arasında olmalıdır.'
+          'Lütfen sıfırdan büyük geçerli bir tutar giriniz.'
         );
 
         return;
@@ -1801,7 +1986,7 @@ export default function App() {
         numericMonth > 12
       ) {
         alert(
-          'Ödeme ayı 1 ile 12 arasında olmalıdır.'
+          'Ay değeri 1 ile 12 arasında olmalıdır.'
         );
 
         return;
@@ -1813,7 +1998,7 @@ export default function App() {
         )
       ) {
         alert(
-          'Lütfen geçerli bir ödeme yılı seçiniz.'
+          'Lütfen geçerli bir yıl seçiniz.'
         );
 
         return;
@@ -1826,8 +2011,12 @@ export default function App() {
         );
 
       if (
+        !Number.isInteger(
+          numericDay
+        ) ||
+        numericDay < 1 ||
         numericDay >
-        maximumDay
+          maximumDay
       ) {
         alert(
           `Seçilen ay için gün 1 ile ${maximumDay} arasında olmalıdır.`
@@ -1852,13 +2041,13 @@ export default function App() {
         )
       ) {
         alert(
-          'İptal bağlantısı http:// veya https:// ile başlayan geçerli bir adres olmalıdır.'
+          'Yönetim bağlantısı http:// veya https:// ile başlamalıdır.'
         );
 
         return;
       }
 
-      const existingItem =
+      const existingSubscription =
         safeList.find(
           subscription =>
             subscription.id ===
@@ -1866,7 +2055,7 @@ export default function App() {
         );
 
       const payload = {
-        ...existingItem,
+        ...existingSubscription,
 
         id:
           editingId ||
@@ -1919,8 +2108,9 @@ export default function App() {
           formNotificationDays,
 
         status:
-          existingItem?.status ||
-          'active',
+          existingSubscription
+            ?.status ||
+          'active'
       };
 
       setSubscriptions(
@@ -1938,209 +2128,226 @@ export default function App() {
             ]
       );
 
-      setIsModalOpen(
-        false
-      );
+      closeSubscriptionForm();
     };
-
-  const addTemplate =
-    () => {
-      const numericPrice =
-        Number(
-          String(
-            newTemplatePrice
-          ).replace(
-            ',',
-            '.'
-          )
-        );
-
-      if (
-        !newTemplateName.trim()
-      ) {
-        alert(
-          'Lütfen şablon adını giriniz.'
-        );
-
-        return;
-      }
-
-      if (
-        !Number.isFinite(
-          numericPrice
-        ) ||
-        numericPrice <= 0
-      ) {
-        alert(
-          'Lütfen geçerli bir şablon fiyatı giriniz.'
-        );
-
-        return;
-      }
-
-      const templateExists =
-        templatesList.some(
-          template =>
-            normalizeText(
-              template.name
-            ) ===
-            normalizeText(
-              newTemplateName
-            )
-        );
-
-      if (
-        templateExists
-      ) {
-        alert(
-          'Bu isimde bir şablon zaten bulunuyor.'
-        );
-
-        return;
-      }
-
-      const color =
-        TEMPLATE_COLOR_PALETTE[
-          templatesList.length %
-            TEMPLATE_COLOR_PALETTE.length
-        ];
-
-      setTemplatesList([
-        ...templatesList,
-
-        {
-          name:
-            newTemplateName.trim(),
-
-          price:
-            String(
-              numericPrice
-            ),
-
-          currency:
-            newTemplateCurrency,
-
-          category:
-            newTemplateCategory,
-
-          color,
-        }
-      ]);
-
-      setNewTemplateName('');
-
-      setNewTemplatePrice('');
-
-      setNewTemplateCurrency(
-        'TRY'
+   const handleDeleteSubscription = id => {
+    const targetSubscription =
+      safeList.find(
+        subscription =>
+          subscription.id === id
       );
 
-      setNewTemplateCategory(
-        'Diğer'
+    const confirmed =
+      confirmAction(
+        `“${
+          targetSubscription?.name ||
+          'Bu kayıt'
+        }” kalıcı olarak silinsin mi?`
       );
 
-      setShowTemplateForm(
-        false
-      );
-    };
+    if (!confirmed) {
+      return;
+    }
 
-  const removeTemplate =
-    index => {
-      const template =
-        templatesList[
-          index
-        ];
+    setSubscriptions(
+      safeList.filter(
+        subscription =>
+          subscription.id !== id
+      )
+    );
+  };
 
-      const confirmed =
-        confirmAction(
-          `“${
-            template?.name ||
-            'Şablon'
-          }” şablonu silinsin mi?`
-        );
-
-      if (!confirmed) {
-        return;
-      }
-
-      setTemplatesList(
-        templatesList.filter(
-          (
-            _,
-            currentIndex
-          ) =>
-            currentIndex !==
-            index
+  const addTemplate = () => {
+    const numericPrice =
+      Number(
+        String(
+          newTemplatePrice
+        ).replace(
+          ',',
+          '.'
         )
       );
-    };
 
-  const addPaymentMethod =
-    () => {
-      const name =
-        newPaymentMethodName.trim();
+    if (
+      !newTemplateName.trim()
+    ) {
+      alert(
+        'Lütfen şablon adını giriniz.'
+      );
 
-      if (!name) {
-        alert(
-          'Lütfen ödeme yöntemi adını giriniz.'
-        );
+      return;
+    }
 
-        return;
+    if (
+      !Number.isFinite(
+        numericPrice
+      ) ||
+      numericPrice <= 0
+    ) {
+      alert(
+        'Lütfen sıfırdan büyük geçerli bir şablon fiyatı giriniz.'
+      );
+
+      return;
+    }
+
+    const templateAlreadyExists =
+      safeTemplates.some(
+        template =>
+          normalizeText(
+            template.name
+          ) ===
+          normalizeText(
+            newTemplateName
+          )
+      );
+
+    if (
+      templateAlreadyExists
+    ) {
+      alert(
+        'Bu isimde bir şablon zaten bulunuyor.'
+      );
+
+      return;
+    }
+
+    const templateColor =
+      TEMPLATE_COLOR_PALETTE[
+        safeTemplates.length %
+        TEMPLATE_COLOR_PALETTE.length
+      ];
+
+    setTemplatesList([
+      ...safeTemplates,
+      {
+        name:
+          newTemplateName.trim(),
+
+        price:
+          String(
+            numericPrice
+          ),
+
+        currency:
+          newTemplateCurrency,
+
+        category:
+          newTemplateCategory,
+
+        color:
+          templateColor
       }
+    ]);
 
-      const methodExists =
-        paymentMethodsList.some(
-          method =>
-            normalizeText(
-              method
-            ) ===
-            normalizeText(
-              name
-            )
-        );
+    setNewTemplateName('');
 
-      if (
-        methodExists
-      ) {
-        alert(
-          'Bu ödeme yöntemi zaten bulunuyor.'
-        );
+    setNewTemplatePrice('');
 
-        return;
-      }
+    setNewTemplateCurrency(
+      'TRY'
+    );
 
-      setPaymentMethodsList([
-        ...paymentMethodsList,
-        name
-      ]);
+    setNewTemplateCategory(
+      'Diğer'
+    );
 
-      setFormPaymentMethod(
-        name
+    setShowTemplateForm(
+      false
+    );
+  };
+
+  const removeTemplate = index => {
+    const targetTemplate =
+      safeTemplates[index];
+
+    const confirmed =
+      confirmAction(
+        `“${
+          targetTemplate?.name ||
+          'Bu şablon'
+        }” silinsin mi?`
       );
 
-      setNewPaymentMethodName(
-        ''
+    if (!confirmed) {
+      return;
+    }
+
+    setTemplatesList(
+      safeTemplates.filter(
+        (
+          _,
+          currentIndex
+        ) =>
+          currentIndex !==
+          index
+      )
+    );
+  };
+
+  const addPaymentMethod = () => {
+    const methodName =
+      newPaymentMethodName.trim();
+
+    if (!methodName) {
+      alert(
+        'Lütfen ödeme yöntemi adını giriniz.'
       );
 
-      setShowPaymentMethodForm(
-        false
+      return;
+    }
+
+    const methodAlreadyExists =
+      safePaymentMethods.some(
+        method =>
+          normalizeText(
+            method
+          ) ===
+          normalizeText(
+            methodName
+          )
       );
-    };
+
+    if (
+      methodAlreadyExists
+    ) {
+      alert(
+        'Bu ödeme yöntemi zaten bulunuyor.'
+      );
+
+      return;
+    }
+
+    setPaymentMethodsList([
+      ...safePaymentMethods,
+      methodName
+    ]);
+
+    setFormPaymentMethod(
+      methodName
+    );
+
+    setNewPaymentMethodName('');
+
+    setShowPaymentMethodForm(
+      false
+    );
+  };
 
   const removePaymentMethod =
-    method => {
+    paymentMethod => {
       const usageCount =
         safeList.filter(
           subscription =>
             subscription.paymentMethod ===
-            method
+            paymentMethod
         ).length;
 
       if (
         usageCount > 0
       ) {
         alert(
-          `Bu ödeme yöntemi ${usageCount} abonelikte kullanılıyor. Önce ilgili abonelikleri güncelleyin.`
+          `Bu ödeme yöntemi ${usageCount} kayıtta kullanılıyor. Önce ilgili kayıtların ödeme yöntemini değiştiriniz.`
         );
 
         return;
@@ -2148,7 +2355,7 @@ export default function App() {
 
       const confirmed =
         confirmAction(
-          `“${method}” ödeme yöntemi silinsin mi?`
+          `“${paymentMethod}” ödeme yöntemi silinsin mi?`
         );
 
       if (!confirmed) {
@@ -2156,10 +2363,10 @@ export default function App() {
       }
 
       const updatedMethods =
-        paymentMethodsList.filter(
-          currentMethod =>
-            currentMethod !==
-            method
+        safePaymentMethods.filter(
+          method =>
+            method !==
+            paymentMethod
         );
 
       setPaymentMethodsList(
@@ -2168,50 +2375,387 @@ export default function App() {
 
       if (
         formPaymentMethod ===
-        method
+        paymentMethod
       ) {
         setFormPaymentMethod(
-          updatedMethods[
-            0
-          ] || ''
-        );
-      }
-
-      if (
-        selectedPaymentFilter ===
-        method
-      ) {
-        setSelectedPaymentFilter(
-          'ALL'
+          updatedMethods[0] ||
+          ''
         );
       }
     };
 
+  /* ------------------------------------------------------------------------ */
+  /*                              YEDEKLEME                                    */
+  /* ------------------------------------------------------------------------ */
+
+  const handleExportCSV = () => {
+    if (
+      safeList.length === 0
+    ) {
+      alert(
+        'Dışa aktarılacak kayıt bulunmuyor.'
+      );
+
+      return;
+    }
+
+    let csvContent =
+      '\uFEFFServis Adi;Fiyat;Para Birimi;Kategori;Odeme Yontemi;Periyot;Odeme Gunu;Odeme Ayi;Odeme Yili\n';
+
+    safeList.forEach(
+      subscription => {
+        csvContent +=
+          `"${subscription.name}";` +
+          `${subscription.price};` +
+          `"${subscription.currency}";` +
+          `"${subscription.category}";` +
+          `"${subscription.paymentMethod}";` +
+          `"${subscription.period}";` +
+          `${subscription.billingDay};` +
+          `${subscription.billingMonth};` +
+          `${subscription.billingYear}\n`;
+      }
+    );
+
+    const csvBlob =
+      new Blob(
+        [csvContent],
+        {
+          type:
+            'text/csv;charset=utf-8;'
+        }
+      );
+
+    const fileUrl =
+      URL.createObjectURL(
+        csvBlob
+      );
+
+    const downloadLink =
+      document.createElement(
+        'a'
+      );
+
+    downloadLink.setAttribute(
+      'href',
+      fileUrl
+    );
+
+    downloadLink.setAttribute(
+      'download',
+      `cebin_abonelikler_${calendarYear}.csv`
+    );
+
+    document.body.appendChild(
+      downloadLink
+    );
+
+    downloadLink.click();
+
+    document.body.removeChild(
+      downloadLink
+    );
+
+    URL.revokeObjectURL(
+      fileUrl
+    );
+  };
+
+  const handleExportJSON = () => {
+    const backupData = {
+      version: 2,
+
+      exportedAt:
+        new Date().toISOString(),
+
+      subscriptions:
+        safeList,
+
+      templates:
+        safeTemplates,
+
+      paymentMethods:
+        safePaymentMethods,
+
+      exchangeRates,
+
+      appearance: {
+        backgroundPreset,
+        fontScaleKey
+      }
+    };
+
+    const fileContent =
+      JSON.stringify(
+        backupData,
+        null,
+        2
+      );
+
+    const backupBlob =
+      new Blob(
+        [fileContent],
+        {
+          type:
+            'application/json;charset=utf-8;'
+        }
+      );
+
+    const fileUrl =
+      URL.createObjectURL(
+        backupBlob
+      );
+
+    const downloadLink =
+      document.createElement(
+        'a'
+      );
+
+    downloadLink.setAttribute(
+      'href',
+      fileUrl
+    );
+
+    downloadLink.setAttribute(
+      'download',
+      `cebin_yedek_${Date.now()}.json`
+    );
+
+    document.body.appendChild(
+      downloadLink
+    );
+
+    downloadLink.click();
+
+    document.body.removeChild(
+      downloadLink
+    );
+
+    URL.revokeObjectURL(
+      fileUrl
+    );
+  };
+
+  const handleImportJSON = () => {
+    if (
+      typeof document ===
+      'undefined'
+    ) {
+      return;
+    }
+
+    const fileInput =
+      document.createElement(
+        'input'
+      );
+
+    fileInput.type = 'file';
+
+    fileInput.accept =
+      'application/json,.json';
+
+    fileInput.onchange =
+      async event => {
+        try {
+          const selectedFile =
+            event.target
+              .files?.[0];
+
+          if (!selectedFile) {
+            return;
+          }
+
+          const fileText =
+            await selectedFile.text();
+
+          const parsedBackup =
+            JSON.parse(
+              fileText
+            );
+
+          const importedSubscriptions =
+            Array.isArray(
+              parsedBackup
+            )
+              ? parsedBackup
+              : parsedBackup
+                  .subscriptions;
+
+          if (
+            !Array.isArray(
+              importedSubscriptions
+            )
+          ) {
+            throw new Error(
+              'Abonelik listesi bulunamadı.'
+            );
+          }
+
+          const confirmed =
+            confirmAction(
+              `${importedSubscriptions.length} kayıt içe aktarılacak ve mevcut liste değiştirilecek. Devam edilsin mi?`
+            );
+
+          if (!confirmed) {
+            return;
+          }
+
+          setSubscriptions(
+            importedSubscriptions
+          );
+
+          if (
+            Array.isArray(
+              parsedBackup
+                .templates
+            )
+          ) {
+            setTemplatesList(
+              parsedBackup
+                .templates
+            );
+          }
+
+          if (
+            Array.isArray(
+              parsedBackup
+                .paymentMethods
+            )
+          ) {
+            setPaymentMethodsList(
+              parsedBackup
+                .paymentMethods
+            );
+          }
+
+          if (
+            parsedBackup
+              .exchangeRates
+          ) {
+            setExchangeRates({
+              USD:
+                Number(
+                  parsedBackup
+                    .exchangeRates
+                    .USD
+                ) ||
+                DEFAULT_RATES.USD,
+
+              EUR:
+                Number(
+                  parsedBackup
+                    .exchangeRates
+                    .EUR
+                ) ||
+                DEFAULT_RATES.EUR
+            });
+          }
+
+          const importedAppearance =
+            parsedBackup
+              .appearance;
+
+          if (
+            importedAppearance &&
+            BACKGROUND_PRESETS[
+              importedAppearance
+                .backgroundPreset
+            ]
+          ) {
+            setBackgroundPreset(
+              importedAppearance
+                .backgroundPreset
+            );
+          }
+
+          if (
+            importedAppearance &&
+            FONT_SCALE_OPTIONS.some(
+              option =>
+                option.key ===
+                importedAppearance
+                  .fontScaleKey
+            )
+          ) {
+            setFontScaleKey(
+              importedAppearance
+                .fontScaleKey
+            );
+          }
+
+          alert(
+            'Yedek başarıyla geri yüklendi.'
+          );
+        } catch (error) {
+          alert(
+            `Yedek yüklenemedi: ${error.message}`
+          );
+        }
+      };
+
+    fileInput.click();
+  };
+
+  /* ------------------------------------------------------------------------ */
+  /*                               TAKVİM                                     */
+  /* ------------------------------------------------------------------------ */
+
   const daysInCurrentMonth =
     getDaysInMonth(
-      calMonth,
-      calYear
+      calendarMonth,
+      calendarYear
     );
 
   const firstDayOffset =
     (
       new Date(
-        calYear,
-        calMonth,
+        calendarYear,
+        calendarMonth,
         1
       ).getDay() + 6
     ) % 7;
 
-  const s =
+  const styles =
     createStyles(
       theme,
-      isMobile
+      isMobile,
+      fontScale
     );
+
+  const handleAnalysisYearChange =
+    year => {
+      setSelectedAnalysisYear(
+        year
+      );
+
+      mainScrollRef.current
+        ?.scrollTo?.({
+          y: 0,
+          animated: false
+        });
+    };
+
+  const handleTabChange =
+    tabKey => {
+      setActiveTab(
+        tabKey
+      );
+
+      mainScrollRef.current
+        ?.scrollTo?.({
+          y: 0,
+          animated: false
+        });
+    };
+
+  /* ------------------------------------------------------------------------ */
+  /*                              ANA EKRAN                                    */
+  /* ------------------------------------------------------------------------ */
 
   return (
     <SafeAreaView
       style={[
-        s.container,
+        styles.container,
         {
           backgroundColor:
             theme.bg
@@ -2220,7 +2764,7 @@ export default function App() {
     >
       <StatusBar
         barStyle={
-          isDarkMode
+          theme.dark
             ? 'light-content'
             : 'dark-content'
         }
@@ -2228,20 +2772,18 @@ export default function App() {
 
       <View
         style={[
-          s.appWrapper,
-
+          styles.appWrapper,
           isDesktop &&
-            s.appWrapperDesktop
+            styles.appWrapperDesktop
         ]}
       >
         {isDesktop && (
           <View
             style={[
-              s.sidebarContainer,
-
+              styles.sidebarContainer,
               {
                 backgroundColor:
-                  theme.headerBg,
+                  theme.sidebarBg,
 
                 borderRightColor:
                   theme.cardBorder
@@ -2250,13 +2792,12 @@ export default function App() {
           >
             <View
               style={
-                s.sidebarHeader
+                styles.sidebarHeader
               }
             >
               <Text
                 style={[
-                  s.headerTitle,
-
+                  styles.headerTitle,
                   {
                     color:
                       theme.textPrimary
@@ -2268,12 +2809,12 @@ export default function App() {
 
               <View
                 style={
-                  s.proBadge
+                  styles.proBadge
                 }
               >
                 <Text
                   style={
-                    s.proBadgeText
+                    styles.proBadgeText
                   }
                 >
                   PRO
@@ -2283,13 +2824,10 @@ export default function App() {
 
             <Text
               style={[
-                s.headerSubtitle,
-
+                styles.headerSubtitle,
                 {
                   color:
-                    theme.textSecondary,
-
-                  marginBottom: 24
+                    theme.textSecondary
                 }
               ]}
             >
@@ -2298,7 +2836,7 @@ export default function App() {
 
             <View
               style={
-                s.sidebarNavGroup
+                styles.sidebarNavGroup
               }
             >
               {[
@@ -2308,87 +2846,76 @@ export default function App() {
                   label:
                     'Abonelikler'
                 },
-
                 {
                   key: 'calendar',
                   icon: '📅',
                   label:
                     'Takvim'
                 },
-
                 {
                   key: 'analytics',
                   icon: '📊',
                   label:
                     'Analiz & Raporlar'
-                },
-              ].map(
-                nav => (
-                  <TouchableOpacity
-                    key={
-                      nav.key
-                    }
-                    style={[
-                      s.sidebarNavBtn,
+                }
+              ].map(navItem => (
+                <TouchableOpacity
+                  key={
+                    navItem.key
+                  }
+                  style={[
+                    styles.sidebarNavButton,
 
-                      activeTab ===
-                        nav.key &&
-                        s.sidebarNavBtnActive
-                    ]}
-                    onPress={() =>
-                      setActiveTab(
-                        nav.key
-                      )
+                    activeTab ===
+                      navItem.key &&
+                      styles.sidebarNavButtonActive
+                  ]}
+                  onPress={() =>
+                    handleTabChange(
+                      navItem.key
+                    )
+                  }
+                >
+                  <Text
+                    style={
+                      styles.sidebarNavIcon
                     }
                   >
-                    <Text
-                      style={{
-                        fontSize: 18
-                      }}
-                    >
-                      {nav.icon}
-                    </Text>
+                    {navItem.icon}
+                  </Text>
 
-                    <Text
-                      style={[
-                        s.sidebarNavText,
-
-                        {
-                          color:
-                            activeTab ===
-                            nav.key
-                              ? '#8b87ff'
-                              : theme.textSecondary
-                        }
-                      ]}
-                    >
-                      {nav.label}
-                    </Text>
-                  </TouchableOpacity>
-                )
-              )}
+                  <Text
+                    style={[
+                      styles.sidebarNavText,
+                      {
+                        color:
+                          activeTab ===
+                          navItem.key
+                            ? '#9b98ff'
+                            : theme.textSecondary
+                      }
+                    ]}
+                  >
+                    {navItem.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
 
             <View
-              style={{
-                marginTop:
-                  'auto',
-
-                gap: 8
-              }}
+              style={
+                styles.sidebarFooter
+              }
             >
               <TouchableOpacity
                 style={[
-                  s.exportBtn,
-
+                  styles.secondaryButton,
                   {
                     backgroundColor:
                       theme.inputBg,
 
                     borderColor:
-                      theme.cardBorder,
-
-                    borderWidth: 1
+                      theme.cardBorder
                   }
                 ]}
                 onPress={
@@ -2396,15 +2923,13 @@ export default function App() {
                 }
               >
                 <Text
-                  style={{
-                    color:
-                      theme.textPrimary,
-
-                    fontSize: 12,
-
-                    fontWeight:
-                      'bold'
-                  }}
+                  style={[
+                    styles.secondaryButtonText,
+                    {
+                      color:
+                        theme.textPrimary
+                    }
+                  ]}
                 >
                   📄 CSV Excel İndir
                 </Text>
@@ -2412,16 +2937,13 @@ export default function App() {
 
               <TouchableOpacity
                 style={[
-                  s.exportBtn,
-
+                  styles.secondaryButton,
                   {
                     backgroundColor:
                       theme.inputBg,
 
                     borderColor:
-                      theme.cardBorder,
-
-                    borderWidth: 1
+                      theme.cardBorder
                   }
                 ]}
                 onPress={
@@ -2429,15 +2951,13 @@ export default function App() {
                 }
               >
                 <Text
-                  style={{
-                    color:
-                      theme.accent,
-
-                    fontSize: 12,
-
-                    fontWeight:
-                      'bold'
-                  }}
+                  style={[
+                    styles.secondaryButtonText,
+                    {
+                      color:
+                        theme.accent
+                    }
+                  ]}
                 >
                   💾 JSON Yedek Al
                 </Text>
@@ -2445,16 +2965,13 @@ export default function App() {
 
               <TouchableOpacity
                 style={[
-                  s.exportBtn,
-
+                  styles.secondaryButton,
                   {
                     backgroundColor:
                       theme.inputBg,
 
                     borderColor:
-                      theme.cardBorder,
-
-                    borderWidth: 1
+                      theme.cardBorder
                   }
                 ]}
                 onPress={
@@ -2462,29 +2979,29 @@ export default function App() {
                 }
               >
                 <Text
-                  style={{
-                    color:
-                      theme.textSecondary,
-
-                    fontSize: 12,
-
-                    fontWeight:
-                      'bold'
-                  }}
+                  style={[
+                    styles.secondaryButtonText,
+                    {
+                      color:
+                        theme.textSecondary
+                    }
+                  ]}
                 >
                   ↩️ Yedeği Geri Yükle
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={s.addBtn}
+                style={
+                  styles.primaryButton
+                }
                 onPress={() =>
-                  openForm()
+                  openSubscriptionForm()
                 }
               >
                 <Text
                   style={
-                    s.addBtnText
+                    styles.primaryButtonText
                   }
                 >
                   + Yeni Abonelik Ekle
@@ -2493,29 +3010,36 @@ export default function App() {
             </View>
           </View>
         )}
+
         <View
           style={[
-            s.responsiveWrapper,
-            activeTab === 'calendar' && {
-              maxWidth: 1040
+            styles.contentWrapper,
+
+            activeTab ===
+              'calendar' && {
+              maxWidth: 1060
             }
           ]}
         >
           <View
             style={[
-              s.header,
+              styles.header,
               {
-                backgroundColor: theme.headerBg,
-                borderBottomColor: theme.cardBorder
+                backgroundColor:
+                  theme.headerBg,
+
+                borderBottomColor:
+                  theme.cardBorder
               }
             ]}
           >
             <View>
               <Text
                 style={[
-                  s.headerTitle,
+                  styles.headerTitle,
                   {
-                    color: theme.textPrimary
+                    color:
+                      theme.textPrimary
                   }
                 ]}
               >
@@ -2524,9 +3048,10 @@ export default function App() {
 
               <Text
                 style={[
-                  s.headerSubtitle,
+                  styles.headerSubtitle,
                   {
-                    color: theme.textSecondary
+                    color:
+                      theme.textSecondary
                   }
                 ]}
               >
@@ -2535,44 +3060,49 @@ export default function App() {
             </View>
 
             <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 10
-              }}
+              style={
+                styles.headerActions
+              }
             >
               <TouchableOpacity
                 style={[
-                  s.themeToggleIconBtn,
+                  styles.iconButton,
                   {
-                    backgroundColor: theme.inputBg,
-                    borderColor: theme.cardBorder
+                    backgroundColor:
+                      theme.inputBg,
+
+                    borderColor:
+                      theme.cardBorder
                   }
                 ]}
                 onPress={() =>
-                  setIsDarkMode(!isDarkMode)
+                  setIsAppearanceModalOpen(
+                    true
+                  )
                 }
               >
                 <Text
-                  style={{
-                    fontSize: 18
-                  }}
+                  style={
+                    styles.iconButtonText
+                  }
                 >
-                  {isDarkMode
-                    ? '☀️'
-                    : '🌙'}
+                  ⚙️
                 </Text>
               </TouchableOpacity>
 
               {!isDesktop && (
                 <TouchableOpacity
-                  style={s.addBtn}
+                  style={
+                    styles.primaryButton
+                  }
                   onPress={() =>
-                    openForm()
+                    openSubscriptionForm()
                   }
                 >
                   <Text
-                    style={s.addBtnText}
+                    style={
+                      styles.primaryButtonText
+                    }
                   >
                     + Ekle
                   </Text>
@@ -2582,52 +3112,69 @@ export default function App() {
           </View>
 
           <ScrollView
-            contentContainerStyle={[
-              s.scrollContent,
-              isDesktop && {
-                paddingBottom: 40
-              }
-            ]}
+            ref={mainScrollRef}
+            style={
+              styles.mainScroll
+            }
+            contentContainerStyle={
+              styles.scrollContent
+            }
+            showsVerticalScrollIndicator
           >
-            {activeTab !== 'analytics' && (
+            {activeTab !==
+              'analytics' && (
               <View
                 style={[
-                  s.currencyBar,
+                  styles.currencyBar,
                   {
-                    backgroundColor: theme.cardBg,
-                    borderColor: theme.cardBorder
+                    backgroundColor:
+                      theme.cardBg,
+
+                    borderColor:
+                      theme.cardBorder
                   }
                 ]}
               >
                 <Text
                   style={[
-                    s.currencyBarTitle,
+                    styles.currencyBarTitle,
                     {
-                      color: theme.textSecondary
+                      color:
+                        theme.textSecondary
                     }
                   ]}
                 >
-                  💱 Kullanılan Kurlar:
+                  💱 Kullanılan Kurlar
                 </Text>
 
                 <View
-                  style={s.currencyBadgeGroup}
+                  style={
+                    styles.currencyBadgeGroup
+                  }
                 >
                   <View
-                    style={s.currencyBadge}
+                    style={
+                      styles.currencyBadge
+                    }
                   >
                     <Text
-                      style={s.currencyBadgeText}
+                      style={
+                        styles.currencyBadgeText
+                      }
                     >
                       USD: {exchangeRates.USD} ₺
                     </Text>
                   </View>
 
                   <View
-                    style={s.currencyBadge}
+                    style={
+                      styles.currencyBadge
+                    }
                   >
                     <Text
-                      style={s.currencyBadgeText}
+                      style={
+                        styles.currencyBadgeText
+                      }
                     >
                       EUR: {exchangeRates.EUR} ₺
                     </Text>
@@ -2636,25 +3183,33 @@ export default function App() {
               </View>
             )}
 
-            {activeTab === 'list' && (
+            {activeTab ===
+              'list' && (
               <>
                 <View
                   style={[
-                    s.summaryCard,
+                    styles.summaryCard,
                     {
-                      backgroundColor: theme.summaryBg,
-                      borderColor: theme.summaryBorder
+                      backgroundColor:
+                        theme.summaryBg,
+
+                      borderColor:
+                        theme.summaryBorder
                     }
                   ]}
                 >
                   <Text
-                    style={s.summaryLabel}
+                    style={
+                      styles.summaryLabel
+                    }
                   >
                     Toplam Aylık Taahhüt
                   </Text>
 
                   <Text
-                    style={s.summaryValue}
+                    style={
+                      styles.summaryValue
+                    }
                   >
                     {formatCurrency(
                       monthlyTotalTL,
@@ -2663,41 +3218,55 @@ export default function App() {
                   </Text>
 
                   <View
-                    style={s.statsRow}
+                    style={
+                      styles.summaryStatsRow
+                    }
                   >
                     <View
-                      style={s.statBox}
+                      style={
+                        styles.summaryStatBox
+                      }
                     >
                       <Text
-                        style={s.statLabel}
+                        style={
+                          styles.summaryStatLabel
+                        }
                       >
                         Günlük Tahmini Maliyet
                       </Text>
 
                       <Text
-                        style={s.statValue}
+                        style={
+                          styles.summaryStatValue
+                        }
                       >
                         {formatCurrency(
-                          monthlyTotalTL / 30,
+                          dailyAverageTL,
                           'TRY'
                         )}
                       </Text>
                     </View>
 
                     <View
-                      style={s.statBox}
+                      style={
+                        styles.summaryStatBox
+                      }
                     >
                       <Text
-                        style={s.statLabel}
+                        style={
+                          styles.summaryStatLabel
+                        }
                       >
                         Yıllık Projeksiyon
                       </Text>
 
                       <Text
-                        style={s.statValue}
+                        style={
+                          styles.summaryStatValue
+                        }
                       >
                         {formatCurrency(
-                          monthlyTotalTL * 12,
+                          yearlyProjectionTL,
                           'TRY'
                         )}
                       </Text>
@@ -2705,575 +3274,543 @@ export default function App() {
                   </View>
                 </View>
 
-                <View
-                  style={s.listToolbar}
-                >
-                  <TextInput
-                    style={[
-                      s.searchInput,
-                      {
-                        backgroundColor: theme.inputBg,
-                        color: theme.textPrimary,
-                        borderColor: theme.cardBorder
-                      }
-                    ]}
-                    placeholder="Abonelik, kategori veya kart ara..."
-                    placeholderTextColor={theme.textMuted}
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                  />
-
-                  <View
-                    style={s.compactFilterRow}
-                  >
-                    {[
-                      {
-                        key: 'ALL',
-                        label: 'Tümü'
-                      },
-                      {
-                        key: 'monthly',
-                        label: 'Aylık'
-                      },
-                      {
-                        key: 'yearly',
-                        label: 'Yıllık'
-                      },
-                    ].map(option => (
-                      <TouchableOpacity
-                        key={option.key}
-                        style={[
-                          s.filterChip,
-                          {
-                            backgroundColor: theme.cardBg,
-                            borderColor: theme.cardBorder
-                          },
-                          selectedPeriodFilter === option.key &&
-                            s.filterChipActive
-                        ]}
-                        onPress={() =>
-                          setSelectedPeriodFilter(
-                            option.key
-                          )
-                        }
-                      >
-                        <Text
-                          style={[
-                            s.filterChipText,
-                            {
-                              color: theme.textSecondary
-                            },
-                            selectedPeriodFilter === option.key &&
-                              s.filterChipTextActive
-                          ]}
-                        >
-                          {option.label}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-
-                    {[
-                      {
-                        key: 'renewal',
-                        label: 'Tarihe göre'
-                      },
-                      {
-                        key: 'price-desc',
-                        label: 'Fiyata göre'
-                      },
-                      {
-                        key: 'name',
-                        label: 'Ada göre'
-                      },
-                    ].map(option => (
-                      <TouchableOpacity
-                        key={option.key}
-                        style={[
-                          s.filterChip,
-                          {
-                            backgroundColor: theme.cardBg,
-                            borderColor: theme.cardBorder
-                          },
-                          sortMode === option.key &&
-                            s.filterChipActive
-                        ]}
-                        onPress={() =>
-                          setSortMode(
-                            option.key
-                          )
-                        }
-                      >
-                        <Text
-                          style={[
-                            s.filterChipText,
-                            {
-                              color: theme.textSecondary
-                            },
-                            sortMode === option.key &&
-                              s.filterChipTextActive
-                          ]}
-                        >
-                          {option.label}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-
-                <View
-                  style={{
-                    marginBottom: 14
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: theme.textPrimary,
-                      fontSize: 12,
-                      fontWeight: 'bold',
-                      marginBottom: 6
-                    }}
-                  >
-                    💳 Ödeme Yöntemine Göre Filtrele:
-                  </Text>
-
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      flexWrap: 'wrap',
-                      gap: 6
-                    }}
-                  >
-                    <TouchableOpacity
-                      style={[
-                        s.filterChip,
-                        {
-                          backgroundColor: theme.cardBg,
-                          borderColor: theme.cardBorder
-                        },
-                        selectedPaymentFilter === 'ALL' &&
-                          s.filterChipActive
-                      ]}
-                      onPress={() =>
-                        setSelectedPaymentFilter(
-                          'ALL'
-                        )
-                      }
-                    >
-                      <Text
-                        style={[
-                          s.filterChipText,
-                          {
-                            color: theme.textSecondary
-                          },
-                          selectedPaymentFilter === 'ALL' &&
-                            s.filterChipTextActive
-                        ]}
-                      >
-                        Tüm Kartlar
-                      </Text>
-                    </TouchableOpacity>
-
-                    {paymentMethodsList.map(method => (
-                      <TouchableOpacity
-                        key={method}
-                        style={[
-                          s.filterChip,
-                          {
-                            backgroundColor: theme.cardBg,
-                            borderColor: theme.cardBorder
-                          },
-                          selectedPaymentFilter === method &&
-                            s.filterChipActive
-                        ]}
-                        onPress={() =>
-                          setSelectedPaymentFilter(
-                            method
-                          )
-                        }
-                      >
-                        <Text
-                          style={[
-                            s.filterChipText,
-                            {
-                              color: theme.textSecondary
-                            },
-                            selectedPaymentFilter === method &&
-                              s.filterChipTextActive
-                          ]}
-                        >
-                          {method}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-
-                <Text
+                <TextInput
                   style={[
-                    s.sectionTitle,
+                    styles.searchInput,
                     {
-                      color: theme.textPrimary
+                      backgroundColor:
+                        theme.inputBg,
+
+                      color:
+                        theme.textPrimary,
+
+                      borderColor:
+                        theme.cardBorder
                     }
                   ]}
-                >
-                  Kayıtlı Abonelikler ({filteredSubscriptions.length})
-                </Text>
+                  placeholder="Abonelik, kategori veya ödeme yöntemi ara..."
+                  placeholderTextColor={
+                    theme.textMuted
+                  }
+                  value={
+                    searchQuery
+                  }
+                  onChangeText={
+                    setSearchQuery
+                  }
+                />
 
-                {filteredSubscriptions.length === 0 ? (
+                <View
+                  style={
+                    styles.singleFilterSection
+                  }
+                >
+                  <Text
+                    style={[
+                      styles.sectionLabel,
+                      {
+                        color:
+                          theme.textPrimary
+                      }
+                    ]}
+                  >
+                    Görünüm Filtresi
+                  </Text>
+
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={
+                      false
+                    }
+                    contentContainerStyle={
+                      styles.horizontalOptionRow
+                    }
+                  >
+                    {VIEW_FILTER_OPTIONS.map(
+                      option => (
+                        <TouchableOpacity
+                          key={
+                            option.key
+                          }
+                          style={[
+                            styles.filterOption,
+
+                            {
+                              backgroundColor:
+                                theme.cardBg,
+
+                              borderColor:
+                                theme.cardBorder
+                            },
+
+                            viewFilter ===
+                              option.key &&
+                              styles.filterOptionActive
+                          ]}
+                          onPress={() =>
+                            setViewFilter(
+                              option.key
+                            )
+                          }
+                        >
+                          <Text
+                            style={[
+                              styles.filterOptionText,
+
+                              {
+                                color:
+                                  theme.textSecondary
+                              },
+
+                              viewFilter ===
+                                option.key &&
+                                styles.filterOptionTextActive
+                            ]}
+                          >
+                            {option.label}
+                          </Text>
+                        </TouchableOpacity>
+                      )
+                    )}
+                  </ScrollView>
+                </View>
+
+                <View
+                  style={
+                    styles.sectionTitleRow
+                  }
+                >
+                  <Text
+                    style={[
+                      styles.sectionTitle,
+                      {
+                        color:
+                          theme.textPrimary
+                      }
+                    ]}
+                  >
+                    {selectedViewFilterLabel}
+                  </Text>
+
+                  <Text
+                    style={[
+                      styles.resultCount,
+                      {
+                        color:
+                          theme.textMuted
+                      }
+                    ]}
+                  >
+                    {filteredSubscriptions.length} kayıt
+                  </Text>
+                </View>
+
+                {filteredSubscriptions.length ===
+                0 ? (
                   <View
                     style={[
-                      s.emptyCard,
+                      styles.emptyCard,
                       {
-                        backgroundColor: theme.cardBg,
-                        borderColor: theme.cardBorder
+                        backgroundColor:
+                          theme.cardBg,
+
+                        borderColor:
+                          theme.cardBorder
                       }
                     ]}
                   >
                     <Text
-                      style={{
-                        fontSize: 32,
-                        marginBottom: 8
-                      }}
+                      style={
+                        styles.emptyIcon
+                      }
                     >
                       💳
                     </Text>
 
                     <Text
-                      style={{
-                        color: theme.textPrimary,
-                        fontWeight: 'bold',
-                        fontSize: 16
-                      }}
+                      style={[
+                        styles.emptyTitle,
+                        {
+                          color:
+                            theme.textPrimary
+                        }
+                      ]}
                     >
-                      Abonelik Bulunamadı
+                      Kayıt bulunamadı
                     </Text>
 
                     <Text
-                      style={{
-                        color: theme.textSecondary,
-                        fontSize: 12,
-                        marginTop: 4,
-                        textAlign: 'center'
-                      }}
+                      style={[
+                        styles.emptyDescription,
+                        {
+                          color:
+                            theme.textSecondary
+                        }
+                      ]}
                     >
-                      Arama veya filtrelere uygun kayıt bulunamadı. Filtreleri temizleyebilir ya da yeni abonelik ekleyebilirsiniz.
+                      Arama metnini veya görünüm filtresini değiştiriniz.
                     </Text>
                   </View>
                 ) : (
-                  filteredSubscriptions.map(item => {
-                    const priceInTL =
-                      convertToTL(
-                        item.price,
-                        item.currency || 'TRY',
-                        exchangeRates
-                      );
+                  filteredSubscriptions.map(
+                    subscription => {
+                      const priceInTL =
+                        convertToTL(
+                          subscription.price,
+                          subscription.currency ||
+                            'TRY',
+                          exchangeRates
+                        );
 
-                    const isYearly =
-                      item.period === 'yearly';
+                      const notificationOption =
+                        NOTIFICATION_OPTIONS.find(
+                          option =>
+                            option.value ===
+                            subscription.notificationDays
+                        ) ||
+                        NOTIFICATION_OPTIONS[3];
 
-                    const notifOpt =
-                      NOTIFICATION_OPTIONS.find(
-                        option =>
-                          option.value ===
-                          item.notificationDays
-                      ) ||
-                      NOTIFICATION_OPTIONS[3];
+                      const serviceColor =
+                        subscription.color ||
+                        getServiceColor(
+                          subscription.name,
+                          safeTemplates
+                        );
 
-                    const serviceColor =
-                      item.color ||
-                      getServiceColor(
-                        item.name,
-                        templatesList
-                      );
+                      const isYearly =
+                        subscription.period ===
+                        'yearly';
 
-                    return (
-                      <View
-                        key={item.id}
-                        style={[
-                          s.card,
-                          {
-                            backgroundColor: theme.cardBg,
-                            borderColor: theme.cardBorder
-                          }
-                        ]}
-                      >
+                      return (
                         <View
-                          style={s.leftSection}
+                          key={
+                            subscription.id
+                          }
+                          style={[
+                            styles.subscriptionCard,
+                            {
+                              backgroundColor:
+                                theme.cardBg,
+
+                              borderColor:
+                                theme.cardBorder
+                            }
+                          ]}
                         >
                           <View
-                            style={[
-                              s.brandIconBox,
-                              {
-                                backgroundColor: serviceColor
-                              }
-                            ]}
-                          >
-                            <Text
-                              style={s.brandIconText}
-                            >
-                              {item.name
-                                ? item.name
-                                    .charAt(0)
-                                    .toUpperCase()
-                                : 'C'}
-                            </Text>
-                          </View>
-
-                          <View
-                            style={{
-                              flex: 1
-                            }}
+                            style={
+                              styles.subscriptionMain
+                            }
                           >
                             <View
-                              style={{
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                gap: 6,
-                                flexWrap: 'wrap'
-                              }}
+                              style={[
+                                styles.serviceIcon,
+                                {
+                                  backgroundColor:
+                                    serviceColor
+                                }
+                              ]}
                             >
                               <Text
+                                style={
+                                  styles.serviceIconText
+                                }
+                              >
+                                {subscription.name
+                                  ?.charAt(
+                                    0
+                                  )
+                                  ?.toUpperCase() ||
+                                  'C'}
+                              </Text>
+                            </View>
+
+                            <View
+                              style={
+                                styles.subscriptionInfo
+                              }
+                            >
+                              <View
+                                style={
+                                  styles.subscriptionTitleRow
+                                }
+                              >
+                                <Text
+                                  style={[
+                                    styles.subscriptionName,
+                                    {
+                                      color:
+                                        theme.textPrimary
+                                    }
+                                  ]}
+                                >
+                                  {subscription.name}
+                                </Text>
+
+                                <View
+                                  style={[
+                                    styles.informationTag,
+                                    {
+                                      backgroundColor:
+                                        theme.inputBg,
+
+                                      borderColor:
+                                        theme.cardBorder
+                                    }
+                                  ]}
+                                >
+                                  <Text
+                                    style={[
+                                      styles.informationTagText,
+                                      {
+                                        color:
+                                          theme.textSecondary
+                                      }
+                                    ]}
+                                  >
+                                    💳 {subscription.paymentMethod}
+                                  </Text>
+                                </View>
+
+                                {notificationOption.value !==
+                                  -1 && (
+                                  <View
+                                    style={[
+                                      styles.informationTag,
+                                      {
+                                        backgroundColor:
+                                          theme.inputBg,
+
+                                        borderColor:
+                                          theme.cardBorder
+                                      }
+                                    ]}
+                                  >
+                                    <Text
+                                      style={[
+                                        styles.informationTagText,
+                                        {
+                                          color:
+                                            theme.accent
+                                        }
+                                      ]}
+                                    >
+                                      {notificationOption.badgeLabel}
+                                    </Text>
+                                  </View>
+                                )}
+                              </View>
+
+                              <Text
                                 style={[
-                                  s.cardTitle,
+                                  styles.subscriptionSubtitle,
                                   {
-                                    color: theme.textPrimary
+                                    color:
+                                      theme.textSecondary
                                   }
                                 ]}
                               >
-                                {item.name}
+                                {subscription.category} •{' '}
+                                {isYearly
+                                  ? `${subscription.billingDay}/${subscription.billingMonth}/${subscription.billingYear}`
+                                  : `Her ayın ${subscription.billingDay}. günü`}
                               </Text>
-
-                              {item.paymentMethod && (
-                                <View
-                                  style={[
-                                    s.cardTag,
-                                    {
-                                      backgroundColor: theme.inputBg,
-                                      borderColor: theme.cardBorder,
-                                      borderWidth: 1
-                                    }
-                                  ]}
-                                >
-                                  <Text
-                                    style={[
-                                      s.cardTagText,
-                                      {
-                                        color: theme.textSecondary
-                                      }
-                                    ]}
-                                  >
-                                    💳 {item.paymentMethod}
-                                  </Text>
-                                </View>
-                              )}
-
-                              {notifOpt.value !== -1 && (
-                                <View
-                                  style={[
-                                    s.cardTag,
-                                    {
-                                      backgroundColor: theme.inputBg,
-                                      borderColor: theme.cardBorder,
-                                      borderWidth: 1
-                                    }
-                                  ]}
-                                >
-                                  <Text
-                                    style={[
-                                      s.cardTagText,
-                                      {
-                                        color: theme.accent
-                                      }
-                                    ]}
-                                  >
-                                    {notifOpt.badgeLabel}
-                                  </Text>
-                                </View>
-                              )}
                             </View>
-
-                            <Text
-                              style={[
-                                s.cardSubtitle,
-                                {
-                                  color: theme.textSecondary
-                                }
-                              ]}
-                            >
-                              {item.category} •{' '}
-                              {isYearly
-                                ? `${item.billingDay}/${item.billingMonth}/${item.billingYear}`
-                                : `Her ayın ${item.billingDay}. günü`}
-                            </Text>
                           </View>
-                        </View>
-
-                        <View
-                          style={s.rightSection}
-                        >
-                          <Text
-                            style={[
-                              s.price,
-                              {
-                                color: theme.textPrimary
-                              }
-                            ]}
-                          >
-                            {formatCurrency(
-                              item.price,
-                              item.currency || 'TRY'
-                            )}{' '}
-                            {isYearly
-                              ? '/yıl'
-                              : '/ay'}
-                          </Text>
-
-                          {item.currency !== 'TRY' && (
-                            <Text
-                              style={{
-                                fontSize: 12,
-                                fontWeight: 'bold',
-                                color: theme.accent,
-                                marginTop: 1
-                              }}
-                            >
-                              ≈{' '}
-                              {formatCurrency(
-                                priceInTL,
-                                'TRY'
-                              )}
-                            </Text>
-                          )}
 
                           <View
-                            style={s.actionButtons}
+                            style={
+                              styles.subscriptionRight
+                            }
                           >
-                            <TouchableOpacity
+                            <Text
                               style={[
-                                s.editBtn,
+                                styles.subscriptionPrice,
                                 {
-                                  backgroundColor: theme.inputBg,
-                                  borderColor: theme.cardBorder,
-                                  borderWidth: 1
+                                  color:
+                                    theme.textPrimary
                                 }
                               ]}
-                              onPress={() =>
-                                openForm(item)
+                            >
+                              {formatCurrency(
+                                subscription.price,
+                                subscription.currency ||
+                                  'TRY'
+                              )}{' '}
+                              {isYearly
+                                ? '/yıl'
+                                : '/ay'}
+                            </Text>
+
+                            {subscription.currency !==
+                              'TRY' && (
+                              <Text
+                                style={[
+                                  styles.convertedPrice,
+                                  {
+                                    color:
+                                      theme.accent
+                                  }
+                                ]}
+                              >
+                                ≈{' '}
+                                {formatCurrency(
+                                  priceInTL,
+                                  'TRY'
+                                )}
+                              </Text>
+                            )}
+
+                            <View
+                              style={
+                                styles.subscriptionActions
                               }
                             >
-                              <Text
-                                style={{
-                                  color: theme.textSecondary,
-                                  fontSize: 11,
-                                  fontWeight: 'bold'
-                                }}
-                              >
-                                Düzenle
-                              </Text>
-                            </TouchableOpacity>
-
-                            {item.cancelUrl ? (
                               <TouchableOpacity
                                 style={[
-                                  s.cancelBtn,
+                                  styles.smallActionButton,
                                   {
-                                    backgroundColor: theme.inputBg,
-                                    borderColor: theme.cardBorder,
-                                    borderWidth: 1
+                                    backgroundColor:
+                                      theme.inputBg,
+
+                                    borderColor:
+                                      theme.cardBorder
                                   }
                                 ]}
                                 onPress={() =>
-                                  Linking.openURL(
-                                    item.cancelUrl
+                                  openSubscriptionForm(
+                                    subscription
                                   )
                                 }
                               >
                                 <Text
                                   style={[
-                                    s.cancelText,
+                                    styles.smallActionText,
                                     {
-                                      color: theme.accent
+                                      color:
+                                        theme.textSecondary
                                     }
                                   ]}
                                 >
-                                  İptal 🔗
+                                  Düzenle
                                 </Text>
                               </TouchableOpacity>
-                            ) : null}
 
-                            <TouchableOpacity
-                              onPress={() =>
-                                handleDelete(
-                                  item.id
-                                )
-                              }
-                              style={[
-                                s.deleteBtn,
-                                {
-                                  backgroundColor: theme.inputBg,
-                                  borderColor: theme.cardBorder,
-                                  borderWidth: 1
+                              {subscription.cancelUrl ? (
+                                <TouchableOpacity
+                                  style={[
+                                    styles.smallActionButton,
+                                    {
+                                      backgroundColor:
+                                        theme.inputBg,
+
+                                      borderColor:
+                                        theme.cardBorder
+                                    }
+                                  ]}
+                                  onPress={() =>
+                                    Linking.openURL(
+                                      subscription.cancelUrl
+                                    )
+                                  }
+                                >
+                                  <Text
+                                    style={[
+                                      styles.smallActionText,
+                                      {
+                                        color:
+                                          theme.accent
+                                      }
+                                    ]}
+                                  >
+                                    Yönet
+                                  </Text>
+                                </TouchableOpacity>
+                              ) : null}
+
+                              <TouchableOpacity
+                                style={[
+                                  styles.deleteButton,
+                                  {
+                                    backgroundColor:
+                                      theme.inputBg,
+
+                                    borderColor:
+                                      theme.cardBorder
+                                  }
+                                ]}
+                                onPress={() =>
+                                  handleDeleteSubscription(
+                                    subscription.id
+                                  )
                                 }
-                              ]}
-                            >
-                              <Text
-                                style={{
-                                  color: theme.danger,
-                                  fontSize: 12
-                                }}
                               >
-                                🗑️
-                              </Text>
-                            </TouchableOpacity>
+                                <Text
+                                  style={
+                                    styles.deleteButtonText
+                                  }
+                                >
+                                  🗑️
+                                </Text>
+                              </TouchableOpacity>
+                            </View>
                           </View>
                         </View>
-                      </View>
-                    );
-                  })
+                      );
+                    }
+                  )
                 )}
               </>
             )}
-
             {activeTab === 'calendar' && (
               <View
-                style={{
-                  marginTop: 10
-                }}
+                style={
+                  styles.calendarSection
+                }
               >
                 <View
-                  style={s.calendarHeaderNav}
+                  style={
+                    styles.calendarNavigation
+                  }
                 >
                   <TouchableOpacity
                     style={[
-                      s.arrowBtn,
+                      styles.calendarNavigationButton,
                       {
-                        backgroundColor: theme.inputBg,
-                        borderColor: theme.cardBorder,
-                        borderWidth: 1
+                        backgroundColor:
+                          theme.inputBg,
+
+                        borderColor:
+                          theme.cardBorder
                       }
                     ]}
                     onPress={() => {
-                      if (calMonth === 0) {
-                        setCalMonth(11);
+                      if (
+                        calendarMonth === 0
+                      ) {
+                        setCalendarMonth(
+                          11
+                        );
 
-                        setCalYear(
+                        setCalendarYear(
                           Math.max(
-                            2025,
-                            calYear - 1
+                            YEARS[0],
+                            calendarYear - 1
                           )
                         );
                       } else {
-                        setCalMonth(
-                          calMonth - 1
+                        setCalendarMonth(
+                          calendarMonth - 1
                         );
                       }
                     }}
                   >
                     <Text
                       style={[
-                        s.arrowText,
+                        styles.calendarNavigationText,
                         {
-                          color: theme.accent
+                          color:
+                            theme.accent
                         }
                       ]}
                     >
@@ -3283,46 +3820,59 @@ export default function App() {
 
                   <Text
                     style={[
-                      s.calendarTitleText,
+                      styles.calendarTitle,
                       {
-                        color: theme.textPrimary
+                        color:
+                          theme.textPrimary
                       }
                     ]}
                   >
-                    {MONTH_NAMES[calMonth]} {calYear}
+                    {MONTH_NAMES[
+                      calendarMonth
+                    ]}{' '}
+                    {calendarYear}
                   </Text>
 
                   <TouchableOpacity
                     style={[
-                      s.arrowBtn,
+                      styles.calendarNavigationButton,
                       {
-                        backgroundColor: theme.inputBg,
-                        borderColor: theme.cardBorder,
-                        borderWidth: 1
+                        backgroundColor:
+                          theme.inputBg,
+
+                        borderColor:
+                          theme.cardBorder
                       }
                     ]}
                     onPress={() => {
-                      if (calMonth === 11) {
-                        setCalMonth(0);
+                      if (
+                        calendarMonth === 11
+                      ) {
+                        setCalendarMonth(
+                          0
+                        );
 
-                        setCalYear(
+                        setCalendarYear(
                           Math.min(
-                            2030,
-                            calYear + 1
+                            YEARS[
+                              YEARS.length - 1
+                            ],
+                            calendarYear + 1
                           )
                         );
                       } else {
-                        setCalMonth(
-                          calMonth + 1
+                        setCalendarMonth(
+                          calendarMonth + 1
                         );
                       }
                     }}
                   >
                     <Text
                       style={[
-                        s.arrowText,
+                        styles.calendarNavigationText,
                         {
-                          color: theme.accent
+                          color:
+                            theme.accent
                         }
                       ]}
                     >
@@ -3333,49 +3883,66 @@ export default function App() {
 
                 <ScrollView
                   horizontal
-                  showsHorizontalScrollIndicator={false}
-                  style={{
-                    marginBottom: 16
-                  }}
+                  showsHorizontalScrollIndicator={
+                    false
+                  }
+                  contentContainerStyle={
+                    styles.horizontalOptionRow
+                  }
                 >
-                  {YEARS.map(year => (
-                    <TouchableOpacity
-                      key={year}
-                      style={[
-                        s.yearChip,
-                        {
-                          backgroundColor: theme.cardBg,
-                          borderColor: theme.cardBorder,
-                          borderWidth: 1
-                        },
-                        calYear === year &&
-                          s.yearChipActive
-                      ]}
-                      onPress={() =>
-                        setCalYear(year)
-                      }
-                    >
-                      <Text
+                  {YEARS.map(
+                    year => (
+                      <TouchableOpacity
+                        key={year}
                         style={[
-                          s.yearChipText,
+                          styles.yearButton,
                           {
-                            color: theme.textSecondary
+                            backgroundColor:
+                              theme.cardBg,
+
+                            borderColor:
+                              theme.cardBorder
                           },
-                          calYear === year &&
-                            s.yearChipTextActive
+
+                          calendarYear ===
+                            year &&
+                            styles.yearButtonActive
                         ]}
+                        onPress={() =>
+                          setCalendarYear(
+                            year
+                          )
+                        }
                       >
-                        {year}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                        <Text
+                          style={[
+                            styles.yearButtonText,
+                            {
+                              color:
+                                theme.textSecondary
+                            },
+
+                            calendarYear ===
+                              year &&
+                              styles.yearButtonTextActive
+                          ]}
+                        >
+                          {year}
+                        </Text>
+                      </TouchableOpacity>
+                    )
+                  )}
                 </ScrollView>
 
                 <View
-                  style={s.calendarWrapper}
+                  style={
+                    styles.calendarContainer
+                  }
                 >
                   <View
-                    style={s.weekHeaderRow}
+                    style={
+                      styles.calendarWeekHeader
+                    }
                   >
                     {[
                       'Pzt',
@@ -3385,16 +3952,19 @@ export default function App() {
                       'Cum',
                       'Cmt',
                       'Paz'
-                    ].map((dayName, index) => (
+                    ].map(dayName => (
                       <View
-                        key={index}
-                        style={s.weekHeaderCell}
+                        key={dayName}
+                        style={
+                          styles.calendarWeekDay
+                        }
                       >
                         <Text
                           style={[
-                            s.weekHeaderText,
+                            styles.calendarWeekDayText,
                             {
-                              color: theme.textSecondary
+                              color:
+                                theme.textSecondary
                             }
                           ]}
                         >
@@ -3405,217 +3975,284 @@ export default function App() {
                   </View>
 
                   <View
-                    style={s.calendarGrid}
+                    style={
+                      styles.calendarGrid
+                    }
                   >
                     {Array.from({
-                      length: firstDayOffset
-                    }).map((_, index) => (
-                      <View
-                        key={`empty-${index}`}
-                        style={[
-                          s.calendarDayBox,
-                          s.calendarEmptyDay,
-                          {
-                            borderColor: 'transparent'
-                          }
-                        ]}
-                      />
-                    ))}
+                      length:
+                        firstDayOffset
+                    }).map(
+                      (
+                        _,
+                        emptyIndex
+                      ) => (
+                        <View
+                          key={`empty-${emptyIndex}`}
+                          style={[
+                            styles.calendarDay,
+                            styles.calendarDayEmpty
+                          ]}
+                        />
+                      )
+                    )}
 
                     {Array.from({
-                      length: daysInCurrentMonth
-                    }).map((_, index) => {
-                      const dayNumber =
-                        index + 1;
+                      length:
+                        daysInCurrentMonth
+                    }).map(
+                      (
+                        _,
+                        dayIndex
+                      ) => {
+                        const dayNumber =
+                          dayIndex + 1;
 
-                      const subscriptionsOnDay =
-                        safeList.filter(subscription => {
-                          if (
-                            subscription.period ===
-                            'monthly'
-                          ) {
-                            return (
-                              Number(
-                                subscription.billingDay
-                              ) === dayNumber
-                            );
-                          }
-
-                          if (
-                            subscription.period ===
-                            'yearly'
-                          ) {
-                            return (
-                              Number(
-                                subscription.billingDay
-                              ) === dayNumber &&
-                              Number(
-                                subscription.billingMonth
-                              ) === calMonth + 1 &&
-                              Number(
-                                subscription.billingYear
-                              ) === calYear
-                            );
-                          }
-
-                          return false;
-                        });
-
-                      return (
-                        <View
-                          key={dayNumber}
-                          style={[
-                            s.calendarDayBox,
-                            {
-                              backgroundColor: theme.cardBg,
-                              borderColor: theme.cardBorder
-                            },
-                            subscriptionsOnDay.length > 0 &&
-                              s.activeDayBox
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              s.dayNumber,
-                              {
-                                color: theme.textPrimary
+                        const subscriptionsForDay =
+                          safeList.filter(
+                            subscription => {
+                              if (
+                                subscription.status ===
+                                'cancelled'
+                              ) {
+                                return false;
                               }
+
+                              if (
+                                subscription.period ===
+                                'monthly'
+                              ) {
+                                return (
+                                  Number(
+                                    subscription.billingDay
+                                  ) ===
+                                  dayNumber
+                                );
+                              }
+
+                              return (
+                                Number(
+                                  subscription.billingDay
+                                ) ===
+                                  dayNumber &&
+                                Number(
+                                  subscription.billingMonth
+                                ) ===
+                                  calendarMonth +
+                                    1 &&
+                                Number(
+                                  subscription.billingYear
+                                ) ===
+                                  calendarYear
+                              );
+                            }
+                          );
+
+                        const hasSubscription =
+                          subscriptionsForDay.length >
+                          0;
+
+                        return (
+                          <View
+                            key={
+                              dayNumber
+                            }
+                            style={[
+                              styles.calendarDay,
+                              {
+                                backgroundColor:
+                                  theme.cardBg,
+
+                                borderColor:
+                                  hasSubscription
+                                    ? theme.activeButtonBorder
+                                    : theme.cardBorder
+                              },
+
+                              hasSubscription &&
+                                styles.calendarDayActive
                             ]}
                           >
-                            {dayNumber}
-                          </Text>
+                            <Text
+                              style={[
+                                styles.calendarDayNumber,
+                                {
+                                  color:
+                                    theme.textPrimary
+                                }
+                              ]}
+                            >
+                              {dayNumber}
+                            </Text>
 
-                          {subscriptionsOnDay.map(
-                            (
-                              subscription,
-                              subscriptionIndex
-                            ) => (
-                              <View
-                                key={subscriptionIndex}
-                                style={[
-                                  s.daySubBadge,
-                                  {
-                                    backgroundColor:
-                                      subscription.color ||
-                                      getServiceColor(
-                                        subscription.name,
-                                        templatesList
-                                      )
-                                  }
-                                ]}
-                              >
-                                <Text
-                                  style={s.daySubText}
-                                  numberOfLines={1}
-                                >
-                                  {subscription.name}
-                                </Text>
+                            {subscriptionsForDay.map(
+                              subscription => {
+                                const badgeColor =
+                                  subscription.color ||
+                                  CATEGORY_COLORS[
+                                    subscription.category
+                                  ] ||
+                                  CATEGORY_COLORS
+                                    .Diğer;
 
-                                <Text
-                                  style={s.daySubPrice}
-                                >
-                                  {formatShortCurrency(
-                                    convertToTL(
-                                      subscription.price,
-                                      subscription.currency,
-                                      exchangeRates
-                                    )
-                                  )}
-                                </Text>
-                              </View>
-                            )
-                          )}
-                        </View>
-                      );
-                    })}
+                                return (
+                                  <View
+                                    key={
+                                      subscription.id
+                                    }
+                                    style={[
+                                      styles.calendarSubscriptionBadge,
+                                      {
+                                        backgroundColor:
+                                          badgeColor
+                                      }
+                                    ]}
+                                  >
+                                    <Text
+                                      style={
+                                        styles.calendarSubscriptionName
+                                      }
+                                      numberOfLines={
+                                        1
+                                      }
+                                    >
+                                      {subscription.name}
+                                    </Text>
+
+                                    <Text
+                                      style={
+                                        styles.calendarSubscriptionPrice
+                                      }
+                                    >
+                                      {formatShortCurrency(
+                                        convertToTL(
+                                          subscription.price,
+                                          subscription.currency,
+                                          exchangeRates
+                                        ),
+                                        'TRY'
+                                      )}
+                                    </Text>
+                                  </View>
+                                );
+                              }
+                            )}
+                          </View>
+                        );
+                      }
+                    )}
                   </View>
                 </View>
               </View>
             )}
-            {activeTab === 'analytics' && (
+
+            {activeTab ===
+              'analytics' && (
               <View
-                style={{
-                  marginTop: 4
-                }}
+                style={
+                  styles.analyticsSection
+                }
               >
                 <Text
-                  style={{
-                    fontSize: 22,
-                    fontWeight: 'bold',
-                    color: theme.textPrimary,
-                    marginBottom: 4
-                  }}
+                  style={[
+                    styles.pageTitle,
+                    {
+                      color:
+                        theme.textPrimary
+                    }
+                  ]}
                 >
                   Finansal Analiz & Raporlar
                 </Text>
 
                 <Text
-                  style={{
-                    color: theme.textSecondary,
-                    fontSize: 13,
-                    marginBottom: 16
-                  }}
+                  style={[
+                    styles.pageDescription,
+                    {
+                      color:
+                        theme.textSecondary
+                    }
+                  ]}
                 >
-                  Aylık harcama dağılımları, ödeme yöntemi analizi ve kategori trendleri
+                  Aylık harcama dağılımları, ödeme yöntemleri ve kategori trendleri
                 </Text>
 
                 <ScrollView
                   horizontal
-                  showsHorizontalScrollIndicator={false}
-                  style={{
-                    marginBottom: 16
-                  }}
+                  showsHorizontalScrollIndicator={
+                    false
+                  }
+                  contentContainerStyle={
+                    styles.horizontalOptionRow
+                  }
                 >
-                  {YEARS.map(year => (
-                    <TouchableOpacity
-                      key={year}
-                      style={[
-                        s.yearChip,
-                        {
-                          backgroundColor: theme.cardBg,
-                          borderColor: theme.cardBorder,
-                          borderWidth: 1
-                        },
-                        selectedAnalysisYear === year &&
-                          s.yearChipActive
-                      ]}
-                      onPress={() =>
-                        setSelectedAnalysisYear(year)
-                      }
-                    >
-                      <Text
+                  {YEARS.map(
+                    year => (
+                      <TouchableOpacity
+                        key={year}
                         style={[
-                          s.yearChipText,
+                          styles.yearButton,
                           {
-                            color: theme.textSecondary
+                            backgroundColor:
+                              theme.cardBg,
+
+                            borderColor:
+                              theme.cardBorder
                           },
-                          selectedAnalysisYear === year &&
-                            s.yearChipTextActive
+
+                          selectedAnalysisYear ===
+                            year &&
+                            styles.yearButtonActive
                         ]}
+                        onPress={() =>
+                          handleAnalysisYearChange(
+                            year
+                          )
+                        }
                       >
-                        {year}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                        <Text
+                          style={[
+                            styles.yearButtonText,
+                            {
+                              color:
+                                theme.textSecondary
+                            },
+
+                            selectedAnalysisYear ===
+                              year &&
+                              styles.yearButtonTextActive
+                          ]}
+                        >
+                          {year}
+                        </Text>
+                      </TouchableOpacity>
+                    )
+                  )}
                 </ScrollView>
 
                 <View
-                  style={s.summaryMiniRow}
+                  style={
+                    styles.analyticsSummaryRow
+                  }
                 >
                   <View
                     style={[
-                      s.summaryMiniCard,
+                      styles.analyticsSummaryCard,
                       {
-                        backgroundColor: theme.cardBg,
-                        borderColor: theme.cardBorder
+                        backgroundColor:
+                          theme.cardBg,
+
+                        borderColor:
+                          theme.cardBorder
                       }
                     ]}
                   >
                     <Text
                       style={[
-                        s.summaryMiniLabel,
+                        styles.analyticsSummaryLabel,
                         {
-                          color: theme.textSecondary
+                          color:
+                            theme.textSecondary
                         }
                       ]}
                     >
@@ -3624,12 +4261,12 @@ export default function App() {
 
                     <Text
                       style={[
-                        s.summaryMiniValue,
+                        styles.analyticsSummaryValue,
                         {
-                          color: theme.textPrimary
+                          color:
+                            theme.textPrimary
                         }
                       ]}
-                      numberOfLines={1}
                     >
                       {formatShortCurrency(
                         averageMonthlyExpense,
@@ -3640,18 +4277,22 @@ export default function App() {
 
                   <View
                     style={[
-                      s.summaryMiniCard,
+                      styles.analyticsSummaryCard,
                       {
-                        backgroundColor: theme.cardBg,
-                        borderColor: theme.cardBorder
+                        backgroundColor:
+                          theme.cardBg,
+
+                        borderColor:
+                          theme.cardBorder
                       }
                     ]}
                   >
                     <Text
                       style={[
-                        s.summaryMiniLabel,
+                        styles.analyticsSummaryLabel,
                         {
-                          color: theme.textSecondary
+                          color:
+                            theme.textSecondary
                         }
                       ]}
                     >
@@ -3660,9 +4301,10 @@ export default function App() {
 
                     <Text
                       style={[
-                        s.summaryMiniValue,
+                        styles.analyticsSummaryValue,
                         {
-                          color: theme.textPrimary
+                          color:
+                            theme.textPrimary
                         }
                       ]}
                       numberOfLines={1}
@@ -3673,18 +4315,22 @@ export default function App() {
 
                   <View
                     style={[
-                      s.summaryMiniCard,
+                      styles.analyticsSummaryCard,
                       {
-                        backgroundColor: theme.cardBg,
-                        borderColor: theme.cardBorder
+                        backgroundColor:
+                          theme.cardBg,
+
+                        borderColor:
+                          theme.cardBorder
                       }
                     ]}
                   >
                     <Text
                       style={[
-                        s.summaryMiniLabel,
+                        styles.analyticsSummaryLabel,
                         {
-                          color: theme.textSecondary
+                          color:
+                            theme.textSecondary
                         }
                       ]}
                     >
@@ -3693,33 +4339,38 @@ export default function App() {
 
                     <Text
                       style={[
-                        s.summaryMiniValue,
+                        styles.analyticsSummaryValue,
                         {
-                          color: theme.textPrimary
+                          color:
+                            theme.textPrimary
                         }
                       ]}
                       numberOfLines={1}
                     >
-                      {mostExpensiveSub
-                        ? mostExpensiveSub.item.name
-                        : '-'}
+                      {mostExpensiveSubscription
+                        ?.item?.name ||
+                        '-'}
                     </Text>
                   </View>
 
                   <View
                     style={[
-                      s.summaryMiniCard,
+                      styles.analyticsSummaryCard,
                       {
-                        backgroundColor: theme.cardBg,
-                        borderColor: theme.cardBorder
+                        backgroundColor:
+                          theme.cardBg,
+
+                        borderColor:
+                          theme.cardBorder
                       }
                     ]}
                   >
                     <Text
                       style={[
-                        s.summaryMiniLabel,
+                        styles.analyticsSummaryLabel,
                         {
-                          color: theme.textSecondary
+                          color:
+                            theme.textSecondary
                         }
                       ]}
                     >
@@ -3728,220 +4379,278 @@ export default function App() {
 
                     <Text
                       style={[
-                        s.summaryMiniValue,
+                        styles.analyticsSummaryValue,
                         {
-                          color: theme.textPrimary
+                          color:
+                            theme.textPrimary
                         }
                       ]}
-                      numberOfLines={1}
                     >
                       {safeList.length} adet
                     </Text>
                   </View>
                 </View>
 
-                {upcomingRenewals.length > 0 && (
+                {upcomingRenewals.length >
+                  0 && (
                   <View
                     style={[
-                      s.chartContainer,
+                      styles.panel,
                       {
-                        backgroundColor: theme.cardBg,
-                        borderColor: theme.cardBorder
+                        backgroundColor:
+                          theme.cardBg,
+
+                        borderColor:
+                          theme.cardBorder
                       }
                     ]}
                   >
                     <Text
-                      style={{
-                        fontSize: 15,
-                        fontWeight: 'bold',
-                        color: theme.textPrimary,
-                        marginBottom: 10
-                      }}
+                      style={[
+                        styles.panelTitle,
+                        {
+                          color:
+                            theme.textPrimary
+                        }
+                      ]}
                     >
                       ⏰ Yaklaşan Yenilemeler (14 gün)
                     </Text>
 
                     {upcomingRenewals.map(
-                      ({ item, daysUntil }) => (
-                        <View
-                          key={item.id}
-                          style={s.renewalRow}
-                        >
+                      renewal => {
+                        const renewalColor =
+                          renewal.item
+                            .color ||
+                          CATEGORY_COLORS[
+                            renewal.item
+                              .category
+                          ] ||
+                          CATEGORY_COLORS
+                            .Diğer;
+
+                        return (
                           <View
+                            key={
+                              renewal.item
+                                .id
+                            }
                             style={[
-                              s.renewalDot,
+                              styles.renewalRow,
                               {
-                                backgroundColor:
-                                  item.color ||
-                                  getServiceColor(
-                                    item.name,
-                                    templatesList
-                                  )
-                              }
-                            ]}
-                          />
-
-                          <Text
-                            style={[
-                              s.renewalName,
-                              {
-                                color: theme.textPrimary
+                                borderBottomColor:
+                                  theme.cardBorder
                               }
                             ]}
                           >
-                            {item.name}
-                          </Text>
+                            <View
+                              style={[
+                                styles.renewalDot,
+                                {
+                                  backgroundColor:
+                                    renewalColor
+                                }
+                              ]}
+                            />
 
-                          <Text
-                            style={[
-                              s.renewalDays,
-                              {
-                                color:
-                                  daysUntil <= 2
-                                    ? theme.danger
-                                    : theme.textSecondary
-                              }
-                            ]}
-                          >
-                            {daysUntil === 0
-                              ? 'Bugün'
-                              : daysUntil === 1
-                                ? 'Yarın'
-                                : `${daysUntil} gün sonra`}
-                          </Text>
+                            <Text
+                              style={[
+                                styles.renewalName,
+                                {
+                                  color:
+                                    theme.textPrimary
+                                }
+                              ]}
+                            >
+                              {renewal.item.name}
+                            </Text>
 
-                          <Text
-                            style={[
-                              s.renewalAmount,
-                              {
-                                color: theme.textPrimary
-                              }
-                            ]}
-                          >
-                            {formatCurrency(
-                              item.price,
-                              item.currency
-                            )}
-                          </Text>
-                        </View>
-                      )
+                            <Text
+                              style={[
+                                styles.renewalDateText,
+                                {
+                                  color:
+                                    renewal.daysUntil <=
+                                    2
+                                      ? theme.danger
+                                      : theme.textSecondary
+                                }
+                              ]}
+                            >
+                              {renewal.daysUntil ===
+                              0
+                                ? 'Bugün'
+                                : renewal.daysUntil ===
+                                    1
+                                  ? 'Yarın'
+                                  : `${renewal.daysUntil} gün sonra`}
+                            </Text>
+
+                            <Text
+                              style={[
+                                styles.renewalAmount,
+                                {
+                                  color:
+                                    theme.textPrimary
+                                }
+                              ]}
+                            >
+                              {formatCurrency(
+                                renewal.item
+                                  .price,
+                                renewal.item
+                                  .currency
+                              )}
+                            </Text>
+                          </View>
+                        );
+                      }
                     )}
                   </View>
                 )}
 
                 <View
                   style={[
-                    s.chartContainer,
+                    styles.panel,
                     {
-                      backgroundColor: theme.cardBg,
-                      borderColor: theme.cardBorder
+                      backgroundColor:
+                        theme.cardBg,
+
+                      borderColor:
+                        theme.cardBorder
                     }
                   ]}
                 >
-                  <View
-                    style={s.chartTitleRow}
+                  <Text
+                    style={[
+                      styles.panelTitle,
+                      {
+                        color:
+                          theme.textPrimary
+                      }
+                    ]}
                   >
-                    <View>
-                      <Text
-                        style={{
-                          fontSize: 16,
-                          fontWeight: 'bold',
-                          color: theme.textPrimary
-                        }}
-                      >
-                        {selectedAnalysisYear} Aylık Harcama Grafiği
-                      </Text>
+                    {selectedAnalysisYear} Aylık Harcama Grafiği
+                  </Text>
 
-                      <Text
-                        style={{
-                          color: theme.textMuted,
-                          fontSize: 11,
-                          marginTop: 3
-                        }}
-                      >
-                        Çubuk içindeki renkler kategori dağılımını gösterir
-                      </Text>
-                    </View>
-                  </View>
+                  <Text
+                    style={[
+                      styles.panelDescription,
+                      {
+                        color:
+                          theme.textMuted
+                      }
+                    ]}
+                  >
+                    Her çubukta o aya ait kategoriler farklı renklerle gösterilir.
+                  </Text>
 
                   <View
-                    style={s.categoryLegend}
+                    style={
+                      styles.categoryLegend
+                    }
                   >
                     {Object.entries(
                       CATEGORY_COLORS
-                    ).map(([category, color]) => (
-                      <View
-                        key={category}
-                        style={s.legendItem}
-                      >
+                    ).map(
+                      ([
+                        category,
+                        color
+                      ]) => (
                         <View
-                          style={[
-                            s.legendDot,
-                            {
-                              backgroundColor: color
-                            }
-                          ]}
-                        />
-
-                        <Text
-                          style={{
-                            color: theme.textSecondary,
-                            fontSize: 10
-                          }}
+                          key={category}
+                          style={
+                            styles.legendItem
+                          }
                         >
-                          {category}
-                        </Text>
-                      </View>
-                    ))}
+                          <View
+                            style={[
+                              styles.legendDot,
+                              {
+                                backgroundColor:
+                                  color
+                              }
+                            ]}
+                          />
+
+                          <Text
+                            style={[
+                              styles.legendText,
+                              {
+                                color:
+                                  theme.textSecondary
+                              }
+                            ]}
+                          >
+                            {category}
+                          </Text>
+                        </View>
+                      )
+                    )}
                   </View>
 
                   <ScrollView
                     horizontal
-                    showsHorizontalScrollIndicator={false}
+                    showsHorizontalScrollIndicator={
+                      false
+                    }
                     contentContainerStyle={
-                      s.chartHorizontalContent
+                      styles.chartScrollContent
                     }
                   >
                     <View
-                      style={s.barsAreaContainer}
+                      style={
+                        styles.chartArea
+                      }
                     >
                       {monthlyTotals.map(
                         (
-                          total,
+                          monthTotal,
                           monthIndex
                         ) => {
-                          const heightPercent =
-                            maxMonthlyExpense > 0
+                          const heightPercentage =
+                            maxMonthlyExpense >
+                            0
                               ? (
-                                  total /
+                                  monthTotal /
                                   maxMonthlyExpense
                                 ) * 100
                               : 0;
 
-                          const barHeight =
-                            total > 0
+                          const visibleHeight =
+                            monthTotal > 0
                               ? Math.max(
-                                  heightPercent,
+                                  heightPercentage,
                                   8
                                 )
                               : 0;
 
+                          const categorySegments =
+                            monthlyCategoryBreakdown[
+                              monthIndex
+                            ] || [];
+
                           return (
                             <View
-                              key={monthIndex}
-                              style={s.barColumn}
+                              key={
+                                monthIndex
+                              }
+                              style={
+                                styles.chartColumn
+                              }
                             >
                               <Text
                                 style={[
-                                  s.barTopAmount,
+                                  styles.chartAmount,
                                   {
-                                    color: theme.textSecondary
+                                    color:
+                                      theme.textSecondary
                                   }
                                 ]}
                               >
-                                {total > 0
+                                {monthTotal > 0
                                   ? formatShortCurrency(
-                                      total,
+                                      monthTotal,
                                       'TRY'
                                     )
                                   : ''}
@@ -3949,40 +4658,44 @@ export default function App() {
 
                               <View
                                 style={[
-                                  s.barTrack,
+                                  styles.chartTrack,
                                   {
                                     backgroundColor:
-                                      theme.inputBg
+                                      theme.inputBg,
+
+                                    borderColor:
+                                      theme.cardBorder
                                   }
                                 ]}
                               >
-                                {total > 0 && (
+                                {monthTotal >
+                                  0 && (
                                   <View
                                     style={[
-                                      s.stackedBarWrapper,
+                                      styles.chartStack,
                                       {
-                                        height: `${barHeight}%`
+                                        height: `${visibleHeight}%`
                                       }
                                     ]}
                                   >
-                                    {monthlyCategoryBreakdown[
-                                      monthIndex
-                                    ].map(
+                                    {categorySegments.map(
                                       (
                                         segment,
                                         segmentIndex
                                       ) => (
                                         <View
-                                          key={`${monthIndex}-${segment.category}-${segmentIndex}`}
+                                          key={`${segment.category}-${segmentIndex}`}
                                           style={[
-                                            s.stackedBarSegment,
+                                            styles.chartSegment,
                                             {
                                               height: `${
                                                 (
                                                   segment.amount /
-                                                  total
-                                                ) * 100
+                                                  monthTotal
+                                                ) *
+                                                100
                                               }%`,
+
                                               backgroundColor:
                                                 segment.color
                                             }
@@ -3996,15 +4709,19 @@ export default function App() {
 
                               <Text
                                 style={[
-                                  s.barLabel,
+                                  styles.chartMonthLabel,
                                   {
-                                    color: theme.textPrimary
+                                    color:
+                                      theme.textPrimary
                                   }
                                 ]}
                               >
                                 {MONTH_NAMES[
                                   monthIndex
-                                ].substring(0, 3)}
+                                ].substring(
+                                  0,
+                                  3
+                                )}
                               </Text>
                             </View>
                           );
@@ -4015,7 +4732,7 @@ export default function App() {
 
                   <View
                     style={[
-                      s.chartFooter,
+                      styles.chartFooter,
                       {
                         borderTopColor:
                           theme.cardBorder
@@ -4023,24 +4740,28 @@ export default function App() {
                     ]}
                   >
                     <Text
-                      style={{
-                        color: theme.textPrimary,
-                        fontSize: 14,
-                        fontWeight: 'bold'
-                      }}
+                      style={[
+                        styles.chartFooterLabel,
+                        {
+                          color:
+                            theme.textPrimary
+                        }
+                      ]}
                     >
                       Yıllık Toplam Harcama ({selectedAnalysisYear})
                     </Text>
 
                     <Text
-                      style={{
-                        color: theme.accent,
-                        fontSize: 18,
-                        fontWeight: 'bold'
-                      }}
+                      style={[
+                        styles.chartFooterValue,
+                        {
+                          color:
+                            theme.accent
+                        }
+                      ]}
                     >
                       {formatCurrency(
-                        totalYearlyExpenseForSelectedYear,
+                        totalYearlyExpense,
                         'TRY'
                       )}
                     </Text>
@@ -4048,70 +4769,90 @@ export default function App() {
                 </View>
 
                 <Text
-                  style={{
-                    fontSize: 16,
-                    fontWeight: 'bold',
-                    color: theme.textPrimary,
-                    marginTop: 18,
-                    marginBottom: 10
-                  }}
+                  style={[
+                    styles.distributionTitle,
+                    {
+                      color:
+                        theme.textPrimary
+                    }
+                  ]}
                 >
                   💳 Ödeme Yöntemine Göre Harcama Dağılımı
                 </Text>
 
-                {sortedPaymentMethodEntries.length === 0 ? (
+                {sortedPaymentMethodEntries.length ===
+                0 ? (
                   <Text
-                    style={{
-                      color: theme.textSecondary,
-                      fontStyle: 'italic',
-                      fontSize: 12
-                    }}
+                    style={[
+                      styles.noDataText,
+                      {
+                        color:
+                          theme.textSecondary
+                      }
+                    ]}
                   >
-                    Kayıtlı ödeme yöntemi verisi bulunamadı.
+                    Seçilen yıl için ödeme yöntemi verisi bulunamadı.
                   </Text>
                 ) : (
                   sortedPaymentMethodEntries.map(
-                    ([method, amount]) => {
+                    ([
+                      paymentMethod,
+                      amount
+                    ]) => {
                       const percentage =
-                        totalYearlyExpenseForSelectedYear > 0
+                        totalYearlyExpense >
+                        0
                           ? (
                               (
                                 amount /
-                                totalYearlyExpenseForSelectedYear
+                                totalYearlyExpense
                               ) * 100
-                            ).toFixed(1)
+                            ).toFixed(
+                              1
+                            )
                           : 0;
 
                       return (
                         <View
-                          key={method}
+                          key={
+                            paymentMethod
+                          }
                           style={[
-                            s.categoryCard,
+                            styles.distributionCard,
                             {
-                              backgroundColor: theme.cardBg,
-                              borderColor: theme.cardBorder
+                              backgroundColor:
+                                theme.cardBg,
+
+                              borderColor:
+                                theme.cardBorder
                             }
                           ]}
                         >
                           <View
-                            style={s.distributionRow}
+                            style={
+                              styles.distributionHeader
+                            }
                           >
                             <Text
-                              style={{
-                                color: theme.textPrimary,
-                                fontWeight: 'bold',
-                                fontSize: 13
-                              }}
+                              style={[
+                                styles.distributionName,
+                                {
+                                  color:
+                                    theme.textPrimary
+                                }
+                              ]}
                             >
-                              💳 {method}
+                              💳 {paymentMethod}
                             </Text>
 
                             <Text
-                              style={{
-                                color: theme.textPrimary,
-                                fontWeight: 'bold',
-                                fontSize: 13
-                              }}
+                              style={[
+                                styles.distributionAmount,
+                                {
+                                  color:
+                                    theme.textPrimary
+                                }
+                              ]}
                             >
                               {formatCurrency(
                                 amount,
@@ -4123,18 +4864,21 @@ export default function App() {
 
                           <View
                             style={[
-                              s.progressBarBg,
+                              styles.progressTrack,
                               {
-                                backgroundColor: theme.inputBg
+                                backgroundColor:
+                                  theme.inputBg
                               }
                             ]}
                           >
                             <View
                               style={[
-                                s.progressBarFill,
+                                styles.progressFill,
                                 {
                                   width: `${percentage}%`,
-                                  backgroundColor: theme.accent
+
+                                  backgroundColor:
+                                    theme.accent
                                 }
                               ]}
                             />
@@ -4146,69 +4890,85 @@ export default function App() {
                 )}
 
                 <Text
-                  style={{
-                    fontSize: 16,
-                    fontWeight: 'bold',
-                    color: theme.textPrimary,
-                    marginTop: 18,
-                    marginBottom: 10
-                  }}
+                  style={[
+                    styles.distributionTitle,
+                    {
+                      color:
+                        theme.textPrimary
+                    }
+                  ]}
                 >
                   📂 Kategori Bazlı Dağılım
                 </Text>
 
-                {sortedCategoryEntries.length === 0 ? (
+                {sortedCategoryEntries.length ===
+                0 ? (
                   <Text
-                    style={{
-                      color: theme.textSecondary,
-                      fontStyle: 'italic',
-                      fontSize: 12
-                    }}
+                    style={[
+                      styles.noDataText,
+                      {
+                        color:
+                          theme.textSecondary
+                      }
+                    ]}
                   >
-                    Kayıtlı kategori verisi bulunamadı.
+                    Seçilen yıl için kategori verisi bulunamadı.
                   </Text>
                 ) : (
                   sortedCategoryEntries.map(
-                    ([category, amount]) => {
+                    ([
+                      category,
+                      amount
+                    ]) => {
                       const categoryColor =
                         CATEGORY_COLORS[
                           category
-                        ] || '#6366f1';
+                        ] ||
+                        CATEGORY_COLORS
+                          .Diğer;
 
                       const percentage =
-                        totalYearlyExpenseForSelectedYear > 0
+                        totalYearlyExpense >
+                        0
                           ? (
                               (
                                 amount /
-                                totalYearlyExpenseForSelectedYear
+                                totalYearlyExpense
                               ) * 100
-                            ).toFixed(1)
+                            ).toFixed(
+                              1
+                            )
                           : 0;
 
                       return (
                         <View
-                          key={category}
+                          key={
+                            category
+                          }
                           style={[
-                            s.categoryCard,
+                            styles.distributionCard,
                             {
-                              backgroundColor: theme.cardBg,
-                              borderColor: theme.cardBorder
+                              backgroundColor:
+                                theme.cardBg,
+
+                              borderColor:
+                                theme.cardBorder
                             }
                           ]}
                         >
                           <View
-                            style={s.distributionRow}
+                            style={
+                              styles.distributionHeader
+                            }
                           >
                             <View
-                              style={{
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                gap: 7
-                              }}
+                              style={
+                                styles.distributionNameGroup
+                              }
                             >
                               <View
                                 style={[
-                                  s.categoryDot,
+                                  styles.distributionColorDot,
                                   {
                                     backgroundColor:
                                       categoryColor
@@ -4217,22 +4977,26 @@ export default function App() {
                               />
 
                               <Text
-                                style={{
-                                  color: theme.textPrimary,
-                                  fontWeight: 'bold',
-                                  fontSize: 13
-                                }}
+                                style={[
+                                  styles.distributionName,
+                                  {
+                                    color:
+                                      theme.textPrimary
+                                  }
+                                ]}
                               >
                                 {category}
                               </Text>
                             </View>
 
                             <Text
-                              style={{
-                                color: theme.textPrimary,
-                                fontWeight: 'bold',
-                                fontSize: 13
-                              }}
+                              style={[
+                                styles.distributionAmount,
+                                {
+                                  color:
+                                    theme.textPrimary
+                                }
+                              ]}
                             >
                               {formatCurrency(
                                 amount,
@@ -4244,17 +5008,19 @@ export default function App() {
 
                           <View
                             style={[
-                              s.progressBarBg,
+                              styles.progressTrack,
                               {
-                                backgroundColor: theme.inputBg
+                                backgroundColor:
+                                  theme.inputBg
                               }
                             ]}
                           >
                             <View
                               style={[
-                                s.progressBarFill,
+                                styles.progressFill,
                                 {
                                   width: `${percentage}%`,
+
                                   backgroundColor:
                                     categoryColor
                                 }
@@ -4266,81 +5032,6 @@ export default function App() {
                     }
                   )
                 )}
-
-                {!isDesktop && (
-                  <View
-                    style={s.mobileExportRow}
-                  >
-                    <TouchableOpacity
-                      style={[
-                        s.exportBtn,
-                        s.mobileExportButton,
-                        {
-                          backgroundColor: theme.inputBg,
-                          borderColor: theme.cardBorder,
-                          borderWidth: 1
-                        }
-                      ]}
-                      onPress={handleExportCSV}
-                    >
-                      <Text
-                        style={{
-                          color: theme.textPrimary,
-                          fontSize: 12,
-                          fontWeight: 'bold'
-                        }}
-                      >
-                        📄 CSV İndir
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[
-                        s.exportBtn,
-                        s.mobileExportButton,
-                        {
-                          backgroundColor: theme.inputBg,
-                          borderColor: theme.cardBorder,
-                          borderWidth: 1
-                        }
-                      ]}
-                      onPress={handleExportJSON}
-                    >
-                      <Text
-                        style={{
-                          color: theme.accent,
-                          fontSize: 12,
-                          fontWeight: 'bold'
-                        }}
-                      >
-                        💾 Yedek Al
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[
-                        s.exportBtn,
-                        s.mobileExportButton,
-                        {
-                          backgroundColor: theme.inputBg,
-                          borderColor: theme.cardBorder,
-                          borderWidth: 1
-                        }
-                      ]}
-                      onPress={handleImportJSON}
-                    >
-                      <Text
-                        style={{
-                          color: theme.textSecondary,
-                          fontSize: 12,
-                          fontWeight: 'bold'
-                        }}
-                      >
-                        ↩️ Geri Yükle
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
               </View>
             )}
           </ScrollView>
@@ -4348,10 +5039,13 @@ export default function App() {
           {!isDesktop && (
             <View
               style={[
-                s.bottomNav,
+                styles.bottomNavigation,
                 {
-                  backgroundColor: theme.headerBg,
-                  borderTopColor: theme.cardBorder
+                  backgroundColor:
+                    theme.headerBg,
+
+                  borderTopColor:
+                    theme.cardBorder
                 }
               ]}
             >
@@ -4370,35 +5064,42 @@ export default function App() {
                   key: 'analytics',
                   icon: '📊',
                   label: 'Analiz'
-                },
-              ].map(nav => (
+                }
+              ].map(navItem => (
                 <TouchableOpacity
-                  key={nav.key}
-                  style={s.navItem}
+                  key={
+                    navItem.key
+                  }
+                  style={
+                    styles.bottomNavigationItem
+                  }
                   onPress={() =>
-                    setActiveTab(nav.key)
+                    handleTabChange(
+                      navItem.key
+                    )
                   }
                 >
                   <Text
-                    style={{
-                      fontSize: 18
-                    }}
+                    style={
+                      styles.bottomNavigationIcon
+                    }
                   >
-                    {nav.icon}
+                    {navItem.icon}
                   </Text>
 
                   <Text
                     style={[
-                      s.navText,
+                      styles.bottomNavigationText,
                       {
                         color:
-                          activeTab === nav.key
-                            ? '#8b87ff'
+                          activeTab ===
+                          navItem.key
+                            ? '#9b98ff'
                             : theme.textSecondary
                       }
                     ]}
                   >
-                    {nav.label}
+                    {navItem.label}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -4407,35 +5108,343 @@ export default function App() {
         </View>
       </View>
 
+      {/* Görünüm ayarları penceresi */}
       <Modal
-        visible={isModalOpen}
-        animationType="fade"
+        visible={
+          isAppearanceModalOpen
+        }
         transparent
+        animationType="fade"
         onRequestClose={() =>
-          setIsModalOpen(false)
+          setIsAppearanceModalOpen(
+            false
+          )
         }
       >
         <View
-          style={s.modalOverlay}
+          style={
+            styles.modalOverlay
+          }
         >
           <View
             style={[
-              s.modalContent,
+              styles.appearanceModal,
               {
-                backgroundColor: theme.cardBg,
-                borderColor: theme.cardBorder
+                backgroundColor:
+                  theme.cardBg,
+
+                borderColor:
+                  theme.cardBorder
               }
             ]}
           >
             <View
-              style={s.modalHeader}
+              style={
+                styles.modalHeader
+              }
             >
               <View>
                 <Text
                   style={[
-                    s.modalTitle,
+                    styles.modalTitle,
                     {
-                      color: theme.textPrimary
+                      color:
+                        theme.textPrimary
+                    }
+                  ]}
+                >
+                  Görünüm Ayarları
+                </Text>
+
+                <Text
+                  style={[
+                    styles.modalSubtitle,
+                    {
+                      color:
+                        theme.textMuted
+                    }
+                  ]}
+                >
+                  Arka plan rengini ve yazı boyutunu kişiselleştirin.
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                style={[
+                  styles.modalCloseButton,
+                  {
+                    backgroundColor:
+                      theme.inputBg,
+
+                    borderColor:
+                      theme.cardBorder
+                  }
+                ]}
+                onPress={() =>
+                  setIsAppearanceModalOpen(
+                    false
+                  )
+                }
+              >
+                <Text
+                  style={[
+                    styles.modalCloseText,
+                    {
+                      color:
+                        theme.textSecondary
+                    }
+                  ]}
+                >
+                  ×
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text
+              style={[
+                styles.appearanceSectionTitle,
+                {
+                  color:
+                    theme.textPrimary
+                }
+              ]}
+            >
+              Arka Plan Teması
+            </Text>
+
+            <View
+              style={
+                styles.appearanceOptionGrid
+              }
+            >
+              {Object.entries(
+                BACKGROUND_PRESETS
+              ).map(
+                ([
+                  presetKey,
+                  preset
+                ]) => (
+                  <TouchableOpacity
+                    key={
+                      presetKey
+                    }
+                    style={[
+                      styles.appearanceThemeOption,
+                      {
+                        backgroundColor:
+                          preset.cardBg,
+
+                        borderColor:
+                          backgroundPreset ===
+                          presetKey
+                            ? theme.activeButtonBorder
+                            : preset.cardBorder
+                      },
+
+                      backgroundPreset ===
+                        presetKey &&
+                        styles.appearanceOptionActive
+                    ]}
+                    onPress={() =>
+                      setBackgroundPreset(
+                        presetKey
+                      )
+                    }
+                  >
+                    <View
+                      style={[
+                        styles.themePreview,
+                        {
+                          backgroundColor:
+                            preset.bg
+                        }
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.themePreviewSidebar,
+                          {
+                            backgroundColor:
+                              preset.sidebarBg
+                          }
+                        ]}
+                      />
+
+                      <View
+                        style={
+                          styles.themePreviewContent
+                        }
+                      >
+                        <View
+                          style={[
+                            styles.themePreviewHeader,
+                            {
+                              backgroundColor:
+                                preset.headerBg
+                            }
+                          ]}
+                        />
+
+                        <View
+                          style={[
+                            styles.themePreviewCard,
+                            {
+                              backgroundColor:
+                                preset.summaryBg
+                            }
+                          ]}
+                        />
+                      </View>
+                    </View>
+
+                    <Text
+                      style={[
+                        styles.appearanceOptionLabel,
+                        {
+                          color:
+                            backgroundPreset ===
+                            presetKey
+                              ? '#ffffff'
+                              : preset.textPrimary
+                        }
+                      ]}
+                    >
+                      {preset.label}
+                    </Text>
+                  </TouchableOpacity>
+                )
+              )}
+            </View>
+
+            <Text
+              style={[
+                styles.appearanceSectionTitle,
+                {
+                  color:
+                    theme.textPrimary
+                }
+              ]}
+            >
+              Yazı Boyutu
+            </Text>
+
+            <View
+              style={
+                styles.fontScaleRow
+              }
+            >
+              {FONT_SCALE_OPTIONS.map(
+                option => (
+                  <TouchableOpacity
+                    key={
+                      option.key
+                    }
+                    style={[
+                      styles.fontScaleOption,
+                      {
+                        backgroundColor:
+                          theme.inputBg,
+
+                        borderColor:
+                          theme.cardBorder
+                      },
+
+                      fontScaleKey ===
+                        option.key &&
+                        styles.fontScaleOptionActive
+                    ]}
+                    onPress={() =>
+                      setFontScaleKey(
+                        option.key
+                      )
+                    }
+                  >
+                    <Text
+                      style={[
+                        styles.fontScaleOptionText,
+                        {
+                          color:
+                            theme.textSecondary,
+
+                          fontSize:
+                            12 *
+                            option.scale
+                        },
+
+                        fontScaleKey ===
+                          option.key &&
+                          styles.fontScaleOptionTextActive
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                )
+              )}
+            </View>
+
+            <TouchableOpacity
+              style={
+                styles.primaryButton
+              }
+              onPress={() =>
+                setIsAppearanceModalOpen(
+                  false
+                )
+              }
+            >
+              <Text
+                style={
+                  styles.primaryButtonText
+                }
+              >
+                Ayarları Uygula
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Abonelik ekleme / düzenleme penceresi */}
+      <Modal
+        visible={
+          isSubscriptionModalOpen
+        }
+        transparent
+        animationType="fade"
+        onRequestClose={
+          closeSubscriptionForm
+        }
+      >
+        <View
+          style={
+            styles.modalOverlay
+          }
+        >
+          <View
+            style={[
+              styles.subscriptionModal,
+              {
+                backgroundColor:
+                  theme.cardBg,
+
+                borderColor:
+                  theme.cardBorder
+              }
+            ]}
+          >
+            <View
+              style={
+                styles.modalHeader
+              }
+            >
+              <View>
+                <Text
+                  style={[
+                    styles.modalTitle,
+                    {
+                      color:
+                        theme.textPrimary
                     }
                   ]}
                 >
@@ -4445,34 +5454,41 @@ export default function App() {
                 </Text>
 
                 <Text
-                  style={{
-                    color: theme.textMuted,
-                    fontSize: 11,
-                    marginTop: 3
-                  }}
+                  style={[
+                    styles.modalSubtitle,
+                    {
+                      color:
+                        theme.textMuted
+                    }
+                  ]}
                 >
-                  Abonelik bilgilerini doldurun ve kaydedin
+                  Abonelik veya sabit gider bilgilerini giriniz.
                 </Text>
               </View>
 
               <TouchableOpacity
                 style={[
-                  s.modalCloseButton,
+                  styles.modalCloseButton,
                   {
-                    backgroundColor: theme.inputBg,
-                    borderColor: theme.cardBorder
+                    backgroundColor:
+                      theme.inputBg,
+
+                    borderColor:
+                      theme.cardBorder
                   }
                 ]}
-                onPress={() =>
-                  setIsModalOpen(false)
+                onPress={
+                  closeSubscriptionForm
                 }
               >
                 <Text
-                  style={{
-                    color: theme.textSecondary,
-                    fontSize: 17,
-                    fontWeight: 'bold'
-                  }}
+                  style={[
+                    styles.modalCloseText,
+                    {
+                      color:
+                        theme.textSecondary
+                    }
+                  ]}
                 >
                   ×
                 </Text>
@@ -4480,26 +5496,32 @@ export default function App() {
             </View>
 
             <ScrollView
-              style={s.modalScroll}
+              style={
+                styles.subscriptionModalScroll
+              }
               contentContainerStyle={
-                s.modalScrollContent
+                styles.subscriptionModalContent
               }
               showsVerticalScrollIndicator
-              nestedScrollEnabled
             >
               {!editingId && (
                 <View
-                  style={s.formSection}
+                  style={
+                    styles.formSection
+                  }
                 >
                   <View
-                    style={s.sectionHeaderRow}
+                    style={
+                      styles.formSectionHeader
+                    }
                   >
                     <View>
                       <Text
                         style={[
-                          s.formSectionTitle,
+                          styles.formSectionTitle,
                           {
-                            color: theme.textPrimary
+                            color:
+                              theme.textPrimary
                           }
                         ]}
                       >
@@ -4507,13 +5529,15 @@ export default function App() {
                       </Text>
 
                       <Text
-                        style={{
-                          color: theme.textMuted,
-                          fontSize: 10,
-                          marginTop: 2
-                        }}
+                        style={[
+                          styles.formSectionDescription,
+                          {
+                            color:
+                              theme.textMuted
+                          }
+                        ]}
                       >
-                        Hazır bir servis seçerek alanları otomatik doldurun
+                        Hazır bir servis seçerek alanları otomatik doldurun.
                       </Text>
                     </View>
 
@@ -4525,11 +5549,13 @@ export default function App() {
                       }
                     >
                       <Text
-                        style={{
-                          color: theme.accent,
-                          fontSize: 12,
-                          fontWeight: 'bold'
-                        }}
+                        style={[
+                          styles.formSectionAction,
+                          {
+                            color:
+                              theme.accent
+                          }
+                        ]}
                       >
                         {showTemplateForm
                           ? 'Kapat'
@@ -4540,12 +5566,14 @@ export default function App() {
 
                   <ScrollView
                     horizontal
-                    showsHorizontalScrollIndicator={false}
+                    showsHorizontalScrollIndicator={
+                      false
+                    }
                     contentContainerStyle={
-                      s.horizontalChipContent
+                      styles.removableOptionRow
                     }
                   >
-                    {templatesList.map(
+                    {safeTemplates.map(
                       (
                         template,
                         index
@@ -4553,12 +5581,12 @@ export default function App() {
                         <View
                           key={`${template.name}-${index}`}
                           style={
-                            s.removableItemWrapper
+                            styles.removableOptionWrapper
                           }
                         >
                           <TouchableOpacity
                             style={[
-                              s.templateChip,
+                              styles.templateOption,
                               {
                                 backgroundColor:
                                   template.color
@@ -4587,21 +5615,31 @@ export default function App() {
                             }}
                           >
                             <Text
-                              style={s.templateChipText}
-                              numberOfLines={1}
+                              style={
+                                styles.templateOptionText
+                              }
+                              numberOfLines={
+                                1
+                              }
                             >
                               {template.name}
                             </Text>
                           </TouchableOpacity>
 
                           <TouchableOpacity
-                            style={s.subtleRemoveButton}
+                            style={
+                              styles.removeOptionButton
+                            }
                             onPress={() =>
-                              removeTemplate(index)
+                              removeTemplate(
+                                index
+                              )
                             }
                           >
                             <Text
-                              style={s.subtleRemoveText}
+                              style={
+                                styles.removeOptionText
+                              }
                             >
                               ×
                             </Text>
@@ -4614,142 +5652,197 @@ export default function App() {
                   {showTemplateForm && (
                     <View
                       style={[
-                        s.inlineForm,
+                        styles.inlineForm,
                         {
-                          backgroundColor: theme.inputBg,
-                          borderColor: theme.cardBorder
+                          backgroundColor:
+                            theme.inputBg,
+
+                          borderColor:
+                            theme.cardBorder
                         }
                       ]}
                     >
                       <TextInput
                         style={[
-                          s.textInput,
+                          styles.textInput,
                           {
-                            backgroundColor: theme.cardBg,
-                            color: theme.textPrimary,
-                            borderColor: theme.cardBorder
+                            backgroundColor:
+                              theme.cardBg,
+
+                            color:
+                              theme.textPrimary,
+
+                            borderColor:
+                              theme.cardBorder
                           }
                         ]}
                         placeholder="Şablon adı"
-                        placeholderTextColor={theme.textMuted}
-                        value={newTemplateName}
-                        onChangeText={setNewTemplateName}
+                        placeholderTextColor={
+                          theme.textMuted
+                        }
+                        value={
+                          newTemplateName
+                        }
+                        onChangeText={
+                          setNewTemplateName
+                        }
                       />
 
                       <View
-                        style={s.inlineFieldRow}
+                        style={
+                          styles.inlineInputRow
+                        }
                       >
                         <TextInput
                           style={[
-                            s.textInput,
+                            styles.textInput,
+                            styles.flexInput,
                             {
-                              flex: 1,
-                              marginBottom: 0,
-                              backgroundColor: theme.cardBg,
-                              color: theme.textPrimary,
-                              borderColor: theme.cardBorder
+                              backgroundColor:
+                                theme.cardBg,
+
+                              color:
+                                theme.textPrimary,
+
+                              borderColor:
+                                theme.cardBorder
                             }
                           ]}
                           placeholder="Fiyat"
-                          placeholderTextColor={theme.textMuted}
+                          placeholderTextColor={
+                            theme.textMuted
+                          }
                           keyboardType="decimal-pad"
-                          value={newTemplatePrice}
-                          onChangeText={setNewTemplatePrice}
+                          value={
+                            newTemplatePrice
+                          }
+                          onChangeText={
+                            setNewTemplatePrice
+                          }
                         />
 
                         <View
-                          style={s.currencyButtonRow}
+                          style={
+                            styles.currencyOptionRow
+                          }
                         >
                           {[
                             'TRY',
                             'USD',
                             'EUR'
-                          ].map(currency => (
+                          ].map(
+                            currency => (
+                              <TouchableOpacity
+                                key={
+                                  currency
+                                }
+                                style={[
+                                  styles.compactOptionButton,
+                                  {
+                                    backgroundColor:
+                                      theme.cardBg,
+
+                                    borderColor:
+                                      theme.cardBorder
+                                  },
+
+                                  newTemplateCurrency ===
+                                    currency &&
+                                    styles.compactOptionButtonActive
+                                ]}
+                                onPress={() =>
+                                  setNewTemplateCurrency(
+                                    currency
+                                  )
+                                }
+                              >
+                                <Text
+                                  style={[
+                                    styles.compactOptionText,
+                                    {
+                                      color:
+                                        theme.textSecondary
+                                    },
+
+                                    newTemplateCurrency ===
+                                      currency &&
+                                      styles.compactOptionTextActive
+                                  ]}
+                                >
+                                  {currency}
+                                </Text>
+                              </TouchableOpacity>
+                            )
+                          )}
+                        </View>
+                      </View>
+
+                      <View
+                        style={
+                          styles.wrappedOptionRow
+                        }
+                      >
+                        {Object.keys(
+                          CATEGORY_COLORS
+                        ).map(
+                          category => (
                             <TouchableOpacity
-                              key={currency}
+                              key={
+                                category
+                              }
                               style={[
-                                s.currBtn,
+                                styles.compactOptionButton,
                                 {
-                                  backgroundColor: theme.cardBg,
-                                  borderColor: theme.cardBorder
+                                  backgroundColor:
+                                    theme.cardBg,
+
+                                  borderColor:
+                                    theme.cardBorder
                                 },
-                                newTemplateCurrency === currency &&
-                                  s.currBtnActive
+
+                                newTemplateCategory ===
+                                  category &&
+                                  styles.compactOptionButtonActive
                               ]}
                               onPress={() =>
-                                setNewTemplateCurrency(
-                                  currency
+                                setNewTemplateCategory(
+                                  category
                                 )
                               }
                             >
                               <Text
                                 style={[
-                                  s.currBtnText,
+                                  styles.compactOptionText,
                                   {
-                                    color: theme.textSecondary
+                                    color:
+                                      theme.textSecondary
                                   },
-                                  newTemplateCurrency === currency &&
-                                    s.currBtnTextActive
+
+                                  newTemplateCategory ===
+                                    category &&
+                                    styles.compactOptionTextActive
                                 ]}
                               >
-                                {currency}
+                                {category}
                               </Text>
                             </TouchableOpacity>
-                          ))}
-                        </View>
-                      </View>
-
-                      <View
-                        style={s.wrapChipRow}
-                      >
-                        {Object.keys(
-                          CATEGORY_COLORS
-                        ).map(category => (
-                          <TouchableOpacity
-                            key={category}
-                            style={[
-                              s.filterChip,
-                              {
-                                backgroundColor: theme.cardBg,
-                                borderColor: theme.cardBorder
-                              },
-                              newTemplateCategory === category &&
-                                s.filterChipActive
-                            ]}
-                            onPress={() =>
-                              setNewTemplateCategory(
-                                category
-                              )
-                            }
-                          >
-                            <Text
-                              style={[
-                                s.filterChipText,
-                                {
-                                  color: theme.textSecondary
-                                },
-                                newTemplateCategory === category &&
-                                  s.filterChipTextActive
-                              ]}
-                            >
-                              {category}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
+                          )
+                        )}
                       </View>
 
                       <TouchableOpacity
                         style={[
-                          s.modalSaveBtn,
-                          {
-                            marginTop: 12,
-                            flex: 0
-                          }
+                          styles.primaryButton,
+                          styles.inlineSaveButton
                         ]}
-                        onPress={addTemplate}
+                        onPress={
+                          addTemplate
+                        }
                       >
                         <Text
-                          style={s.primaryButtonText}
+                          style={
+                            styles.primaryButtonText
+                          }
                         >
                           Şablonu Kaydet
                         </Text>
@@ -4758,15 +5851,17 @@ export default function App() {
                   )}
                 </View>
               )}
-
               <View
-                style={s.formSection}
+                style={
+                  styles.formSection
+                }
               >
                 <Text
                   style={[
-                    s.formSectionTitle,
+                    styles.formSectionTitle,
                     {
-                      color: theme.textPrimary
+                      color:
+                        theme.textPrimary
                     }
                   ]}
                 >
@@ -4775,19 +5870,22 @@ export default function App() {
 
                 <View
                   style={[
-                    s.desktopTwoColumn,
-                    !isDesktop &&
-                      s.mobileSingleColumn
+                    styles.twoColumnRow,
+                    isMobile &&
+                      styles.singleColumnRow
                   ]}
                 >
                   <View
-                    style={s.formColumn}
+                    style={
+                      styles.formColumn
+                    }
                   >
                     <Text
                       style={[
-                        s.inputLabel,
+                        styles.inputLabel,
                         {
-                          color: theme.textSecondary
+                          color:
+                            theme.textSecondary
                         }
                       ]}
                     >
@@ -4796,28 +5894,42 @@ export default function App() {
 
                     <TextInput
                       style={[
-                        s.textInput,
+                        styles.textInput,
                         {
-                          backgroundColor: theme.inputBg,
-                          color: theme.textPrimary,
-                          borderColor: theme.cardBorder
+                          backgroundColor:
+                            theme.inputBg,
+
+                          color:
+                            theme.textPrimary,
+
+                          borderColor:
+                            theme.cardBorder
                         }
                       ]}
-                      placeholder="Örn: Netflix"
-                      placeholderTextColor={theme.textMuted}
-                      value={formName}
-                      onChangeText={setFormName}
+                      placeholder="Örn: Netflix, Ev Kirası"
+                      placeholderTextColor={
+                        theme.textMuted
+                      }
+                      value={
+                        formName
+                      }
+                      onChangeText={
+                        setFormName
+                      }
                     />
                   </View>
 
                   <View
-                    style={s.formColumn}
+                    style={
+                      styles.formColumn
+                    }
                   >
                     <Text
                       style={[
-                        s.inputLabel,
+                        styles.inputLabel,
                         {
-                          color: theme.textSecondary
+                          color:
+                            theme.textSecondary
                         }
                       ]}
                     >
@@ -4826,37 +5938,51 @@ export default function App() {
 
                     <TextInput
                       style={[
-                        s.textInput,
+                        styles.textInput,
                         {
-                          backgroundColor: theme.inputBg,
-                          color: theme.textPrimary,
-                          borderColor: theme.cardBorder
+                          backgroundColor:
+                            theme.inputBg,
+
+                          color:
+                            theme.textPrimary,
+
+                          borderColor:
+                            theme.cardBorder
                         }
                       ]}
                       placeholder="0,00"
-                      placeholderTextColor={theme.textMuted}
+                      placeholderTextColor={
+                        theme.textMuted
+                      }
                       keyboardType="decimal-pad"
-                      value={formPrice}
-                      onChangeText={setFormPrice}
+                      value={
+                        formPrice
+                      }
+                      onChangeText={
+                        setFormPrice
+                      }
                     />
                   </View>
                 </View>
 
                 <View
                   style={[
-                    s.desktopTwoColumn,
-                    !isDesktop &&
-                      s.mobileSingleColumn
+                    styles.twoColumnRow,
+                    isMobile &&
+                      styles.singleColumnRow
                   ]}
                 >
                   <View
-                    style={s.formColumn}
+                    style={
+                      styles.formColumn
+                    }
                   >
                     <Text
                       style={[
-                        s.inputLabel,
+                        styles.inputLabel,
                         {
-                          color: theme.textSecondary
+                          color:
+                            theme.textSecondary
                         }
                       ]}
                     >
@@ -4864,53 +5990,73 @@ export default function App() {
                     </Text>
 
                     <View
-                      style={s.currencyButtonRow}
+                      style={
+                        styles.currencyOptionRow
+                      }
                     >
                       {[
                         'TRY',
                         'USD',
                         'EUR'
-                      ].map(currency => (
-                        <TouchableOpacity
-                          key={currency}
-                          style={[
-                            s.currBtn,
-                            {
-                              backgroundColor: theme.inputBg,
-                              borderColor: theme.cardBorder
-                            },
-                            formCurrency === currency &&
-                              s.currBtnActive
-                          ]}
-                          onPress={() =>
-                            setFormCurrency(currency)
-                          }
-                        >
-                          <Text
+                      ].map(
+                        currency => (
+                          <TouchableOpacity
+                            key={
+                              currency
+                            }
                             style={[
-                              s.currBtnText,
+                              styles.compactOptionButton,
+                              styles.flexOptionButton,
                               {
-                                color: theme.textSecondary
+                                backgroundColor:
+                                  theme.inputBg,
+
+                                borderColor:
+                                  theme.cardBorder
                               },
-                              formCurrency === currency &&
-                                s.currBtnTextActive
+
+                              formCurrency ===
+                                currency &&
+                                styles.compactOptionButtonActive
                             ]}
+                            onPress={() =>
+                              setFormCurrency(
+                                currency
+                              )
+                            }
                           >
-                            {currency}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
+                            <Text
+                              style={[
+                                styles.compactOptionText,
+                                {
+                                  color:
+                                    theme.textSecondary
+                                },
+
+                                formCurrency ===
+                                  currency &&
+                                  styles.compactOptionTextActive
+                              ]}
+                            >
+                              {currency}
+                            </Text>
+                          </TouchableOpacity>
+                        )
+                      )}
                     </View>
                   </View>
 
                   <View
-                    style={s.formColumn}
+                    style={
+                      styles.formColumn
+                    }
                   >
                     <Text
                       style={[
-                        s.inputLabel,
+                        styles.inputLabel,
                         {
-                          color: theme.textSecondary
+                          color:
+                            theme.textSecondary
                         }
                       ]}
                     >
@@ -4918,30 +6064,42 @@ export default function App() {
                     </Text>
 
                     <View
-                      style={s.periodButtonRow}
+                      style={
+                        styles.periodOptionRow
+                      }
                     >
                       <TouchableOpacity
                         style={[
-                          s.periodBtn,
+                          styles.periodOption,
                           {
-                            backgroundColor: theme.inputBg,
-                            borderColor: theme.cardBorder
+                            backgroundColor:
+                              theme.inputBg,
+
+                            borderColor:
+                              theme.cardBorder
                           },
-                          formPeriod === 'monthly' &&
-                            s.periodBtnActive
+
+                          formPeriod ===
+                            'monthly' &&
+                            styles.periodOptionActive
                         ]}
                         onPress={() =>
-                          setFormPeriod('monthly')
+                          setFormPeriod(
+                            'monthly'
+                          )
                         }
                       >
                         <Text
                           style={[
-                            s.periodBtnText,
+                            styles.periodOptionText,
                             {
-                              color: theme.textSecondary
+                              color:
+                                theme.textSecondary
                             },
-                            formPeriod === 'monthly' &&
-                              s.periodBtnTextActive
+
+                            formPeriod ===
+                              'monthly' &&
+                              styles.periodOptionTextActive
                           ]}
                         >
                           Aylık
@@ -4950,26 +6108,36 @@ export default function App() {
 
                       <TouchableOpacity
                         style={[
-                          s.periodBtn,
+                          styles.periodOption,
                           {
-                            backgroundColor: theme.inputBg,
-                            borderColor: theme.cardBorder
+                            backgroundColor:
+                              theme.inputBg,
+
+                            borderColor:
+                              theme.cardBorder
                           },
-                          formPeriod === 'yearly' &&
-                            s.periodBtnActive
+
+                          formPeriod ===
+                            'yearly' &&
+                            styles.periodOptionActive
                         ]}
                         onPress={() =>
-                          setFormPeriod('yearly')
+                          setFormPeriod(
+                            'yearly'
+                          )
                         }
                       >
                         <Text
                           style={[
-                            s.periodBtnText,
+                            styles.periodOptionText,
                             {
-                              color: theme.textSecondary
+                              color:
+                                theme.textSecondary
                             },
-                            formPeriod === 'yearly' &&
-                              s.periodBtnTextActive
+
+                            formPeriod ===
+                              'yearly' &&
+                              styles.periodOptionTextActive
                           ]}
                         >
                           Yıllık
@@ -4981,17 +6149,22 @@ export default function App() {
               </View>
 
               <View
-                style={s.formSection}
+                style={
+                  styles.formSection
+                }
               >
                 <View
-                  style={s.sectionHeaderRow}
+                  style={
+                    styles.formSectionHeader
+                  }
                 >
                   <View>
                     <Text
                       style={[
-                        s.formSectionTitle,
+                        styles.formSectionTitle,
                         {
-                          color: theme.textPrimary
+                          color:
+                            theme.textPrimary
                         }
                       ]}
                     >
@@ -4999,13 +6172,15 @@ export default function App() {
                     </Text>
 
                     <Text
-                      style={{
-                        color: theme.textMuted,
-                        fontSize: 10,
-                        marginTop: 2
-                      }}
+                      style={[
+                        styles.formSectionDescription,
+                        {
+                          color:
+                            theme.textMuted
+                        }
+                      ]}
                     >
-                      Aboneliğin tahsil edildiği ödeme yöntemini seçin
+                      Aboneliğin tahsil edildiği yöntemi seçiniz.
                     </Text>
                   </View>
 
@@ -5017,11 +6192,13 @@ export default function App() {
                     }
                   >
                     <Text
-                      style={{
-                        color: theme.accent,
-                        fontSize: 12,
-                        fontWeight: 'bold'
-                      }}
+                      style={[
+                        styles.formSectionAction,
+                        {
+                          color:
+                            theme.accent
+                        }
+                      ]}
                     >
                       {showPaymentMethodForm
                         ? 'Kapat'
@@ -5032,26 +6209,37 @@ export default function App() {
 
                 <ScrollView
                   horizontal
-                  showsHorizontalScrollIndicator={false}
+                  showsHorizontalScrollIndicator={
+                    false
+                  }
                   contentContainerStyle={
-                    s.horizontalChipContent
+                    styles.removableOptionRow
                   }
                 >
-                  {paymentMethodsList.map(
+                  {safePaymentMethods.map(
                     paymentMethod => (
                       <View
-                        key={paymentMethod}
-                        style={s.removableItemWrapper}
+                        key={
+                          paymentMethod
+                        }
+                        style={
+                          styles.removableOptionWrapper
+                        }
                       >
                         <TouchableOpacity
                           style={[
-                            s.paymentMethodChip,
+                            styles.paymentMethodOption,
                             {
-                              backgroundColor: theme.inputBg,
-                              borderColor: theme.cardBorder
+                              backgroundColor:
+                                theme.inputBg,
+
+                              borderColor:
+                                theme.cardBorder
                             },
-                            formPaymentMethod === paymentMethod &&
-                              s.paymentMethodChipActive
+
+                            formPaymentMethod ===
+                              paymentMethod &&
+                              styles.paymentMethodOptionActive
                           ]}
                           onPress={() =>
                             setFormPaymentMethod(
@@ -5061,22 +6249,27 @@ export default function App() {
                         >
                           <Text
                             style={[
-                              s.paymentMethodChipText,
+                              styles.paymentMethodOptionText,
                               {
                                 color:
-                                  formPaymentMethod === paymentMethod
+                                  formPaymentMethod ===
+                                  paymentMethod
                                     ? '#ffffff'
                                     : theme.textSecondary
                               }
                             ]}
-                            numberOfLines={1}
+                            numberOfLines={
+                              1
+                            }
                           >
                             {paymentMethod}
                           </Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                          style={s.subtleRemoveButton}
+                          style={
+                            styles.removeOptionButton
+                          }
                           onPress={() =>
                             removePaymentMethod(
                               paymentMethod
@@ -5084,7 +6277,9 @@ export default function App() {
                           }
                         >
                           <Text
-                            style={s.subtleRemoveText}
+                            style={
+                              styles.removeOptionText
+                            }
                           >
                             ×
                           </Text>
@@ -5097,45 +6292,61 @@ export default function App() {
                 {showPaymentMethodForm && (
                   <View
                     style={[
-                      s.inlineForm,
+                      styles.inlineForm,
                       {
-                        backgroundColor: theme.inputBg,
-                        borderColor: theme.cardBorder
+                        backgroundColor:
+                          theme.inputBg,
+
+                        borderColor:
+                          theme.cardBorder
                       }
                     ]}
                   >
                     <View
-                      style={s.inlineFieldRow}
+                      style={
+                        styles.inlineInputRow
+                      }
                     >
                       <TextInput
                         style={[
-                          s.textInput,
+                          styles.textInput,
+                          styles.flexInput,
                           {
-                            flex: 1,
-                            marginBottom: 0,
-                            backgroundColor: theme.cardBg,
-                            color: theme.textPrimary,
-                            borderColor: theme.cardBorder
+                            backgroundColor:
+                              theme.cardBg,
+
+                            color:
+                              theme.textPrimary,
+
+                            borderColor:
+                              theme.cardBorder
                           }
                         ]}
                         placeholder="Örn: Akbank Axess"
-                        placeholderTextColor={theme.textMuted}
-                        value={newPaymentMethodName}
-                        onChangeText={setNewPaymentMethodName}
+                        placeholderTextColor={
+                          theme.textMuted
+                        }
+                        value={
+                          newPaymentMethodName
+                        }
+                        onChangeText={
+                          setNewPaymentMethodName
+                        }
                       />
 
                       <TouchableOpacity
                         style={[
-                          s.modalSaveBtn,
-                          {
-                            flex: 0,
-                            paddingHorizontal: 18
-                          }
+                          styles.primaryButton,
+                          styles.inlineAddButton
                         ]}
-                        onPress={addPaymentMethod}
+                        onPress={
+                          addPaymentMethod
+                        }
                       >
                         <Text
-                          style={s.primaryButtonText}
+                          style={
+                            styles.primaryButtonText
+                          }
                         >
                           Ekle
                         </Text>
@@ -5146,13 +6357,16 @@ export default function App() {
               </View>
 
               <View
-                style={s.formSection}
+                style={
+                  styles.formSection
+                }
               >
                 <Text
                   style={[
-                    s.formSectionTitle,
+                    styles.formSectionTitle,
                     {
-                      color: theme.textPrimary
+                      color:
+                        theme.textPrimary
                     }
                   ]}
                 >
@@ -5160,72 +6374,100 @@ export default function App() {
                 </Text>
 
                 <View
-                  style={s.wrapChipRow}
+                  style={
+                    styles.wrappedOptionRow
+                  }
                 >
                   {Object.keys(
                     CATEGORY_COLORS
-                  ).map(category => (
-                    <TouchableOpacity
-                      key={category}
-                      style={[
-                        s.categorySelectChip,
-                        {
-                          backgroundColor: theme.inputBg,
-                          borderColor: theme.cardBorder
-                        },
-                        formCategory === category && {
-                          backgroundColor:
-                            CATEGORY_COLORS[category],
-                          borderColor:
-                            CATEGORY_COLORS[category]
+                  ).map(
+                    category => (
+                      <TouchableOpacity
+                        key={
+                          category
                         }
-                      ]}
-                      onPress={() =>
-                        setFormCategory(category)
-                      }
-                    >
-                      <Text
-                        style={{
-                          color:
-                            formCategory === category
-                              ? '#ffffff'
-                              : theme.textSecondary,
-                          fontSize: 11,
-                          fontWeight: 'bold'
-                        }}
+                        style={[
+                          styles.categoryOption,
+                          {
+                            backgroundColor:
+                              theme.inputBg,
+
+                            borderColor:
+                              theme.cardBorder
+                          },
+
+                          formCategory ===
+                            category && {
+                            backgroundColor:
+                              CATEGORY_COLORS[
+                                category
+                              ],
+
+                            borderColor:
+                              CATEGORY_COLORS[
+                                category
+                              ]
+                          }
+                        ]}
+                        onPress={() =>
+                          setFormCategory(
+                            category
+                          )
+                        }
                       >
-                        {category}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                        <Text
+                          style={[
+                            styles.categoryOptionText,
+                            {
+                              color:
+                                formCategory ===
+                                category
+                                  ? '#ffffff'
+                                  : theme.textSecondary
+                            }
+                          ]}
+                        >
+                          {category}
+                        </Text>
+                      </TouchableOpacity>
+                    )
+                  )}
                 </View>
               </View>
 
               <View
-                style={s.formSection}
+                style={
+                  styles.formSection
+                }
               >
                 <Text
                   style={[
-                    s.formSectionTitle,
+                    styles.formSectionTitle,
                     {
-                      color: theme.textPrimary
+                      color:
+                        theme.textPrimary
                     }
                   ]}
                 >
-                  Ödeme Tarihi ve Hatırlatıcı
+                  Ödeme Tarihi
                 </Text>
 
                 <View
-                  style={s.dateInputRow}
+                  style={
+                    styles.dateInputRow
+                  }
                 >
                   <View
-                    style={s.dateField}
+                    style={
+                      styles.dateInputField
+                    }
                   >
                     <Text
                       style={[
-                        s.inputLabel,
+                        styles.inputLabel,
                         {
-                          color: theme.textSecondary
+                          color:
+                            theme.textSecondary
                         }
                       ]}
                     >
@@ -5234,29 +6476,43 @@ export default function App() {
 
                     <TextInput
                       style={[
-                        s.textInput,
+                        styles.textInput,
                         {
-                          backgroundColor: theme.inputBg,
-                          color: theme.textPrimary,
-                          borderColor: theme.cardBorder
+                          backgroundColor:
+                            theme.inputBg,
+
+                          color:
+                            theme.textPrimary,
+
+                          borderColor:
+                            theme.cardBorder
                         }
                       ]}
                       placeholder="1"
-                      placeholderTextColor={theme.textMuted}
+                      placeholderTextColor={
+                        theme.textMuted
+                      }
                       keyboardType="number-pad"
-                      value={formDay}
-                      onChangeText={setFormDay}
+                      value={
+                        formDay
+                      }
+                      onChangeText={
+                        setFormDay
+                      }
                     />
                   </View>
 
                   <View
-                    style={s.dateField}
+                    style={
+                      styles.dateInputField
+                    }
                   >
                     <Text
                       style={[
-                        s.inputLabel,
+                        styles.inputLabel,
                         {
-                          color: theme.textSecondary
+                          color:
+                            theme.textSecondary
                         }
                       ]}
                     >
@@ -5265,34 +6521,44 @@ export default function App() {
 
                     <TextInput
                       style={[
-                        s.textInput,
+                        styles.textInput,
                         {
-                          backgroundColor: theme.inputBg,
-                          color: theme.textPrimary,
-                          borderColor: theme.cardBorder
+                          backgroundColor:
+                            theme.inputBg,
+
+                          color:
+                            theme.textPrimary,
+
+                          borderColor:
+                            theme.cardBorder
                         }
                       ]}
                       placeholder="1"
-                      placeholderTextColor={theme.textMuted}
+                      placeholderTextColor={
+                        theme.textMuted
+                      }
                       keyboardType="number-pad"
-                      value={formMonth}
-                      onChangeText={setFormMonth}
+                      value={
+                        formMonth
+                      }
+                      onChangeText={
+                        setFormMonth
+                      }
                     />
                   </View>
 
                   <View
                     style={[
-                      s.dateField,
-                      {
-                        flex: 1.25
-                      }
+                      styles.dateInputField,
+                      styles.dateInputYearField
                     ]}
                   >
                     <Text
                       style={[
-                        s.inputLabel,
+                        styles.inputLabel,
                         {
-                          color: theme.textSecondary
+                          color:
+                            theme.textSecondary
                         }
                       ]}
                     >
@@ -5301,38 +6567,57 @@ export default function App() {
 
                     <TextInput
                       style={[
-                        s.textInput,
+                        styles.textInput,
                         {
-                          backgroundColor: theme.inputBg,
-                          color: theme.textPrimary,
-                          borderColor: theme.cardBorder
+                          backgroundColor:
+                            theme.inputBg,
+
+                          color:
+                            theme.textPrimary,
+
+                          borderColor:
+                            theme.cardBorder
                         }
                       ]}
                       placeholder="2026"
-                      placeholderTextColor={theme.textMuted}
+                      placeholderTextColor={
+                        theme.textMuted
+                      }
                       keyboardType="number-pad"
-                      value={formYear}
-                      onChangeText={setFormYear}
+                      value={
+                        formYear
+                      }
+                      onChangeText={
+                        setFormYear
+                      }
                     />
                   </View>
                 </View>
 
                 <Text
-                  style={{
-                    color: theme.textMuted,
-                    fontSize: 10,
-                    marginTop: -4,
-                    marginBottom: 10
-                  }}
+                  style={[
+                    styles.helperText,
+                    {
+                      color:
+                        theme.textMuted
+                    }
+                  ]}
                 >
                   Aylık ödemelerde başlangıç ayı, yıllık ödemelerde tahsilat ayı olarak kullanılır.
                 </Text>
+              </View>
 
+              <View
+                style={
+                  styles.formSection
+                }
+              >
                 <Text
                   style={[
-                    s.inputLabel,
+                    styles.formSectionTitle,
                     {
-                      color: theme.textSecondary
+                      color:
+                        theme.textPrimary
                     }
                   ]}
                 >
@@ -5340,20 +6625,29 @@ export default function App() {
                 </Text>
 
                 <View
-                  style={s.wrapChipRow}
+                  style={
+                    styles.wrappedOptionRow
+                  }
                 >
                   {NOTIFICATION_OPTIONS.map(
                     option => (
                       <TouchableOpacity
-                        key={option.value}
+                        key={
+                          option.value
+                        }
                         style={[
-                          s.filterChip,
+                          styles.compactOptionButton,
                           {
-                            backgroundColor: theme.inputBg,
-                            borderColor: theme.cardBorder
+                            backgroundColor:
+                              theme.inputBg,
+
+                            borderColor:
+                              theme.cardBorder
                           },
-                          formNotificationDays === option.value &&
-                            s.filterChipActive
+
+                          formNotificationDays ===
+                            option.value &&
+                            styles.compactOptionButtonActive
                         ]}
                         onPress={() =>
                           setFormNotificationDays(
@@ -5363,12 +6657,15 @@ export default function App() {
                       >
                         <Text
                           style={[
-                            s.filterChipText,
+                            styles.compactOptionText,
                             {
-                              color: theme.textSecondary
+                              color:
+                                theme.textSecondary
                             },
-                            formNotificationDays === option.value &&
-                              s.filterChipTextActive
+
+                            formNotificationDays ===
+                              option.value &&
+                              styles.compactOptionTextActive
                           ]}
                         >
                           {option.label}
@@ -5380,13 +6677,16 @@ export default function App() {
               </View>
 
               <View
-                style={s.formSection}
+                style={
+                  styles.formSection
+                }
               >
                 <Text
                   style={[
-                    s.formSectionTitle,
+                    styles.formSectionTitle,
                     {
-                      color: theme.textPrimary
+                      color:
+                        theme.textPrimary
                     }
                   ]}
                 >
@@ -5395,60 +6695,86 @@ export default function App() {
 
                 <TextInput
                   style={[
-                    s.textInput,
+                    styles.textInput,
                     {
-                      backgroundColor: theme.inputBg,
-                      color: theme.textPrimary,
-                      borderColor: theme.cardBorder
+                      backgroundColor:
+                        theme.inputBg,
+
+                      color:
+                        theme.textPrimary,
+
+                      borderColor:
+                        theme.cardBorder
                     }
                   ]}
                   placeholder="https://..."
-                  placeholderTextColor={theme.textMuted}
-                  autoCapitalize="none"
+                  placeholderTextColor={
+                    theme.textMuted
+                  }
                   keyboardType="url"
-                  value={formCancelUrl}
-                  onChangeText={setFormCancelUrl}
+                  autoCapitalize="none"
+                  value={
+                    formCancelUrl
+                  }
+                  onChangeText={
+                    setFormCancelUrl
+                  }
                 />
               </View>
             </ScrollView>
 
             <View
               style={[
-                s.modalFooterButtons,
+                styles.modalFooter,
                 {
                   borderTopColor:
-                    theme.cardBorder
+                    theme.cardBorder,
+
+                  backgroundColor:
+                    theme.cardBg
                 }
               ]}
             >
               <TouchableOpacity
                 style={[
-                  s.modalCancelBtn,
+                  styles.modalCancelButton,
                   {
-                    backgroundColor: theme.inputBg,
-                    borderColor: theme.cardBorder
+                    backgroundColor:
+                      theme.inputBg,
+
+                    borderColor:
+                      theme.cardBorder
                   }
                 ]}
-                onPress={() =>
-                  setIsModalOpen(false)
+                onPress={
+                  closeSubscriptionForm
                 }
               >
                 <Text
-                  style={{
-                    color: theme.textSecondary,
-                    fontWeight: 'bold'
-                  }}
+                  style={[
+                    styles.modalCancelButtonText,
+                    {
+                      color:
+                        theme.textSecondary
+                    }
+                  ]}
                 >
                   İptal
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={s.modalSaveBtn}
-                onPress={handleSaveForm}
+                style={
+                  styles.modalSaveButton
+                }
+                onPress={
+                  handleSaveSubscription
+                }
               >
                 <Text
-                  style={s.primaryButtonText}
+                  style={
+                    styles.modalSaveButtonText
+                  }
                 >
                   Kaydet
                 </Text>
@@ -5461,10 +6787,20 @@ export default function App() {
   );
 }
 
+/* -------------------------------------------------------------------------- */
+/*                                  STİLLER                                    */
+/* -------------------------------------------------------------------------- */
+
 function createStyles(
   theme,
-  isMobile
+  isMobile,
+  fontScale
 ) {
+  const font = value =>
+    Math.round(
+      value * fontScale
+    );
+
   return StyleSheet.create({
     container: {
       flex: 1
@@ -5480,90 +6816,128 @@ function createStyles(
 
     sidebarContainer: {
       width: 250,
-      borderRightWidth: 1,
-      padding: 20
+      padding: 20,
+      borderRightWidth: 1
     },
 
     sidebarHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 6,
-      marginBottom: 4
-    },
-
-    sidebarNavGroup: {
-      gap: 8,
-      marginTop: 12
-    },
-
-    sidebarNavBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-      paddingHorizontal: 14,
-      paddingVertical: 10,
-      borderRadius: 10
-    },
-
-    sidebarNavBtnActive: {
-      backgroundColor: '#7772ff26'
-    },
-
-    sidebarNavText: {
-      fontSize: 14,
-      fontWeight: 'bold'
-    },
-
-    exportBtn: {
-      paddingVertical: 10,
-      paddingHorizontal: 12,
-      borderRadius: 8,
-      alignItems: 'center'
-    },
-
-    responsiveWrapper: {
-      maxWidth: 980,
-      width: '100%',
-      marginHorizontal: 'auto',
-      alignSelf: 'center',
-      flex: 1
-    },
-
-    header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingHorizontal: isMobile ? 14 : 20,
-      paddingTop: 20,
-      paddingBottom: 14,
-      borderBottomWidth: 1
+      gap: 6
     },
 
     headerTitle: {
-      fontSize: 22,
-      fontWeight: 'bold',
-      letterSpacing: 0.5
+      fontSize: font(22),
+      fontWeight: 'bold'
     },
 
     headerSubtitle: {
-      fontSize: 12,
-      marginTop: 2
+      fontSize: font(11),
+      marginTop: 3
     },
 
     proBadge: {
       backgroundColor: '#6965e8',
+      borderRadius: 4,
       paddingHorizontal: 6,
-      paddingVertical: 2,
-      borderRadius: 4
+      paddingVertical: 2
     },
 
     proBadgeText: {
       color: '#ffffff',
-      fontSize: 9,
+      fontSize: font(8),
       fontWeight: 'bold'
     },
 
-    themeToggleIconBtn: {
+    sidebarNavGroup: {
+      marginTop: 28,
+      gap: 8
+    },
+
+    sidebarNavButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      borderRadius: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 11
+    },
+
+    sidebarNavButtonActive: {
+      backgroundColor:
+        theme.activeButtonSoft
+    },
+
+    sidebarNavIcon: {
+      fontSize: font(17)
+    },
+
+    sidebarNavText: {
+      fontSize: font(13),
+      fontWeight: 'bold'
+    },
+
+    sidebarFooter: {
+      marginTop: 'auto',
+      gap: 8
+    },
+
+    secondaryButton: {
+      borderWidth: 1,
+      borderRadius: 8,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      alignItems: 'center'
+    },
+
+    secondaryButtonText: {
+      fontSize: font(11),
+      fontWeight: 'bold'
+    },
+
+    primaryButton: {
+      backgroundColor:
+        theme.activeButton,
+      borderRadius: 8,
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+      alignItems: 'center',
+      justifyContent: 'center'
+    },
+
+    primaryButtonText: {
+      color: '#ffffff',
+      fontSize: font(12),
+      fontWeight: 'bold'
+    },
+
+    contentWrapper: {
+      flex: 1,
+      width: '100%',
+      maxWidth: 980,
+      marginHorizontal: 'auto',
+      alignSelf: 'center'
+    },
+
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent:
+        'space-between',
+      paddingHorizontal:
+        isMobile ? 14 : 20,
+      paddingTop: 18,
+      paddingBottom: 14,
+      borderBottomWidth: 1
+    },
+
+    headerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8
+    },
+
+    iconButton: {
       width: 38,
       height: 38,
       borderRadius: 10,
@@ -5572,57 +6946,34 @@ function createStyles(
       justifyContent: 'center'
     },
 
-    addBtn: {
-      backgroundColor: '#6965e8',
-      paddingHorizontal: 14,
-      paddingVertical: 9,
-      borderRadius: 8,
-      alignItems: 'center'
+    iconButtonText: {
+      fontSize: font(17)
     },
 
-    addBtnText: {
-      color: '#ffffff',
-      fontWeight: 'bold',
-      fontSize: 13
+    mainScroll: {
+      flex: 1
     },
 
     scrollContent: {
-      paddingHorizontal: isMobile ? 12 : 16,
-      paddingBottom: 90,
-      paddingTop: 14
-    },
-
-    listToolbar: {
-      marginBottom: 14,
-      gap: 8
-    },
-
-    searchInput: {
-      paddingHorizontal: 12,
-      paddingVertical: 10,
-      borderRadius: 9,
-      borderWidth: 1,
-      fontSize: 13
-    },
-
-    compactFilterRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 6
+      paddingHorizontal:
+        isMobile ? 12 : 16,
+      paddingTop: 14,
+      paddingBottom: 90
     },
 
     currencyBar: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: 10,
-      borderRadius: 8,
+      justifyContent:
+        'space-between',
       borderWidth: 1,
+      borderRadius: 9,
+      padding: 10,
       marginBottom: 12
     },
 
     currencyBarTitle: {
-      fontSize: 12,
+      fontSize: font(11),
       fontWeight: 'bold'
     },
 
@@ -5632,239 +6983,349 @@ function createStyles(
     },
 
     currencyBadge: {
-      backgroundColor: '#7772ff28',
+      backgroundColor:
+        theme.activeButtonSoft,
+      borderRadius: 6,
       paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 6
+      paddingVertical: 4
     },
 
     currencyBadgeText: {
-      color: '#9e9aff',
-      fontSize: 11,
+      color: '#a7a4ff',
+      fontSize: font(10),
       fontWeight: 'bold'
     },
 
     summaryCard: {
       borderRadius: 14,
+      borderWidth: 1,
       padding: 16,
-      marginBottom: 14,
-      borderWidth: 1
+      marginBottom: 14
     },
 
     summaryLabel: {
       color: '#ffffff',
-      fontSize: 12,
-      fontWeight: 'bold',
-      opacity: 0.9
+      fontSize: font(11),
+      fontWeight: 'bold'
     },
 
     summaryValue: {
       color: '#ffffff',
-      fontSize: 28,
+      fontSize: font(27),
       fontWeight: 'bold',
-      marginVertical: 4
+      marginVertical: 5
     },
 
-    statsRow: {
+    summaryStatsRow: {
       flexDirection: 'row',
       gap: 10,
       marginTop: 8
     },
 
-    statBox: {
+    summaryStatBox: {
       flex: 1,
       backgroundColor:
         'rgba(255,255,255,0.15)',
-      padding: 8,
-      borderRadius: 8
+      borderRadius: 8,
+      padding: 9
     },
 
-    statLabel: {
+    summaryStatLabel: {
       color: '#ffffff',
-      fontSize: 11,
+      fontSize: font(10),
       opacity: 0.9
     },
 
-    statValue: {
+    summaryStatValue: {
       color: '#ffffff',
-      fontSize: 13,
+      fontSize: font(12),
+      fontWeight: 'bold',
+      marginTop: 3
+    },
+
+    searchInput: {
+      borderWidth: 1,
+      borderRadius: 9,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: font(12),
+      marginBottom: 12
+    },
+
+    singleFilterSection: {
+      marginBottom: 14
+    },
+
+    sectionLabel: {
+      fontSize: font(12),
+      fontWeight: 'bold',
+      marginBottom: 7
+    },
+
+    horizontalOptionRow: {
+      flexDirection: 'row',
+      gap: 7,
+      paddingRight: 10
+    },
+
+    filterOption: {
+      borderWidth: 1,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 8
+    },
+
+    filterOptionActive: {
+      backgroundColor:
+        theme.activeButton,
+      borderColor:
+        theme.activeButtonBorder
+    },
+
+    filterOptionText: {
+      fontSize: font(11),
+      fontWeight: '600'
+    },
+
+    filterOptionTextActive: {
+      color: '#ffffff',
+      fontWeight: 'bold'
+    },
+
+    sectionTitleRow: {
+      flexDirection: 'row',
+      justifyContent:
+        'space-between',
+      alignItems: 'center',
+      marginBottom: 9
+    },
+
+    sectionTitle: {
+      fontSize: font(14),
+      fontWeight: 'bold'
+    },
+
+    resultCount: {
+      fontSize: font(11)
+    },
+
+    emptyCard: {
+      borderWidth: 1,
+      borderRadius: 12,
+      padding: 22,
+      alignItems: 'center'
+    },
+
+    emptyIcon: {
+      fontSize: font(30)
+    },
+
+    emptyTitle: {
+      fontSize: font(15),
+      fontWeight: 'bold',
+      marginTop: 8
+    },
+
+    emptyDescription: {
+      fontSize: font(11),
+      textAlign: 'center',
+      marginTop: 5
+    },
+
+    subscriptionCard: {
+      borderWidth: 1,
+      borderRadius: 12,
+      padding: 12,
+      marginBottom: 8,
+      flexDirection:
+        isMobile
+          ? 'column'
+          : 'row',
+      justifyContent:
+        'space-between',
+      alignItems:
+        isMobile
+          ? 'stretch'
+          : 'center',
+      gap: isMobile ? 10 : 0
+    },
+
+    subscriptionMain: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10
+    },
+
+    serviceIcon: {
+      width: 38,
+      height: 38,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center'
+    },
+
+    serviceIconText: {
+      color: '#ffffff',
+      fontSize: font(15),
+      fontWeight: 'bold'
+    },
+
+    subscriptionInfo: {
+      flex: 1
+    },
+
+    subscriptionTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: 6
+    },
+
+    subscriptionName: {
+      fontSize: font(13),
+      fontWeight: 'bold'
+    },
+
+    informationTag: {
+      borderWidth: 1,
+      borderRadius: 5,
+      paddingHorizontal: 6,
+      paddingVertical: 2
+    },
+
+    informationTagText: {
+      fontSize: font(9),
+      fontWeight: 'bold'
+    },
+
+    subscriptionSubtitle: {
+      fontSize: font(11),
+      marginTop: 3
+    },
+
+    subscriptionRight: {
+      alignItems:
+        isMobile
+          ? 'flex-start'
+          : 'flex-end'
+    },
+
+    subscriptionPrice: {
+      fontSize: font(13),
+      fontWeight: 'bold'
+    },
+
+    convertedPrice: {
+      fontSize: font(10),
       fontWeight: 'bold',
       marginTop: 2
     },
 
-    sectionTitle: {
-      fontSize: 15,
-      fontWeight: 'bold',
-      marginBottom: 10
-    },
-
-    filterChip: {
-      paddingHorizontal: 12,
-      paddingVertical: 7,
-      borderRadius: 8,
-      borderWidth: 1
-    },
-
-    filterChipActive: {
-      backgroundColor: '#6965e8',
-      borderColor: '#6965e8'
-    },
-
-    filterChipText: {
-      fontSize: 12,
-      fontWeight: '600'
-    },
-
-    filterChipTextActive: {
-      color: '#ffffff',
-      fontWeight: 'bold'
-    },
-
-    emptyCard: {
-      borderRadius: 12,
-      padding: 20,
-      borderWidth: 1,
-      alignItems: 'center'
-    },
-
-    card: {
-      borderRadius: 12,
-      padding: 12,
-      marginBottom: 8,
-      flexDirection: isMobile
-        ? 'column'
-        : 'row',
-      justifyContent: 'space-between',
-      alignItems: isMobile
-        ? 'stretch'
-        : 'center',
-      borderWidth: 1,
-      gap: isMobile ? 10 : 0
-    },
-
-    leftSection: {
+    subscriptionActions: {
       flexDirection: 'row',
-      alignItems: 'center',
-      gap: 10,
-      flex: 1
-    },
-
-    brandIconBox: {
-      width: 38,
-      height: 38,
-      borderRadius: 10,
-      justifyContent: 'center',
-      alignItems: 'center'
-    },
-
-    brandIconText: {
-      color: '#ffffff',
-      fontSize: 16,
-      fontWeight: 'bold'
-    },
-
-    cardTitle: {
-      fontSize: 14,
-      fontWeight: 'bold'
-    },
-
-    cardTag: {
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-      borderRadius: 4
-    },
-
-    cardTagText: {
-      fontSize: 11,
-      fontWeight: 'bold'
-    },
-
-    cardSubtitle: {
-      fontSize: 12,
-      marginTop: 2,
-      fontWeight: '500'
-    },
-
-    rightSection: {
-      alignItems: isMobile
-        ? 'flex-start'
-        : 'flex-end'
-    },
-
-    price: {
-      fontSize: 14,
-      fontWeight: 'bold'
-    },
-
-    actionButtons: {
-      flexDirection: 'row',
-      alignItems: 'center',
       gap: 6,
       marginTop: 6
     },
 
-    editBtn: {
+    smallActionButton: {
+      borderWidth: 1,
+      borderRadius: 6,
       paddingHorizontal: 8,
-      paddingVertical: 5,
-      borderRadius: 6
+      paddingVertical: 5
     },
 
-    cancelBtn: {
-      paddingHorizontal: 8,
-      paddingVertical: 5,
-      borderRadius: 6
-    },
-
-    cancelText: {
-      fontSize: 11,
+    smallActionText: {
+      fontSize: font(10),
       fontWeight: 'bold'
     },
 
-    deleteBtn: {
-      padding: 5,
-      borderRadius: 6
+    deleteButton: {
+      borderWidth: 1,
+      borderRadius: 6,
+      padding: 5
     },
 
-    calendarHeaderNav: {
+    deleteButtonText: {
+      fontSize: font(11)
+    },
+
+    calendarSection: {
+      marginTop: 4
+    },
+
+    calendarNavigation: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
+      justifyContent:
+        'space-between',
       alignItems: 'center',
       marginBottom: 14
     },
 
-    calendarTitleText: {
-      fontSize: isMobile ? 17 : 20,
-      fontWeight: 'bold'
-    },
-
-    arrowBtn: {
-      paddingHorizontal: isMobile ? 8 : 12,
-      paddingVertical: 8,
+    calendarNavigationButton: {
+      borderWidth: 1,
       borderRadius: 8,
-      borderWidth: 1
+      paddingHorizontal:
+        isMobile ? 8 : 12,
+      paddingVertical: 8
     },
 
-    arrowText: {
-      fontSize: isMobile ? 11 : 13,
+    calendarNavigationText: {
+      fontSize:
+        isMobile
+          ? font(10)
+          : font(12),
       fontWeight: 'bold'
     },
 
-    calendarWrapper: {
-      width: '100%'
+    calendarTitle: {
+      fontSize:
+        isMobile
+          ? font(16)
+          : font(19),
+      fontWeight: 'bold'
     },
 
-    weekHeaderRow: {
+    yearButton: {
+      borderWidth: 1,
+      borderRadius: 17,
+      paddingHorizontal: 15,
+      paddingVertical: 7
+    },
+
+    yearButtonActive: {
+      backgroundColor:
+        theme.activeButton,
+      borderColor:
+        theme.activeButtonBorder
+    },
+
+    yearButtonText: {
+      fontSize: font(11),
+      fontWeight: '600'
+    },
+
+    yearButtonTextActive: {
+      color: '#ffffff',
+      fontWeight: 'bold'
+    },
+
+    calendarContainer: {
+      marginTop: 14
+    },
+
+    calendarWeekHeader: {
       flexDirection: 'row',
-      marginBottom: 8
+      marginBottom: 7
     },
 
-    weekHeaderCell: {
+    calendarWeekDay: {
       width: '14.28%',
       alignItems: 'center'
     },
 
-    weekHeaderText: {
-      fontSize: 13,
+    calendarWeekDayText: {
+      fontSize: font(11),
       fontWeight: 'bold'
     },
 
@@ -5873,98 +7334,107 @@ function createStyles(
       flexWrap: 'wrap'
     },
 
-    calendarDayBox: {
+    calendarDay: {
       width: '14.28%',
-      minHeight: isMobile ? 78 : 104,
+      minHeight:
+        isMobile ? 78 : 104,
+      borderWidth: 1,
       borderRadius: 6,
       padding: 4,
-      borderWidth: 1,
       marginBottom: 4
     },
 
-    activeDayBox: {
-      borderColor: '#8580ff',
-      borderWidth: 1.5
-    },
-
-    calendarEmptyDay: {
-      backgroundColor: 'transparent',
+    calendarDayEmpty: {
       opacity: 0
     },
 
-    dayNumber: {
-      fontSize: 12,
+    calendarDayActive: {
+      borderWidth: 1.5
+    },
+
+    calendarDayNumber: {
+      fontSize: font(11),
       fontWeight: 'bold',
       marginBottom: 3
     },
 
-    daySubBadge: {
+    calendarSubscriptionBadge: {
       borderRadius: 4,
       padding: 3,
       marginTop: 2
     },
 
-    daySubText: {
+    calendarSubscriptionName: {
       color: '#ffffff',
-      fontSize: 9,
+      fontSize: font(8),
       fontWeight: 'bold'
     },
 
-    daySubPrice: {
+    calendarSubscriptionPrice: {
       color: '#ffffff',
-      fontSize: 8,
-      fontWeight: '600'
+      fontSize: font(7)
     },
 
-    yearChip: {
-      paddingHorizontal: 16,
-      paddingVertical: 7,
-      borderRadius: 16,
-      marginRight: 6,
-      borderWidth: 1
+    analyticsSection: {
+      marginTop: 2
     },
 
-    yearChipActive: {
-      backgroundColor: '#6965e8',
-      borderColor: '#6965e8'
-    },
-
-    yearChipText: {
-      fontWeight: '600',
-      fontSize: 13
-    },
-
-    yearChipTextActive: {
-      color: '#ffffff',
+    pageTitle: {
+      fontSize: font(21),
       fontWeight: 'bold'
     },
 
-    summaryMiniRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 10,
+    pageDescription: {
+      fontSize: font(12),
+      marginTop: 4,
       marginBottom: 14
     },
 
-    summaryMiniCard: {
+    analyticsSummaryRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+      marginTop: 14,
+      marginBottom: 14
+    },
+
+    analyticsSummaryCard: {
       flexGrow: 1,
-      minWidth: isMobile
-        ? '46%'
-        : 150,
+      minWidth:
+        isMobile
+          ? '46%'
+          : 150,
+      borderWidth: 1,
       borderRadius: 12,
-      padding: 12,
-      borderWidth: 1
+      padding: 12
     },
 
-    summaryMiniLabel: {
-      fontSize: 11,
-      fontWeight: '600',
-      marginBottom: 4
+    analyticsSummaryLabel: {
+      fontSize: font(10),
+      fontWeight: '600'
     },
 
-    summaryMiniValue: {
-      fontSize: 15,
+    analyticsSummaryValue: {
+      fontSize: font(14),
+      fontWeight: 'bold',
+      marginTop: 4
+    },
+
+    panel: {
+      borderWidth: 1,
+      borderRadius: 12,
+      padding: 14,
+      marginBottom: 14
+    },
+
+    panelTitle: {
+      fontSize: font(14),
       fontWeight: 'bold'
+    },
+
+    panelDescription: {
+      fontSize: font(10),
+      marginTop: 4
     },
 
     renewalRow: {
@@ -5972,9 +7442,7 @@ function createStyles(
       alignItems: 'center',
       gap: 8,
       paddingVertical: 8,
-      borderBottomWidth: 1,
-      borderBottomColor:
-        theme.cardBorder
+      borderBottomWidth: 1
     },
 
     renewalDot: {
@@ -5985,40 +7453,26 @@ function createStyles(
 
     renewalName: {
       flex: 1,
-      fontSize: 13,
+      fontSize: font(11),
       fontWeight: '600'
     },
 
-    renewalDays: {
-      fontSize: 12,
-      fontWeight: 'bold',
-      marginRight: 10
-    },
-
-    renewalAmount: {
-      fontSize: 13,
+    renewalDateText: {
+      fontSize: font(10),
       fontWeight: 'bold'
     },
 
-    chartContainer: {
-      borderRadius: 12,
-      padding: 14,
-      marginBottom: 14,
-      borderWidth: 1
-    },
-
-    chartTitleRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      marginBottom: 10
+    renewalAmount: {
+      fontSize: font(11),
+      fontWeight: 'bold'
     },
 
     categoryLegend: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: 10,
-      marginBottom: 14
+      gap: 9,
+      marginTop: 12,
+      marginBottom: 12
     },
 
     legendItem: {
@@ -6033,132 +7487,171 @@ function createStyles(
       borderRadius: 4
     },
 
-    chartHorizontalContent: {
+    legendText: {
+      fontSize: font(9)
+    },
+
+    chartScrollContent: {
       minWidth: '100%'
     },
 
-    barsAreaContainer: {
-      flexDirection: 'row',
+    chartArea: {
+      minWidth:
+        isMobile ? 620 : 820,
       height: 220,
+      flexDirection: 'row',
+      justifyContent:
+        'space-between',
       alignItems: 'flex-end',
-      justifyContent: 'space-between',
-      paddingVertical: 8,
-      minWidth: isMobile ? 620 : 820
+      paddingVertical: 8
     },
 
-    barColumn: {
-      width: isMobile ? 48 : 62,
+    chartColumn: {
+      width:
+        isMobile ? 48 : 62,
       height: '100%',
       alignItems: 'center',
       justifyContent: 'flex-end'
     },
 
-    barTopAmount: {
-      fontSize: isMobile ? 8 : 9,
-      fontWeight: '600',
-      marginBottom: 4,
-      minHeight: 12
+    chartAmount: {
+      fontSize: font(8),
+      minHeight: 12,
+      marginBottom: 4
     },
 
-    barTrack: {
-      width: isMobile ? 24 : 32,
+    chartTrack: {
+      width:
+        isMobile ? 24 : 32,
       height: 145,
       borderRadius: 7,
-      justifyContent: 'flex-end',
-      overflow: 'hidden'
-    },
-
-    stackedBarWrapper: {
-      width: '100%',
-      justifyContent: 'flex-end',
+      borderWidth: 1,
       overflow: 'hidden',
-      borderRadius: 7
+      justifyContent: 'flex-end'
     },
 
-    stackedBarSegment: {
+    chartStack: {
+      width: '100%',
+      overflow: 'hidden',
+      justifyContent: 'flex-end'
+    },
+
+    chartSegment: {
       width: '100%'
     },
 
-    barLabel: {
-      fontSize: isMobile ? 9 : 11,
-      marginTop: 6,
-      fontWeight: 'bold'
+    chartMonthLabel: {
+      fontSize: font(10),
+      fontWeight: 'bold',
+      marginTop: 6
     },
 
     chartFooter: {
       borderTopWidth: 1,
-      paddingTop: 10,
       marginTop: 12,
+      paddingTop: 10,
       flexDirection: 'row',
-      justifyContent: 'space-between',
+      justifyContent:
+        'space-between',
       alignItems: 'center',
       flexWrap: 'wrap',
       gap: 6
     },
 
-    distributionRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 6,
-      gap: 10
+    chartFooterLabel: {
+      fontSize: font(12),
+      fontWeight: 'bold'
     },
 
-    categoryDot: {
+    chartFooterValue: {
+      fontSize: font(17),
+      fontWeight: 'bold'
+    },
+
+    distributionTitle: {
+      fontSize: font(14),
+      fontWeight: 'bold',
+      marginTop: 16,
+      marginBottom: 9
+    },
+
+    noDataText: {
+      fontSize: font(11),
+      fontStyle: 'italic'
+    },
+
+    distributionCard: {
+      borderWidth: 1,
+      borderRadius: 8,
+      padding: 10,
+      marginBottom: 6
+    },
+
+    distributionHeader: {
+      flexDirection: 'row',
+      justifyContent:
+        'space-between',
+      alignItems: 'center',
+      gap: 10,
+      marginBottom: 6
+    },
+
+    distributionNameGroup: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 7
+    },
+
+    distributionColorDot: {
       width: 9,
       height: 9,
       borderRadius: 5
     },
 
-    categoryCard: {
-      padding: 10,
-      borderRadius: 8,
-      marginBottom: 6,
-      borderWidth: 1
+    distributionName: {
+      fontSize: font(11),
+      fontWeight: 'bold'
     },
 
-    progressBarBg: {
+    distributionAmount: {
+      fontSize: font(11),
+      fontWeight: 'bold'
+    },
+
+    progressTrack: {
       height: 6,
       borderRadius: 3,
       overflow: 'hidden'
     },
 
-    progressBarFill: {
+    progressFill: {
       height: '100%',
       borderRadius: 3
     },
 
-    mobileExportRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 8,
-      marginTop: 20
-    },
-
-    mobileExportButton: {
-      flexGrow: 1,
-      minWidth: '30%'
-    },
-
-    bottomNav: {
+    bottomNavigation: {
       position: 'absolute',
-      bottom: 0,
       left: 0,
       right: 0,
-      flexDirection: 'row',
+      bottom: 0,
       height: 58,
-      borderTopWidth: 1,
-      justifyContent: 'space-around',
+      flexDirection: 'row',
+      justifyContent:
+        'space-around',
+      alignItems: 'center',
+      borderTopWidth: 1
+    },
+
+    bottomNavigationItem: {
       alignItems: 'center'
     },
 
-    navItem: {
-      alignItems: 'center',
-      justifyContent: 'center'
+    bottomNavigationIcon: {
+      fontSize: font(17)
     },
 
-    navText: {
-      fontSize: 10,
+    bottomNavigationText: {
+      fontSize: font(9),
       fontWeight: 'bold',
       marginTop: 2
     },
@@ -6169,34 +7662,54 @@ function createStyles(
         'rgba(0,0,0,0.58)',
       justifyContent: 'center',
       alignItems: 'center',
-      padding: isMobile ? 8 : 18
+      padding:
+        isMobile ? 8 : 18
     },
 
-    modalContent: {
-      width: isMobile
-        ? '98%'
-        : '94%',
-      maxWidth: 980,
-      height: isMobile
-        ? '96%'
-        : '92%',
-      maxHeight: 840,
-      borderRadius: 18,
+    appearanceModal: {
+      width:
+        isMobile ? '96%' : 620,
+      maxHeight: '90%',
       borderWidth: 1,
+      borderRadius: 18,
+      padding: 20
+    },
+
+    subscriptionModal: {
+      width:
+        isMobile ? '98%' : '94%',
+      maxWidth: 980,
+      height:
+        isMobile ? '96%' : '92%',
+      maxHeight: 850,
+      borderWidth: 1,
+      borderRadius: 18,
       overflow: 'hidden'
     },
 
     modalHeader: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
+      justifyContent:
+        'space-between',
       alignItems: 'flex-start',
-      paddingHorizontal: isMobile
-        ? 16
-        : 22,
-      paddingTop: isMobile
-        ? 16
-        : 20,
+      paddingHorizontal:
+        isMobile ? 15 : 22,
+      paddingTop:
+        isMobile ? 15 : 20,
       paddingBottom: 12
+    },
+
+    modalTitle: {
+      fontSize:
+        isMobile
+          ? font(18)
+          : font(21),
+      fontWeight: 'bold'
+    },
+
+    modalSubtitle: {
+      fontSize: font(10),
+      marginTop: 3
     },
 
     modalCloseButton: {
@@ -6208,48 +7721,148 @@ function createStyles(
       justifyContent: 'center'
     },
 
-    modalTitle: {
-      fontSize: isMobile ? 18 : 21,
+    modalCloseText: {
+      fontSize: font(17),
       fontWeight: 'bold'
     },
 
-    modalScroll: {
+    appearanceSectionTitle: {
+      fontSize: font(13),
+      fontWeight: 'bold',
+      marginTop: 16,
+      marginBottom: 9
+    },
+
+    appearanceOptionGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10
+    },
+
+    appearanceThemeOption: {
+      width:
+        isMobile ? '47%' : '23%',
+      borderWidth: 2,
+      borderRadius: 10,
+      padding: 8
+    },
+
+    appearanceOptionActive: {
+      borderWidth: 2
+    },
+
+    themePreview: {
+      height: 70,
+      borderRadius: 7,
+      overflow: 'hidden',
+      flexDirection: 'row'
+    },
+
+    themePreviewSidebar: {
+      width: '25%'
+    },
+
+    themePreviewContent: {
+      flex: 1,
+      padding: 5,
+      gap: 5
+    },
+
+    themePreviewHeader: {
+      height: 18,
+      borderRadius: 3
+    },
+
+    themePreviewCard: {
+      flex: 1,
+      borderRadius: 4
+    },
+
+    appearanceOptionLabel: {
+      fontSize: font(10),
+      fontWeight: 'bold',
+      textAlign: 'center',
+      marginTop: 7
+    },
+
+    fontScaleRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginBottom: 18
+    },
+
+    fontScaleOption: {
+      flexGrow: 1,
+      borderWidth: 1,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      alignItems: 'center'
+    },
+
+    fontScaleOptionActive: {
+      backgroundColor:
+        theme.activeButton,
+      borderColor:
+        theme.activeButtonBorder
+    },
+
+    fontScaleOptionText: {
+      fontWeight: '600'
+    },
+
+    fontScaleOptionTextActive: {
+      color: '#ffffff',
+      fontWeight: 'bold'
+    },
+
+    subscriptionModalScroll: {
       flex: 1
     },
 
-    modalScrollContent: {
-      paddingHorizontal: isMobile
-        ? 14
-        : 22,
+    subscriptionModalContent: {
+      paddingHorizontal:
+        isMobile ? 14 : 22,
       paddingBottom: 20
     },
 
     formSection: {
-      marginBottom: 16
+      marginBottom: 17
+    },
+
+    formSectionHeader: {
+      flexDirection: 'row',
+      justifyContent:
+        'space-between',
+      alignItems: 'flex-start',
+      gap: 12,
+      marginBottom: 10
     },
 
     formSectionTitle: {
-      fontSize: 13,
+      fontSize: font(12),
       fontWeight: 'bold',
       textTransform: 'uppercase',
-      letterSpacing: 0.35,
-      marginBottom: 8
+      letterSpacing: 0.35
     },
 
-    sectionHeaderRow: {
+    formSectionDescription: {
+      fontSize: font(9),
+      marginTop: 3
+    },
+
+    formSectionAction: {
+      fontSize: font(11),
+      fontWeight: 'bold'
+    },
+
+    twoColumnRow: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      marginBottom: 10,
       gap: 12
     },
 
-    desktopTwoColumn: {
-      flexDirection: 'row',
-      gap: 12
-    },
-
-    mobileSingleColumn: {
+    singleColumnRow: {
       flexDirection: 'column',
       gap: 0
     },
@@ -6259,145 +7872,73 @@ function createStyles(
     },
 
     inputLabel: {
-      fontSize: 11,
+      fontSize: font(10),
       fontWeight: 'bold',
       marginBottom: 5
     },
 
     textInput: {
-      paddingHorizontal: 12,
-      paddingVertical: isMobile ? 9 : 10,
+      minHeight: 40,
+      borderWidth: 1,
       borderRadius: 8,
-      borderWidth: 1,
-      fontSize: 14,
-      marginBottom: 10,
-      minHeight: 40
-    },
-
-    inlineForm: {
-      borderRadius: 10,
-      borderWidth: 1,
-      padding: 12,
-      marginTop: 10
-    },
-
-    inlineFieldRow: {
-      flexDirection: 'row',
-      gap: 8,
-      alignItems: 'center'
-    },
-
-    currencyButtonRow: {
-      flexDirection: 'row',
-      gap: 5,
-      flex: 1
-    },
-
-    currBtn: {
-      flex: 1,
-      minWidth: 48,
+      paddingHorizontal: 12,
       paddingVertical: 9,
-      paddingHorizontal: 8,
-      borderRadius: 7,
-      alignItems: 'center',
-      borderWidth: 1
+      fontSize: font(12),
+      marginBottom: 10
     },
 
-    currBtnActive: {
-      backgroundColor: '#6965e8',
-      borderColor: '#6965e8'
-    },
-
-    currBtnText: {
-      fontSize: 11,
-      fontWeight: 'bold'
-    },
-
-    currBtnTextActive: {
-      color: '#ffffff'
-    },
-
-    periodButtonRow: {
-      flexDirection: 'row',
-      gap: 8
-    },
-
-    periodBtn: {
-      flex: 1,
-      paddingVertical: 9,
-      borderRadius: 7,
-      alignItems: 'center',
-      borderWidth: 1
-    },
-
-    periodBtnActive: {
-      backgroundColor: '#6965e8',
-      borderColor: '#6965e8'
-    },
-
-    periodBtnText: {
-      fontSize: 12,
-      fontWeight: 'bold'
-    },
-
-    periodBtnTextActive: {
-      color: '#ffffff'
-    },
-
-    horizontalChipContent: {
+    removableOptionRow: {
       flexDirection: 'row',
       gap: 9,
       paddingTop: 3,
-      paddingRight: 12,
-      paddingBottom: 5
+      paddingBottom: 5,
+      paddingRight: 12
     },
 
-    removableItemWrapper: {
+    removableOptionWrapper: {
       position: 'relative',
       paddingTop: 2,
       paddingRight: 2
     },
 
-    templateChip: {
+    templateOption: {
       minWidth: 92,
       height: 38,
       borderRadius: 8,
       paddingLeft: 12,
       paddingRight: 28,
-      alignItems: 'flex-start',
       justifyContent: 'center'
     },
 
-    templateChipText: {
+    templateOptionText: {
       color: '#ffffff',
-      fontSize: 11,
-      fontWeight: 'bold',
-      maxWidth: 120
+      fontSize: font(10),
+      fontWeight: 'bold'
     },
 
-    paymentMethodChip: {
+    paymentMethodOption: {
       minWidth: 110,
       height: 38,
       borderRadius: 8,
+      borderWidth: 1,
       paddingLeft: 12,
       paddingRight: 28,
-      alignItems: 'flex-start',
-      justifyContent: 'center',
-      borderWidth: 1
+      justifyContent: 'center'
     },
 
-    paymentMethodChipActive: {
-      backgroundColor: '#6965e8',
-      borderColor: '#6965e8'
+    paymentMethodOptionActive: {
+      backgroundColor:
+        theme.activeButton,
+      borderColor:
+        theme.activeButtonBorder
     },
 
-    paymentMethodChipText: {
-      fontSize: 11,
-      fontWeight: 'bold',
-      maxWidth: 150
+    paymentMethodOptionText: {
+      fontSize: font(10),
+      fontWeight: 'bold'
     },
 
-    subtleRemoveButton: {
+    removeOptionButton: {
       position: 'absolute',
       top: 7,
       right: 6,
@@ -6405,7 +7946,7 @@ function createStyles(
       height: 17,
       borderRadius: 4,
       backgroundColor:
-        'rgba(20,24,31,0.58)',
+        'rgba(20,24,31,0.60)',
       borderWidth: 1,
       borderColor:
         'rgba(255,255,255,0.18)',
@@ -6414,25 +7955,122 @@ function createStyles(
       zIndex: 3
     },
 
-    subtleRemoveText: {
-      color: '#f3f4f6',
-      fontSize: 12,
+    removeOptionText: {
+      color: '#ffffff',
+      fontSize: font(11),
       fontWeight: 'bold',
-      lineHeight: 13
+      lineHeight: font(12)
     },
 
-    wrapChipRow: {
+    inlineForm: {
+      borderWidth: 1,
+      borderRadius: 10,
+      padding: 12,
+      marginTop: 10
+    },
+
+    inlineInputRow: {
+      flexDirection: 'row',
+      gap: 8,
+      alignItems: 'center'
+    },
+
+    flexInput: {
+      flex: 1,
+      marginBottom: 0
+    },
+
+    inlineAddButton: {
+      paddingHorizontal: 18
+    },
+
+    inlineSaveButton: {
+      marginTop: 12,
+      alignSelf: 'stretch'
+    },
+
+    currencyOptionRow: {
+      flexDirection: 'row',
+      gap: 5,
+      flex: 1
+    },
+
+    wrappedOptionRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: 7,
       marginTop: 4
     },
 
-    categorySelectChip: {
-      paddingHorizontal: 11,
-      paddingVertical: 7,
+    compactOptionButton: {
+      borderWidth: 1,
       borderRadius: 8,
-      borderWidth: 1
+      paddingHorizontal: 11,
+      paddingVertical: 8,
+      alignItems: 'center'
+    },
+
+    flexOptionButton: {
+      flex: 1
+    },
+
+    compactOptionButtonActive: {
+      backgroundColor:
+        theme.activeButton,
+      borderColor:
+        theme.activeButtonBorder
+    },
+
+    compactOptionText: {
+      fontSize: font(10),
+      fontWeight: '600'
+    },
+
+    compactOptionTextActive: {
+      color: '#ffffff',
+      fontWeight: 'bold'
+    },
+
+    periodOptionRow: {
+      flexDirection: 'row',
+      gap: 8
+    },
+
+    periodOption: {
+      flex: 1,
+      borderWidth: 1,
+      borderRadius: 8,
+      paddingVertical: 9,
+      alignItems: 'center'
+    },
+
+    periodOptionActive: {
+      backgroundColor:
+        theme.activeButton,
+      borderColor:
+        theme.activeButtonBorder
+    },
+
+    periodOptionText: {
+      fontSize: font(11),
+      fontWeight: '600'
+    },
+
+    periodOptionTextActive: {
+      color: '#ffffff',
+      fontWeight: 'bold'
+    },
+
+    categoryOption: {
+      borderWidth: 1,
+      borderRadius: 8,
+      paddingHorizontal: 11,
+      paddingVertical: 8
+    },
+
+    categoryOptionText: {
+      fontSize: font(10),
+      fontWeight: 'bold'
     },
 
     dateInputRow: {
@@ -6440,42 +8078,54 @@ function createStyles(
       gap: 9
     },
 
-    dateField: {
+    dateInputField: {
       flex: 1
     },
 
-    modalFooterButtons: {
+    dateInputYearField: {
+      flex: 1.25
+    },
+
+    helperText: {
+      fontSize: font(9),
+      marginTop: -4
+    },
+
+    modalFooter: {
       flexDirection: 'row',
       gap: 10,
-      paddingHorizontal: isMobile
-        ? 14
-        : 22,
-      paddingVertical: 14,
-      borderTopWidth: 1
+      borderTopWidth: 1,
+      paddingHorizontal:
+        isMobile ? 14 : 22,
+      paddingVertical: 14
     },
 
-    modalCancelBtn: {
+    modalCancelButton: {
       flex: 1,
-      paddingVertical: 12,
+      borderWidth: 1,
       borderRadius: 8,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1
+      paddingVertical: 12,
+      alignItems: 'center'
     },
 
-    modalSaveBtn: {
+    modalCancelButtonText: {
+      fontSize: font(12),
+      fontWeight: 'bold'
+    },
+
+    modalSaveButton: {
       flex: 2,
-      backgroundColor: '#6965e8',
-      paddingVertical: 12,
+      backgroundColor:
+        theme.activeButton,
       borderRadius: 8,
-      alignItems: 'center',
-      justifyContent: 'center'
+      paddingVertical: 12,
+      alignItems: 'center'
     },
 
-    primaryButtonText: {
+    modalSaveButtonText: {
       color: '#ffffff',
-      fontWeight: 'bold',
-      fontSize: 13
-    },
+      fontSize: font(12),
+      fontWeight: 'bold'
+    }
   });
 }
