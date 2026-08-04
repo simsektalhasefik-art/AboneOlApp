@@ -15,7 +15,8 @@ import {
   SafeAreaView,
   StatusBar,
   useWindowDimensions,
-  Linking
+  Linking,
+  Platform
 } from 'react-native';
 
 const DEFAULT_RATES = {
@@ -408,7 +409,6 @@ const FONT_SCALE_OPTIONS = [
     scale: 1.24
   }
 ];
-
 const getDaysInMonth = (
   month,
   year
@@ -695,15 +695,16 @@ const getSubscriptionCostForMonth = (
       : 0
   );
 };
+
 export default function App() {
   const { width } =
     useWindowDimensions();
 
-const isDesktop =
-  width >= 900;
+  const isDesktop =
+    width >= 900;
 
- const isMobile =
-  width < 768;
+  const isMobile =
+    width < 768;
 
   /*
     Ana sayfanın kaydırma alanı.
@@ -813,23 +814,14 @@ const isDesktop =
     isSubscriptionModalOpen,
     setIsSubscriptionModalOpen
   ] = useState(false);
+
   const [
-  isSubscriptionModalOpen,
-  setIsSubscriptionModalOpen
-] = useState(false);
-
-const [
-  duplicateWarning,
-  setDuplicateWarning
-] = useState({
-  visible: false,
-  name: ''
-});
-
-const [
-  selectedSubscription,
-  setSelectedSubscription
-] = useState(null);
+    duplicateWarning,
+    setDuplicateWarning
+  ] = useState({
+    visible: false,
+    name: ''
+  });
 
   const [
     editingId,
@@ -978,8 +970,7 @@ const [
     newPaymentMethodName,
     setNewPaymentMethodName
   ] = useState('');
-
-  /* ---------------------------------------------------------------------- */
+    /* ---------------------------------------------------------------------- */
   /*                         LOCALSTORAGE YÜKLEME                            */
   /* ---------------------------------------------------------------------- */
 
@@ -1144,99 +1135,105 @@ const [
     subscriptions,
     isLoaded
   ]);
+
+  /* ---------------------------------------------------------------------- */
+  /*                         GÜNCEL DÖVİZ KURLARI                            */
+  /* ---------------------------------------------------------------------- */
+
   useEffect(() => {
-  let isMounted = true;
+    let isMounted = true;
 
-  const fetchExchangeRates =
-    async () => {
-      try {
-        const [
-          usdResponse,
-          eurResponse
-        ] = await Promise.all([
-          fetch(
-            'https://api.frankfurter.dev/v2/rate/USD/TRY?providers=TCMB'
-          ),
-          fetch(
-            'https://api.frankfurter.dev/v2/rate/EUR/TRY?providers=TCMB'
-          )
-        ]);
+    const fetchExchangeRates =
+      async () => {
+        try {
+          const [
+            usdResponse,
+            eurResponse
+          ] = await Promise.all([
+            fetch(
+              'https://api.frankfurter.dev/v2/rate/USD/TRY?providers=TCMB'
+            ),
+            fetch(
+              'https://api.frankfurter.dev/v2/rate/EUR/TRY?providers=TCMB'
+            )
+          ]);
 
-        if (
-          !usdResponse.ok ||
-          !eurResponse.ok
-        ) {
-          throw new Error(
-            'Kur servisi yanıt vermedi.'
+          if (
+            !usdResponse.ok ||
+            !eurResponse.ok
+          ) {
+            throw new Error(
+              'Kur servisi yanıt vermedi.'
+            );
+          }
+
+          const usdData =
+            await usdResponse.json();
+
+          const eurData =
+            await eurResponse.json();
+
+          if (!isMounted) {
+            return;
+          }
+
+          const usdRate =
+            Number(
+              usdData?.rate
+            );
+
+          const eurRate =
+            Number(
+              eurData?.rate
+            );
+
+          if (
+            !Number.isFinite(
+              usdRate
+            ) ||
+            !Number.isFinite(
+              eurRate
+            )
+          ) {
+            throw new Error(
+              'Kur değerleri geçersiz.'
+            );
+          }
+
+          setExchangeRates({
+            USD: usdRate,
+            EUR: eurRate
+          });
+        } catch (error) {
+          console.log(
+            'Güncel döviz kurları alınamadı:',
+            error
           );
+
+          /*
+            API çalışmazsa localStorage'daki
+            veya varsayılan kur değerleri kullanılmaya
+            devam eder.
+          */
         }
+      };
 
-        const usdData =
-          await usdResponse.json();
+    fetchExchangeRates();
 
-        const eurData =
-          await eurResponse.json();
+    const intervalId =
+      setInterval(
+        fetchExchangeRates,
+        6 * 60 * 60 * 1000
+      );
 
-        if (!isMounted) {
-          return;
-        }
+    return () => {
+      isMounted = false;
 
-        const usdRate =
-          Number(
-            usdData?.rate
-          );
-
-        const eurRate =
-          Number(
-            eurData?.rate
-          );
-
-        if (
-          !Number.isFinite(
-            usdRate
-          ) ||
-          !Number.isFinite(
-            eurRate
-          )
-        ) {
-          throw new Error(
-            'Kur değerleri geçersiz.'
-          );
-        }
-
-        setExchangeRates({
-          USD: usdRate,
-          EUR: eurRate
-        });
-      } catch (error) {
-        console.log(
-          'Güncel döviz kurları alınamadı:',
-          error
-        );
-
-        /*
-          API çalışmazsa mevcut veya localStorage'dan
-          yüklenen kur değerleri kullanılmaya devam eder.
-        */
-      }
+      clearInterval(
+        intervalId
+      );
     };
-
-  fetchExchangeRates();
-
-  const intervalId =
-    setInterval(
-      fetchExchangeRates,
-      6 * 60 * 60 * 1000
-    );
-
-  return () => {
-    isMounted = false;
-
-    clearInterval(
-      intervalId
-    );
-  };
-}, []);
+  }, []);
 
   useEffect(() => {
     if (!isLoaded) {
@@ -1336,8 +1333,9 @@ const [
     Sadece sekme veya analiz yılı değiştiğinde
     sayfa en üste alınır.
 
-    Abonelik ekleme/düzenleme subscriptions değerini
-    değiştirdiğinde sayfa artık otomatik yukarı çıkmaz.
+    Abonelik ekleme veya düzenleme subscriptions
+    değerini değiştirdiğinde sayfa otomatik olarak
+    en üste çıkmaz.
   */
   useEffect(() => {
     scrollMainToTop(false);
@@ -1382,7 +1380,7 @@ const [
     activeButtonSoft:
       '#7772ff26'
   };
-  
+
   const safeList =
     Array.isArray(
       subscriptions
@@ -1484,7 +1482,7 @@ const [
                 nextRenewal -
                 todayStart
               ) /
-                86400000
+              86400000
             );
 
           return (
@@ -1561,8 +1559,7 @@ const [
         viewFilter
     )?.label ||
     'Tüm Abonelikler';
-
-  /* ---------------------------------------------------------------------- */
+    /* ---------------------------------------------------------------------- */
   /*                         ÖZET HESAPLAMALARI                              */
   /* ---------------------------------------------------------------------- */
 
@@ -1611,6 +1608,7 @@ const [
 
   const yearlyProjectionTL =
     monthlyTotalTL * 12;
+
   /* ---------------------------------------------------------------------- */
   /*                         ANALİZ HESAPLAMALARI                            */
   /* ---------------------------------------------------------------------- */
@@ -2297,19 +2295,14 @@ const [
       if (
         duplicateSubscription
       ) {
-        const continueAnyway =
-          confirmAction(
-            `“${duplicateSubscription.name}” isimli ${
-              duplicateSubscription.period ===
-              'yearly'
-                ? 'yıllık'
-                : 'aylık'
-            } bir kayıt zaten bulunuyor.\n\nYine de mükerrer kayıt oluşturulsun mu?`
-          );
+        setDuplicateWarning({
+          visible: true,
+          name:
+            duplicateSubscription.name ||
+            formName.trim()
+        });
 
-        if (!continueAnyway) {
-          return;
-        }
+        return;
       }
 
       const existingSubscription =
@@ -2318,8 +2311,7 @@ const [
             subscription.id ===
             editingId
         );
-
-      const payload = {
+         const payload = {
         ...existingSubscription,
 
         id:
@@ -2578,7 +2570,8 @@ const [
         )
       );
     };
-   /* ---------------------------------------------------------------------- */
+
+  /* ---------------------------------------------------------------------- */
   /*                         ÖDEME YÖNTEMLERİ                                */
   /* ---------------------------------------------------------------------- */
 
@@ -2678,7 +2671,7 @@ const [
     };
 
   /* ---------------------------------------------------------------------- */
-  /*                         CSV VE JSON İŞLEMLERİ                            */
+  /*                         CSV VE JSON İŞLEMLERİ                           */
   /* ---------------------------------------------------------------------- */
 
   const handleExportCSV = () => {
@@ -2863,8 +2856,7 @@ const [
             JSON.parse(
               fileText
             );
-
-          const importedSubscriptions =
+                   const importedSubscriptions =
             Array.isArray(
               parsedBackup
             )
@@ -3295,11 +3287,11 @@ const [
           </View>
         )}
 
-       <View
-  style={
-    styles.contentWrapper
-  }
->
+        <View
+          style={
+            styles.contentWrapper
+          }
+        >
           <View
             style={[
               styles.header,
@@ -3312,43 +3304,43 @@ const [
               }
             ]}
           >
-           <View
-  style={
-    styles.pageHeaderInfo
-  }
->
-  <Text
-    style={[
-      styles.pageHeaderTitle,
-      {
-        color:
-          theme.textPrimary
-      }
-    ]}
-  >
-    {activeTab === 'list'
-      ? 'Abonelikler'
-      : activeTab === 'calendar'
-        ? 'Ödeme Takvimi'
-        : 'Finansal Analiz'}
-  </Text>
+            <View
+              style={
+                styles.pageHeaderInfo
+              }
+            >
+              <Text
+                style={[
+                  styles.pageHeaderTitle,
+                  {
+                    color:
+                      theme.textPrimary
+                  }
+                ]}
+              >
+                {activeTab === 'list'
+                  ? 'Abonelikler'
+                  : activeTab === 'calendar'
+                    ? 'Ödeme Takvimi'
+                    : 'Finansal Analiz'}
+              </Text>
 
-  <Text
-    style={[
-      styles.pageHeaderDescription,
-      {
-        color:
-          theme.textSecondary
-      }
-    ]}
-  >
-    {activeTab === 'list'
-      ? 'Aboneliklerinizi ve düzenli ödemelerinizi yönetin.'
-      : activeTab === 'calendar'
-        ? 'Yaklaşan ödeme tarihlerini takvim üzerinden takip edin.'
-        : 'Harcama eğilimlerinizi ve yıllık maliyetlerinizi inceleyin.'}
-  </Text>
-</View>
+              <Text
+                style={[
+                  styles.pageHeaderDescription,
+                  {
+                    color:
+                      theme.textSecondary
+                  }
+                ]}
+              >
+                {activeTab === 'list'
+                  ? 'Aboneliklerinizi ve düzenli ödemelerinizi yönetin.'
+                  : activeTab === 'calendar'
+                    ? 'Yaklaşan ödeme tarihlerini takvim üzerinden takip edin.'
+                    : 'Harcama eğilimlerinizi ve yıllık maliyetlerinizi inceleyin.'}
+              </Text>
+            </View>
 
             <View
               style={
@@ -3403,149 +3395,151 @@ const [
           </View>
 
           <ScrollView
-  ref={
-    mainScrollRef
-  }
-  style={[
-    styles.mainScroll,
-    {
-      overflowAnchor: 'none',
-
-      scrollbarWidth:
-        'thin',
-
-      scrollbarColor:
-        `${theme.cardBorder} transparent`
-    }
-  ]}
-  contentContainerStyle={
-    styles.scrollContent
-  }
-  showsVerticalScrollIndicator={
-    true
-  }
-  scrollEventThrottle={16}
-  onScroll={event => {
-    mainScrollPositionRef.current =
-      event.nativeEvent.contentOffset.y;
-  }}
->
-           {activeTab !==
-  'analytics' && (
-  <View
-    style={[
-      styles.currencyBar,
-      {
-        backgroundColor:
-          theme.cardBg,
-
-        borderColor:
-          theme.cardBorder
-      }
-    ]}
-  >
-    <View
-      style={
-        styles.currencyBarLeft
-      }
-    >
-      <View
-        style={[
-          styles.currencyIconBox,
-          {
-            backgroundColor:
-              theme.activeButtonSoft,
-
-            borderColor:
-              theme.activeButtonBorder
-          }
-        ]}
-      >
-        <Text
-          style={
-            styles.currencyBarIcon
-          }
-        >
-          💱
-        </Text>
-      </View>
-
-      <Text
-        style={[
-          styles.currencyBarTitle,
-          {
-            color:
-              theme.textPrimary
-          }
-        ]}
-      >
-        Döviz Kurları
-      </Text>
-    </View>
-
-    <View
-      style={
-        styles.currencyBadgeGroup
-      }
-    >
-      <View
-        style={[
-          styles.currencyBadge,
-          {
-            backgroundColor:
-              theme.activeButtonSoft,
-
-            borderColor:
-              theme.activeButtonBorder
-          }
-        ]}
-      >
-        <Text
-          style={[
-            styles.currencyBadgeText,
-            {
-              color:
-                theme.accent
+            ref={
+              mainScrollRef
             }
-          ]}
-        >
-          USD:{' '}
-          {Number(
-            exchangeRates.USD
-          ).toFixed(2)} ₺
-        </Text>
-      </View>
+            style={[
+              styles.mainScroll,
+              {
+                overflowAnchor:
+                  'none',
 
-      <View
-        style={[
-          styles.currencyBadge,
-          {
-            backgroundColor:
-              theme.activeButtonSoft,
+                scrollbarWidth:
+                  'thin',
 
-            borderColor:
-              theme.activeButtonBorder
-          }
-        ]}
-      >
-        <Text
-          style={[
-            styles.currencyBadgeText,
-            {
-              color:
-                theme.accent
+                scrollbarColor:
+                  `${theme.cardBorder} transparent`
+              }
+            ]}
+            contentContainerStyle={
+              styles.scrollContent
             }
-          ]}
-        >
-          EUR:{' '}
-          {Number(
-            exchangeRates.EUR
-          ).toFixed(2)} ₺
-        </Text>
-      </View>
-    </View>
-  </View>
-)}
+            showsVerticalScrollIndicator={
+              true
+            }
+            scrollEventThrottle={16}
+            onScroll={event => {
+              mainScrollPositionRef.current =
+                event.nativeEvent
+                  .contentOffset.y;
+            }}
+          >
+            {activeTab !==
+              'analytics' && (
+              <View
+                style={[
+                  styles.currencyBar,
+                  {
+                    backgroundColor:
+                      theme.cardBg,
+
+                    borderColor:
+                      theme.cardBorder
+                  }
+                ]}
+              >
+                <View
+                  style={
+                    styles.currencyBarLeft
+                  }
+                >
+                  <View
+                    style={[
+                      styles.currencyIconBox,
+                      {
+                        backgroundColor:
+                          theme.activeButtonSoft,
+
+                        borderColor:
+                          theme.activeButtonBorder
+                      }
+                    ]}
+                  >
+                    <Text
+                      style={
+                        styles.currencyBarIcon
+                      }
+                    >
+                      💱
+                    </Text>
+                  </View>
+
+                  <Text
+                    style={[
+                      styles.currencyBarTitle,
+                      {
+                        color:
+                          theme.textPrimary
+                      }
+                    ]}
+                  >
+                    Döviz Kurları
+                  </Text>
+                </View>
+
+                <View
+                  style={
+                    styles.currencyBadgeGroup
+                  }
+                >
+                  <View
+                    style={[
+                      styles.currencyBadge,
+                      {
+                        backgroundColor:
+                          theme.activeButtonSoft,
+
+                        borderColor:
+                          theme.activeButtonBorder
+                      }
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.currencyBadgeText,
+                        {
+                          color:
+                            theme.accent
+                        }
+                      ]}
+                    >
+                      USD:{' '}
+                      {Number(
+                        exchangeRates.USD
+                      ).toFixed(2)} ₺
+                    </Text>
+                  </View>
+
+                  <View
+                    style={[
+                      styles.currencyBadge,
+                      {
+                        backgroundColor:
+                          theme.activeButtonSoft,
+
+                        borderColor:
+                          theme.activeButtonBorder
+                      }
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.currencyBadgeText,
+                        {
+                          color:
+                            theme.accent
+                        }
+                      ]}
+                    >
+                      EUR:{' '}
+                      {Number(
+                        exchangeRates.EUR
+                      ).toFixed(2)} ₺
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            )}
 
             {activeTab ===
               'list' && (
@@ -3735,8 +3729,7 @@ const [
                       )
                     )}
                   </ScrollView>
-                </View>
-
+                </View> 
                 <View
                   style={
                     styles.sectionTitleRow
@@ -3765,7 +3758,8 @@ const [
                   >
                     {filteredSubscriptions.length} kayıt
                   </Text>
-                </View> 
+                </View>
+
                 {filteredSubscriptions.length ===
                 0 ? (
                   <View
@@ -5439,7 +5433,6 @@ const [
               </View>
             )}
           </ScrollView>
-
           {!isDesktop && (
             <View
               style={[
@@ -5608,21 +5601,25 @@ const [
               </TouchableOpacity>
             </View>
 
-       <ScrollView
-  id="appearance-modal-scroll"
-  style={[
-    Platform.OS === 'web' && {
-      scrollbarWidth: 'thin',
-      scrollbarColor: `${theme.cardBorder} ${theme.inputBg}`
-    }
-  ]}
-  showsVerticalScrollIndicator={
-    true
-  }
-  contentContainerStyle={{
-    paddingBottom: 8
-  }}
->
+            <ScrollView
+              id="appearance-modal-scroll"
+              style={[
+                Platform.OS ===
+                  'web' && {
+                  scrollbarWidth:
+                    'thin',
+
+                  scrollbarColor:
+                    `${theme.cardBorder} ${theme.inputBg}`
+                }
+              ]}
+              showsVerticalScrollIndicator={
+                true
+              }
+              contentContainerStyle={{
+                paddingBottom: 8
+              }}
+            >
               <Text
                 style={[
                   styles.appearanceSectionTitle,
@@ -5825,6 +5822,7 @@ const [
           </View>
         </View>
       </Modal>
+
       <Modal
         visible={
           isSubscriptionModalOpen
@@ -5919,22 +5917,27 @@ const [
               </TouchableOpacity>
             </View>
 
-           <ScrollView
-  id="subscription-modal-scroll"
-  style={[
-    styles.subscriptionModalScroll,
-    Platform.OS === 'web' && {
-      scrollbarWidth: 'thin',
-      scrollbarColor: `${theme.cardBorder} ${theme.inputBg}`
-    }
-  ]}
-  contentContainerStyle={
-    styles.subscriptionModalContent
-  }
-  showsVerticalScrollIndicator={
-    true
-  }
->
+            <ScrollView
+              id="subscription-modal-scroll"
+              style={[
+                styles.subscriptionModalScroll,
+
+                Platform.OS ===
+                  'web' && {
+                  scrollbarWidth:
+                    'thin',
+
+                  scrollbarColor:
+                    `${theme.cardBorder} ${theme.inputBg}`
+                }
+              ]}
+              contentContainerStyle={
+                styles.subscriptionModalContent
+              }
+              showsVerticalScrollIndicator={
+                true
+              }
+            >
               {!editingId && (
                 <View
                   style={
@@ -6054,7 +6057,9 @@ const [
                               style={
                                 styles.templateOptionText
                               }
-                              numberOfLines={1}
+                              numberOfLines={
+                                1
+                              }
                             >
                               {template.name}
                             </Text>
@@ -6082,7 +6087,6 @@ const [
                       )
                     )}
                   </ScrollView>
-
                   {showTemplateForm && (
                     <View
                       style={[
@@ -6895,7 +6899,7 @@ const [
                     styles.dateInputRow
                   }
                 >
-                  <View
+                             <View
                     style={
                       styles.dateInputField
                     }
@@ -7221,9 +7225,124 @@ const [
           </View>
         </View>
       </Modal>
+
+      <Modal
+        visible={
+          duplicateWarning.visible
+        }
+        transparent
+        animationType="fade"
+        onRequestClose={() =>
+          setDuplicateWarning({
+            visible: false,
+            name: ''
+          })
+        }
+      >
+        <View
+          style={
+            styles.warningOverlay
+          }
+        >
+          <View
+            style={[
+              styles.warningCard,
+              {
+                backgroundColor:
+                  theme.cardBg,
+
+                borderColor:
+                  theme.cardBorder
+              }
+            ]}
+          >
+            <View
+              style={[
+                styles.warningIconBox,
+                {
+                  backgroundColor:
+                    theme.activeButtonSoft,
+
+                  borderColor:
+                    theme.activeButtonBorder
+                }
+              ]}
+            >
+              <Text
+                style={
+                  styles.warningIcon
+                }
+              >
+                ⚠️
+              </Text>
+            </View>
+
+            <Text
+              style={[
+                styles.warningTitle,
+                {
+                  color:
+                    theme.textPrimary
+                }
+              ]}
+            >
+              Mükerrer Kayıt
+            </Text>
+
+            <Text
+              style={[
+                styles.warningMessage,
+                {
+                  color:
+                    theme.textSecondary
+                }
+              ]}
+            >
+              “{duplicateWarning.name}”
+              isimli abonelik zaten
+              kayıtlı.
+            </Text>
+
+            <Text
+              style={[
+                styles.warningHint,
+                {
+                  color:
+                    theme.textMuted
+                }
+              ]}
+            >
+              Mevcut kaydı düzenleyebilir
+              veya farklı bir ad
+              kullanabilirsiniz.
+            </Text>
+
+            <TouchableOpacity
+              style={
+                styles.warningButton
+              }
+              onPress={() =>
+                setDuplicateWarning({
+                  visible: false,
+                  name: ''
+                })
+              }
+            >
+              <Text
+                style={
+                  styles.warningButtonText
+                }
+              >
+                Tamam
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
+
 function createStyles(
   theme,
   isMobile,
@@ -7235,398 +7354,30 @@ function createStyles(
     );
 
   return StyleSheet.create({
-container: {
-  flex: 1,
-  width: '100%',
-  height: '100vh',
-  minHeight: 0,
-  overflow: 'hidden'
-},
-
-   appWrapper: {
-  flex: 1,
-  width: '100%',
-  height: '100%',
-  minHeight: 0,
-  overflow: 'hidden'
-},
-   appWrapperDesktop: {
-  flexDirection: 'row',
-  width: '100%',
-  height: '100%',
-  minHeight: 0,
-  overflow: 'hidden'
-},
-    sidebarContainer: {
-      width: 250,
-      minWidth: 250,
-      flexShrink: 0,
-      padding: 20,
-      borderRightWidth: 1
-    },
-
-    sidebarHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6
-    },
-
-    headerTitle: {
-      fontSize: font(22),
-      fontWeight: 'bold'
-    },
-
-    headerSubtitle: {
-      fontSize: font(11),
-      marginTop: 3
-    },
-    pageHeaderInfo: {
-  flex: 1,
-  minWidth: 0,
-  paddingRight: 16
-},
-
-pageHeaderEyebrow: {
-  fontSize: font(9),
-  fontWeight: '800',
-  letterSpacing: 1.2,
-  marginBottom: 3
-},
-
-pageHeaderTitle: {
-  fontSize:
-    isMobile
-      ? font(18)
-      : font(22),
-  fontWeight: '700',
-  letterSpacing: -0.3
-},
-
-pageHeaderDescription: {
-  fontSize: font(11),
-  marginTop: 4,
-  lineHeight: font(16)
-},
-
-    proBadge: {
-      backgroundColor: '#6965e8',
-      borderRadius: 4,
-      paddingHorizontal: 6,
-      paddingVertical: 2
-    },
-
-    proBadgeText: {
-      color: '#ffffff',
-      fontSize: font(8),
-      fontWeight: 'bold'
-    },
-
-    sidebarNavGroup: {
-      marginTop: 28,
-      gap: 8
-    },
-
-    sidebarNavButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-      borderRadius: 10,
-      paddingHorizontal: 14,
-      paddingVertical: 11
-    },
-
-    sidebarNavButtonActive: {
-      backgroundColor:
-        theme.activeButtonSoft
-    },
-
-    sidebarNavIcon: {
-      fontSize: font(17)
-    },
-
-    sidebarNavText: {
-      fontSize: font(13),
-      fontWeight: 'bold'
-    },
-
-    sidebarFooter: {
-      marginTop: 'auto',
-      gap: 8
-    },
-
-    secondaryButton: {
-      borderWidth: 1,
-      borderRadius: 8,
-      paddingVertical: 10,
-      paddingHorizontal: 12,
-      alignItems: 'center'
-    },
-
-    secondaryButtonText: {
-      fontSize: font(11),
-      fontWeight: 'bold'
-    },
-
-    primaryButton: {
-      backgroundColor:
-        theme.activeButton,
-      borderRadius: 8,
-      paddingVertical: 10,
-      paddingHorizontal: 14,
-      alignItems: 'center',
-      justifyContent: 'center'
-    },
-
-    primaryButtonText: {
-      color: '#ffffff',
-      fontSize: font(12),
-      fontWeight: 'bold'
-    },
-
-contentWrapper: {
-  flex: 1,
-  minWidth: 0,
-  minHeight: 0,
-  height: '100%',
-  width: 'auto',
-  position: 'relative',
-  overflow: 'hidden'
-},
-
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent:
-        'space-between',
-        flexShrink: 0,
-      paddingHorizontal:
-        isMobile ? 14 : 20,
-      paddingTop: 18,
-      paddingBottom: 14,
-      borderBottomWidth: 1
-    },
-
-    headerActions: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8
-    },
-
-    iconButton: {
-      width: 38,
-      height: 38,
-      borderRadius: 10,
-      borderWidth: 1,
-      alignItems: 'center',
-      justifyContent: 'center'
-    },
-
-    iconButtonText: {
-      fontSize: font(17)
-    },
-
-mainScroll: {
-  flex: 1,
-  minHeight: 0,
-  width: '100%'
-},
-
-   scrollContent: {
-  width: '100%',
-  flexGrow: 1,
-  paddingHorizontal:
-    isMobile ? 12 : 20,
-  paddingTop: 14,
-  paddingBottom:
-    isMobile ? 100 : 30
-},
-
-   currencyBar: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent:
-    'space-between',
-  flexWrap: 'wrap',
-  gap: 10,
-  borderWidth: 1,
-  borderRadius: 12,
-  paddingHorizontal: 14,
-  paddingVertical: 11,
-  marginBottom: 12
-},
-
-currencyBarLeft: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  gap: 9
-},
-
-currencyIconBox: {
-  width: 32,
-  height: 32,
-  borderWidth: 1,
-  borderRadius: 9,
-  alignItems: 'center',
-  justifyContent: 'center'
-},
-
-currencyBarIcon: {
-  fontSize: font(17)
-},
-
-currencyBarTitle: {
-  fontSize: font(12),
-  fontWeight: 'bold'
-},
-
-currencyBadgeGroup: {
-  flexDirection: 'row',
-  flexWrap: 'wrap',
-  gap: 8
-},
-
-currencyBadge: {
-  borderWidth: 1,
-  borderRadius: 8,
-  paddingHorizontal: 10,
-  paddingVertical: 6
-},
-
-currencyBadgeText: {
-  fontSize: font(11),
-  fontWeight: 'bold'
-},
-    summaryCard: {
-      borderRadius: 14,
-      borderWidth: 1,
-      padding: 16,
-      marginBottom: 14
-    },
-
-    summaryLabel: {
-      color: '#ffffff',
-      fontSize: font(11),
-      fontWeight: 'bold'
-    },
-
-    summaryValue: {
-      color: '#ffffff',
-      fontSize: font(27),
-      fontWeight: 'bold',
-      marginVertical: 5
-    },
-
-    summaryStatsRow: {
-      flexDirection: 'row',
-      gap: 10,
-      marginTop: 8
-    },
-
-    summaryStatBox: {
+    container: {
       flex: 1,
-      backgroundColor:
-        'rgba(255,255,255,0.15)',
-      borderRadius: 8,
-      padding: 9
+      width: '100%',
+      height: '100vh',
+      minHeight: 0,
+      overflow: 'hidden'
     },
 
-    summaryStatLabel: {
-      color: '#ffffff',
-      fontSize: font(10),
-      opacity: 0.9
+    appWrapper: {
+      flex: 1,
+      width: '100%',
+      height: '100%',
+      minHeight: 0,
+      overflow: 'hidden'
     },
 
-    summaryStatValue: {
-      color: '#ffffff',
-      fontSize: font(12),
-      fontWeight: 'bold',
-      marginTop: 3
-    },
-
-    searchInput: {
-      borderWidth: 1,
-      borderRadius: 9,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
-      fontSize: font(12),
-      marginBottom: 12
-    },
-
-    singleFilterSection: {
-      marginBottom: 14
-    },
-
-    sectionLabel: {
-      fontSize: font(12),
-      fontWeight: 'bold',
-      marginBottom: 7
-    },
-
-    horizontalOptionRow: {
+    appWrapperDesktop: {
       flexDirection: 'row',
-      gap: 7,
-      paddingRight: 10
+      width: '100%',
+      height: '100%',
+      minHeight: 0,
+      overflow: 'hidden'
     },
-
-    filterOption: {
-      borderWidth: 1,
-      borderRadius: 8,
-      paddingHorizontal: 12,
-      paddingVertical: 8
-    },
-
-    filterOptionActive: {
-      backgroundColor:
-        theme.activeButton,
-      borderColor:
-        theme.activeButtonBorder
-    },
-
-    filterOptionText: {
-      fontSize: font(11),
-      fontWeight: '600'
-    },
-
-    filterOptionTextActive: {
-      color: '#ffffff',
-      fontWeight: 'bold'
-    },
-
-    sectionTitleRow: {
-      flexDirection: 'row',
-      justifyContent:
-        'space-between',
-      alignItems: 'center',
-      marginBottom: 9
-    },
-
-    sectionTitle: {
-      fontSize: font(14),
-      fontWeight: 'bold'
-    },
-
-    resultCount: {
-      fontSize: font(11)
-    },
-
-    emptyCard: {
-      borderWidth: 1,
-      borderRadius: 12,
-      padding: 22,
-      alignItems: 'center'
-    },
-
-    emptyIcon: {
-      fontSize: font(30)
-    },
-
-    emptyTitle: {
-      fontSize: font(15),
-      fontWeight: 'bold',
-      marginTop: 8
-    },
-
-    emptyDescription: {
+      emptyDescription: {
       fontSize: font(11),
       textAlign: 'center',
       marginTop: 5
@@ -8172,19 +7923,19 @@ currencyBadgeText: {
       borderRadius: 3
     },
 
-  bottomNavigation: {
-  position: 'absolute',
-  left: 0,
-  right: 0,
-  bottom: 0,
-  height: 64,
-  flexDirection: 'row',
-  justifyContent: 'space-around',
-  alignItems: 'center',
-  borderTopWidth: 1,
-  zIndex: 999,
-  elevation: 20
-},
+    bottomNavigation: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      height: 64,
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      alignItems: 'center',
+      borderTopWidth: 1,
+      zIndex: 999,
+      elevation: 20
+    },
 
     bottomNavigationItem: {
       alignItems: 'center'
@@ -8623,8 +8374,7 @@ currencyBadgeText: {
       color: '#ffffff',
       fontWeight: 'bold'
     },
-
-    periodOptionRow: {
+     periodOptionRow: {
       flexDirection: 'row',
       gap: 8
     },
@@ -8722,6 +8472,77 @@ currencyBadgeText: {
       color: '#ffffff',
       fontSize: font(12),
       fontWeight: 'bold'
+    },
+
+    warningOverlay: {
+      flex: 1,
+      backgroundColor:
+        'rgba(15,23,42,0.72)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20
+    },
+
+    warningCard: {
+      width: '100%',
+      maxWidth: 420,
+      borderWidth: 1,
+      borderRadius: 18,
+      paddingHorizontal: 24,
+      paddingVertical: 26,
+      alignItems: 'center'
+    },
+
+    warningIconBox: {
+      width: 58,
+      height: 58,
+      borderWidth: 1,
+      borderRadius: 29,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 15
+    },
+
+    warningIcon: {
+      fontSize: font(27)
+    },
+
+    warningTitle: {
+      fontSize: font(19),
+      fontWeight: 'bold',
+      textAlign: 'center'
+    },
+
+    warningMessage: {
+      fontSize: font(13),
+      fontWeight: '600',
+      lineHeight: font(20),
+      textAlign: 'center',
+      marginTop: 10
+    },
+
+    warningHint: {
+      fontSize: font(11),
+      lineHeight: font(17),
+      textAlign: 'center',
+      marginTop: 8
+    },
+
+    warningButton: {
+      width: '100%',
+      minHeight: 42,
+      backgroundColor:
+        theme.activeButton,
+      borderRadius: 9,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 20
+    },
+
+    warningButtonText: {
+      color: '#ffffff',
+      fontSize: font(12),
+      fontWeight: 'bold'
     }
   });
-}
+}   
