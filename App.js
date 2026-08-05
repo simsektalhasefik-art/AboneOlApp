@@ -2045,4 +2045,3 @@ function createStyles(theme, isMobile, fontScale) {
     warningButtonText: { color: '#ffffff', fontSize: font(13), fontWeight: 'bold' }
   });
 }
-```[cite: 2]
