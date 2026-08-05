@@ -201,8 +201,6 @@ export default function App() {
   const [authPassword, setAuthPassword] = useState('');
   const [authError, setAuthError] = useState('');
 
-  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
-
   const [subscriptions, setSubscriptions] = useState([]);
   const [exchangeRates, setExchangeRates] = useState(DEFAULT_RATES);
   const [templatesList, setTemplatesList] = useState(DEFAULT_TEMPLATES);
@@ -354,7 +352,6 @@ export default function App() {
     if (!confirmAction('Oturumu kapatmak istediğinize emin misiniz?')) return;
     try { localStorage.setItem('cebin_auth_v1', 'false'); } catch (e) { console.log(e); }
     setIsLoggedIn(false);
-    setIsMobileDrawerOpen(false);
   };
 
   /* ------------------------------------------------------------------ */
@@ -763,7 +760,7 @@ export default function App() {
   const firstDayOffset = (new Date(calendarYear, calendarMonth, 1).getDay() + 6) % 7;
 
   const handleAnalysisYearChange = year => { scrollMainToTop(false); setSelectedAnalysisYear(year); };
-  const handleTabChange = tabKey => { scrollMainToTop(false); setActiveTab(tabKey); setIsMobileDrawerOpen(false); };
+  const handleTabChange = tabKey => { scrollMainToTop(false); setActiveTab(tabKey); };
 
   const openDayDrawer = (dayNumber, itemsForDay) => {
     setDayDrawer({ visible: true, day: dayNumber, month: calendarMonth, year: calendarYear, items: itemsForDay });
@@ -875,17 +872,11 @@ export default function App() {
 
         <View style={styles.contentWrapper}>
           <View style={[styles.header, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.headerBg, 0.75) : theme.headerBg, borderBottomColor: theme.cardBorder }]}>
-            {isMobile && (
-              <TouchableOpacity style={[styles.iconButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder, marginRight: 8 }]} onPress={() => setIsMobileDrawerOpen(true)}>
-                <Text style={styles.iconButtonText}>☰</Text>
-              </TouchableOpacity>
-            )}
-
             <View style={styles.pageHeaderInfo}>
-              <Text style={[styles.pageHeaderTitle, { color: theme.textPrimary }]}>
+              <Text style={[styles.pageHeaderTitle, { color: theme.textPrimary }]} numberOfLines={1}>
                 {activeTab === 'list' ? 'Abonelikler' : activeTab === 'calendar' ? 'Ödeme Takvimi' : 'Analiz ve Raporlar'}
               </Text>
-              <Text style={[styles.pageHeaderDescription, { color: theme.textSecondary }]}>
+              <Text style={[styles.pageHeaderDescription, { color: theme.textSecondary }]} numberOfLines={isMobile ? 2 : 1}>
                 {activeTab === 'list' ? 'Aboneliklerinizi ve Düzenli Ödemelerinizi Yönetin.' : activeTab === 'calendar' ? 'Yaklaşan Ödeme Tarihlerini Takvim Üzerinden Takip Edin.' : 'Aylık Harcama Eğilimlerinizi ve Bütçe Yükünüzü İnceleyin.'}
               </Text>
             </View>
@@ -1313,50 +1304,6 @@ export default function App() {
           )}
         </View>
       </View>
-
-      {/* MOBİL SIDEBAR DRAWER */}
-      {!isDesktop && (
-        <Modal visible={isMobileDrawerOpen} transparent animationType="fade" onRequestClose={() => setIsMobileDrawerOpen(false)}>
-          <View style={styles.drawerOverlay}>
-            <View style={[styles.mobileSidebarPanel, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.sidebarBg, 0.92) : theme.sidebarBg, borderColor: theme.cardBorder }]}>
-              <View style={styles.sidebarHeader}>
-                <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Cebin</Text>
-                <View style={styles.proBadge}><Text style={styles.proBadgeText}>PRO</Text></View>
-              </View>
-              <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Akıllı Abonelik & Bütçe Asistanı</Text>
-
-              <View style={styles.sidebarNavGroup}>
-                {[
-                  { key: 'list', icon: '💳', label: 'Abonelikler' },
-                  { key: 'calendar', icon: '📅', label: 'Takvim' },
-                  { key: 'analytics', icon: '📊', label: 'Analiz ve Raporlar' }
-                ].map(navItem => (
-                  <TouchableOpacity key={navItem.key} style={[styles.sidebarNavButton, activeTab === navItem.key && styles.sidebarNavButtonActive]} onPress={() => handleTabChange(navItem.key)}>
-                    <Text style={styles.sidebarNavIcon}>{navItem.icon}</Text>
-                    <Text style={[styles.sidebarNavText, { color: activeTab === navItem.key ? '#9b98ff' : theme.textSecondary }]}>{navItem.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <View style={styles.sidebarFooter}>
-                <TouchableOpacity style={[styles.secondaryButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={handleExportCSV}>
-                  <Text style={[styles.secondaryButtonText, { color: theme.textPrimary }]}>📄 CSV Excel İndir</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.secondaryButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={handleExportJSON}>
-                  <Text style={[styles.secondaryButtonText, { color: theme.accent }]}>💾 JSON Yedek Al</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.secondaryButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={handleImportJSON}>
-                  <Text style={[styles.secondaryButtonText, { color: theme.textSecondary }]}>↩️ Yedeği Geri Yükle</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.secondaryButton, { backgroundColor: 'rgba(248,113,113,0.12)', borderColor: theme.danger }]} onPress={handleLogout}>
-                  <Text style={[styles.secondaryButtonText, { color: theme.danger }]}>🚪 Çıkış Yap</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-            <TouchableOpacity style={styles.drawerBackdrop} activeOpacity={1} onPress={() => setIsMobileDrawerOpen(false)} />
-          </View>
-        </Modal>
-      )}
 
       {/* GÜN DETAY ÇEKMECESİ (TAKVİM) */}
       <Modal visible={dayDrawer.visible} transparent animationType="slide" onRequestClose={() => setDayDrawer(d => ({ ...d, visible: false }))}>
@@ -1818,9 +1765,9 @@ function createStyles(theme, isMobile, fontScale) {
     headerTitle: { fontSize: font(22), fontWeight: 'bold' },
     headerSubtitle: { fontSize: font(11), marginTop: 3 },
 
-    pageHeaderInfo: { flex: 1, minWidth: 0, paddingRight: 16 },
-    pageHeaderTitle: { fontSize: isMobile ? font(18) : font(22), fontWeight: '700', letterSpacing: -0.3 },
-    pageHeaderDescription: { fontSize: font(11), marginTop: 4, lineHeight: font(16) },
+    pageHeaderInfo: { flex: 1, minWidth: 0, width: isMobile ? '100%' : 'auto', paddingRight: isMobile ? 0 : 16 },
+    pageHeaderTitle: { width: '100%', fontSize: isMobile ? font(18) : font(22), lineHeight: isMobile ? font(23) : font(28), fontWeight: '700', letterSpacing: -0.3, flexShrink: 1 },
+    pageHeaderDescription: { width: '100%', fontSize: isMobile ? font(10) : font(11), marginTop: 4, lineHeight: isMobile ? font(14) : font(16), flexShrink: 1 },
 
     proBadge: { backgroundColor: '#6965e8', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
     proBadgeText: { color: '#ffffff', fontSize: font(8), fontWeight: 'bold' },
@@ -1839,12 +1786,12 @@ function createStyles(theme, isMobile, fontScale) {
 
     contentWrapper: { flex: 1, minWidth: 0, minHeight: 0, height: '100%', width: 'auto', position: 'relative', overflow: 'hidden' },
 
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, paddingHorizontal: isMobile ? 14 : 20, paddingTop: 18, paddingBottom: 14, borderBottomWidth: 1 },
-    headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    header: { flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: isMobile ? 10 : 0, flexShrink: 0, paddingHorizontal: isMobile ? 14 : 20, paddingTop: isMobile ? 14 : 18, paddingBottom: isMobile ? 12 : 14, borderBottomWidth: 1 },
+    headerActions: { width: isMobile ? '100%' : 'auto', minWidth: 0, flexDirection: 'row', alignItems: 'center', justifyContent: isMobile ? 'flex-end' : 'flex-start', flexWrap: 'nowrap', gap: 8 },
     iconButton: { width: 38, height: 38, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
     iconButtonText: { fontSize: font(17) },
 
-    miniRatesBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 8, maxWidth: isMobile ? 130 : 220 },
+    miniRatesBadge: { minWidth: 0, flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 8, maxWidth: isMobile ? 170 : 220 },
     miniRatesIcon: { fontSize: font(13) },
     miniRatesText: { fontSize: font(10), fontWeight: 'bold' },
 
@@ -1862,7 +1809,7 @@ function createStyles(theme, isMobile, fontScale) {
     summaryStatLabel: { color: '#ffffff', fontSize: font(10), opacity: 0.9 },
     summaryStatValue: { color: '#ffffff', fontSize: font(12), fontWeight: 'bold', marginTop: 3 },
 
-    searchInput: { borderWidth: 1, borderRadius: 9, paddingHorizontal: 12, paddingVertical: 10, fontSize: font(12), marginBottom: 12 },
+    searchInput: { width: '100%', maxWidth: '100%', minWidth: 0, borderWidth: 1, borderRadius: 9, paddingHorizontal: 12, paddingVertical: 10, fontSize: font(12), marginBottom: 12 },
 
     singleFilterSection: { marginBottom: 14 },
     sectionLabel: { fontSize: font(12), fontWeight: 'bold', marginBottom: 7 },
@@ -2002,15 +1949,14 @@ function createStyles(theme, isMobile, fontScale) {
     progressFill: { height: '100%', borderRadius: 3 },
 
     bottomNavigation: { position: Platform.OS === 'web' ? 'fixed' : 'absolute', left: 0, right: 0, bottom: 0, height: 70, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', borderTopWidth: 1, zIndex: 9999, elevation: 30, paddingBottom: Platform.OS === 'web' ? 6 : 0 },
-    bottomNavigationItem: { alignItems: 'center' },
+    bottomNavigationItem: { flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
     bottomNavigationIcon: { fontSize: font(17) },
-    bottomNavigationText: { fontSize: font(9), fontWeight: 'bold', marginTop: 2 },
+    bottomNavigationText: { width: '100%', fontSize: font(9), lineHeight: font(12), fontWeight: 'bold', marginTop: 2, textAlign: 'center' },
 
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.58)', justifyContent: 'center', alignItems: 'center', padding: isMobile ? 8 : 18 },
 
     drawerOverlay: { flex: 1, flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.5)' },
     drawerBackdrop: { flex: 1 },
-    mobileSidebarPanel: { width: 270, height: '100%', borderRightWidth: 1, padding: 20 },
     dayDrawerPanel: { width: isMobile ? '100%' : 380, height: '100%', borderLeftWidth: 1, paddingTop: isMobile ? 12 : 20, paddingBottom: 12 },
 
     yearPickerBackdrop: { ...StyleSheet.absoluteFillObject },
