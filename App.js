@@ -216,6 +216,7 @@ export default function App() {
   const [backgroundPreset, setBackgroundPreset] = useState('smoke');
   const [fontScaleKey, setFontScaleKey] = useState('normal');
   const [isAppearanceModalOpen, setIsAppearanceModalOpen] = useState(false);
+  const [isAnalysisYearPickerOpen, setIsAnalysisYearPickerOpen] = useState(false);
 
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [formStep, setFormStep] = useState(1);
@@ -483,7 +484,22 @@ export default function App() {
     return acc;
   }, {});
 
+  // Seçili yıl için kart/hesap bazında ortalama aylık yük.
+  // Yıllık abonelikler 12 aya bölünerek gerçek aylık taahhüt etkisi gösterilir.
+  const monthlyPaymentMethodStats = safeList.reduce((acc, s) => {
+    if (!s || s.status === 'cancelled') return acc;
+    const method = s.paymentMethod || 'Nakit / Diğer';
+    const startYear = Number(s.billingYear) || selectedAnalysisYear;
+    if (startYear > selectedAnalysisYear) return acc;
+    const priceInTL = convertToTL(s.price, s.currency || 'TRY', exchangeRates);
+    const monthlyCommitment = s.period === 'yearly' ? priceInTL / 12 : priceInTL;
+    acc[method] = (acc[method] || 0) + monthlyCommitment;
+    return acc;
+  }, {});
+
   const sortedPaymentMethodEntries = Object.entries(yearlyPaymentMethodStats).sort((a, b) => b[1] - a[1]);
+  const sortedMonthlyPaymentMethodEntries = Object.entries(monthlyPaymentMethodStats).sort((a, b) => b[1] - a[1]);
+  const totalMonthlyPaymentCommitment = sortedMonthlyPaymentMethodEntries.reduce((total, [, amount]) => total + amount, 0);
   const sortedCategoryEntries = Object.entries(yearlyCategoryStats).sort((a, b) => b[1] - a[1]);
   const topCategoryLabel = sortedCategoryEntries[0]?.[0] || '-';
   const topCategoryAmount = sortedCategoryEntries[0]?.[1] || 0;
@@ -1145,13 +1161,23 @@ export default function App() {
                 <Text style={[styles.pageTitle, { color: theme.textPrimary }]}>Finansal Analiz & Raporlar</Text>
                 <Text style={[styles.pageDescription, { color: theme.textSecondary }]}>Aylık harcama dağılımları, ödeme yöntemleri ve kategori trendleri</Text>
 
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalOptionRow}>
-                  {YEARS.map(year => (
-                    <TouchableOpacity key={year} style={[styles.yearButton, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }, selectedAnalysisYear === year && styles.yearButtonActive]} onPress={() => handleAnalysisYearChange(year)}>
-                      <Text style={[styles.yearButtonText, { color: theme.textSecondary }, selectedAnalysisYear === year && styles.yearButtonTextActive]}>{year}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
+                <View style={styles.analysisToolbar}>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={[styles.analysisToolbarLabel, { color: theme.textMuted }]}>Raporlama dönemi</Text>
+                    <Text style={[styles.analysisToolbarHint, { color: theme.textSecondary }]}>Grafik ve dağılımlar seçilen yıla göre güncellenir.</Text>
+                  </View>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    style={[styles.yearSelectButton, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+                    onPress={() => setIsAnalysisYearPickerOpen(true)}
+                  >
+                    <View>
+                      <Text style={[styles.yearSelectCaption, { color: theme.textMuted }]}>Yıl</Text>
+                      <Text style={[styles.yearSelectValue, { color: theme.textPrimary }]}>{selectedAnalysisYear}</Text>
+                    </View>
+                    <Text style={[styles.yearSelectChevron, { color: theme.accent }]}>⌄</Text>
+                  </TouchableOpacity>
+                </View>
 
                 <View style={[styles.insightBox, { backgroundColor: theme.summaryBg, borderColor: theme.summaryBorder, ...(Platform.OS === 'web' ? { backgroundImage: `linear-gradient(135deg, ${theme.summaryBg}, ${theme.activeButton})` } : {}) }]}>
                   <View style={styles.insightIconBox}><Text style={{ fontSize: 20 }}>✨</Text></View>
@@ -1273,6 +1299,46 @@ export default function App() {
                     </View>
                   );
                 })}
+
+                <View style={styles.distributionSectionHeader}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.distributionTitle, styles.distributionTitleNoTop, { color: theme.textPrimary }]}>📆 Ödeme Yöntemine Göre Aylık Yük</Text>
+                    <Text style={[styles.distributionSubtitle, { color: theme.textMuted }]}>Her kart veya hesaptan aylık ortalama çekilmesi beklenen net taahhüt.</Text>
+                  </View>
+                  <View style={[styles.monthlyCommitmentBadge, { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder }]}>
+                    <Text style={[styles.monthlyCommitmentBadgeLabel, { color: theme.textMuted }]}>Toplam / ay</Text>
+                    <Text style={[styles.monthlyCommitmentBadgeValue, { color: theme.textPrimary }]}>{formatCurrency(totalMonthlyPaymentCommitment, 'TRY')}</Text>
+                  </View>
+                </View>
+
+                {sortedMonthlyPaymentMethodEntries.length === 0 ? (
+                  <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                    <Text style={styles.emptyIcon}>💳</Text>
+                    <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Aylık ödeme yükü bulunamadı</Text>
+                    <Text style={[styles.emptyDescription, { color: theme.textSecondary }]}>Aktif bir abonelik eklediğinizde kart bazlı aylık dağılım burada görünür.</Text>
+                  </View>
+                ) : (
+                  <View style={styles.monthlyPaymentGrid}>
+                    {sortedMonthlyPaymentMethodEntries.map(([paymentMethod, amount]) => {
+                      const percentage = totalMonthlyPaymentCommitment > 0 ? (amount / totalMonthlyPaymentCommitment) * 100 : 0;
+                      return (
+                        <View key={`monthly-${paymentMethod}`} style={[styles.monthlyPaymentCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                          <View style={[styles.monthlyPaymentIcon, { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder }]}>
+                            <Text style={styles.monthlyPaymentIconText}>💳</Text>
+                          </View>
+                          <View style={styles.monthlyPaymentContent}>
+                            <Text style={[styles.monthlyPaymentName, { color: theme.textPrimary }]} numberOfLines={1}>{paymentMethod}</Text>
+                            <Text style={[styles.monthlyPaymentMeta, { color: theme.textMuted }]}>Aylık yükün %{percentage.toFixed(1)}'i</Text>
+                            <View style={[styles.progressTrack, { backgroundColor: theme.inputBg, marginTop: 8 }]}>
+                              <View style={[styles.progressFill, { width: `${percentage}%`, backgroundColor: theme.accent }]} />
+                            </View>
+                          </View>
+                          <Text style={[styles.monthlyPaymentAmount, { color: theme.textPrimary }]}>{formatCurrency(amount, 'TRY')}<Text style={[styles.monthlyPaymentPeriod, { color: theme.textMuted }]}> / ay</Text></Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
 
                 <Text style={[styles.distributionTitle, { color: theme.textPrimary }]}>📂 Kategori Bazlı Dağılım</Text>
                 {sortedCategoryEntries.length === 0 ? (
@@ -1405,6 +1471,39 @@ export default function App() {
                 </Text>
               </View>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* ANALİZ YILI SEÇİCİ */}
+      <Modal visible={isAnalysisYearPickerOpen} transparent animationType="fade" onRequestClose={() => setIsAnalysisYearPickerOpen(false)}>
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity style={styles.yearPickerBackdrop} activeOpacity={1} onPress={() => setIsAnalysisYearPickerOpen(false)} />
+          <View style={[styles.yearPickerCard, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.96) : theme.cardBg, borderColor: theme.cardBorder }]}>
+            <View style={styles.yearPickerHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Raporlama Yılı</Text>
+                <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Finansal analizlerin gösterileceği yılı seçin.</Text>
+              </View>
+              <TouchableOpacity style={[styles.modalCloseButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={() => setIsAnalysisYearPickerOpen(false)}>
+                <Text style={[styles.modalCloseText, { color: theme.textSecondary }]}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.yearPickerGrid}>
+              {YEARS.map(year => {
+                const isSelected = selectedAnalysisYear === year;
+                return (
+                  <TouchableOpacity
+                    key={`picker-${year}`}
+                    style={[styles.yearPickerOption, { backgroundColor: isSelected ? theme.activeButton : theme.inputBg, borderColor: isSelected ? theme.activeButtonBorder : theme.cardBorder }]}
+                    onPress={() => { handleAnalysisYearChange(year); setIsAnalysisYearPickerOpen(false); }}
+                  >
+                    <Text style={[styles.yearPickerOptionText, { color: isSelected ? '#ffffff' : theme.textPrimary }]}>{year}</Text>
+                    {isSelected && <Text style={styles.yearPickerCheck}>✓</Text>}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
         </View>
       </Modal>
@@ -1787,7 +1886,7 @@ function createStyles(theme, isMobile, fontScale) {
     mainScroll: { flex: 1, minHeight: 0, width: '100%' },
     scrollContent: { width: '100%', flexGrow: 1, paddingHorizontal: isMobile ? 12 : 20, paddingTop: 14, paddingBottom: isMobile ? 100 : 30 },
 
-    summaryCard: { borderRadius: 14, borderWidth: 1, padding: 16, marginBottom: 14 },
+    summaryCard: { borderRadius: 18, borderWidth: 1, padding: isMobile ? 15 : 18, marginBottom: 16, shadowColor: '#312e81', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 18, elevation: 7 },
     summaryLabelRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
     summaryLabel: { color: '#ffffff', fontSize: font(11), fontWeight: 'bold' },
     changeBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
@@ -1817,7 +1916,7 @@ function createStyles(theme, isMobile, fontScale) {
     emptyTitle: { fontSize: font(15), fontWeight: 'bold', marginTop: 8 },
     emptyDescription: { fontSize: font(11), textAlign: 'center', marginTop: 5 },
 
-    subscriptionCard: { borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 8, flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? 10 : 12 },
+    subscriptionCard: { borderWidth: 1, borderRadius: 15, padding: isMobile ? 12 : 14, marginBottom: 9, flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? 11 : 14, shadowColor: '#000000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 10, elevation: 2 },
     subscriptionMain: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10 },
     serviceIcon: { width: 38, height: 38, flexShrink: 0, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
     serviceIconText: { color: '#ffffff', fontSize: font(15), fontWeight: 'bold' },
@@ -1867,11 +1966,18 @@ function createStyles(theme, isMobile, fontScale) {
     calendarSubscriptionName: { color: '#ffffff', fontSize: font(8), fontWeight: 'bold' },
     calendarSubscriptionPrice: { color: '#ffffff', fontSize: font(7), marginTop: 1 },
 
-    analyticsSection: { width: '100%', marginTop: 2 },
+    analyticsSection: { width: '100%', marginTop: 4, paddingBottom: isMobile ? 10 : 18 },
+    analysisToolbar: { width: '100%', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: 14, marginTop: 14, marginBottom: 24 },
+    analysisToolbarLabel: { fontSize: font(10), fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.7 },
+    analysisToolbarHint: { fontSize: font(11), lineHeight: font(17), marginTop: 4 },
+    yearSelectButton: { minWidth: isMobile ? '100%' : 176, minHeight: 58, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 10, shadowColor: '#000000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.16, shadowRadius: 14, elevation: 5 },
+    yearSelectCaption: { fontSize: font(9), fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.7 },
+    yearSelectValue: { fontSize: font(18), fontWeight: '800', marginTop: 1 },
+    yearSelectChevron: { fontSize: font(22), fontWeight: '800', marginLeft: 20, marginTop: -5 },
     pageTitle: { fontSize: font(21), fontWeight: 'bold' },
     pageDescription: { fontSize: font(12), marginTop: 4, marginBottom: 14 },
 
-    insightBox: { flexDirection: 'row', gap: 12, borderWidth: 1, borderRadius: 16, padding: 16, marginBottom: 14, alignItems: 'flex-start' },
+    insightBox: { flexDirection: 'row', gap: 12, borderWidth: 1, borderRadius: 18, padding: isMobile ? 16 : 20, marginBottom: 18, alignItems: 'flex-start', shadowColor: '#312e81', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.24, shadowRadius: 22, elevation: 8 },
     insightIconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
     insightTitle: { color: '#ffffff', fontSize: font(13), fontWeight: 'bold', marginBottom: 4 },
     insightText: { color: 'rgba(255,255,255,0.92)', fontSize: font(11), lineHeight: font(16) },
@@ -1881,7 +1987,7 @@ function createStyles(theme, isMobile, fontScale) {
     analyticsSummaryLabel: { fontSize: font(10), fontWeight: '600' },
     analyticsSummaryValue: { fontSize: font(14), fontWeight: 'bold', marginTop: 4 },
 
-    panel: { width: '100%', borderWidth: 1, borderRadius: 12, padding: 14, marginBottom: 14 },
+    panel: { width: '100%', borderWidth: 1, borderRadius: 16, padding: isMobile ? 13 : 17, marginBottom: 16, shadowColor: '#000000', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 3 },
     panelTitle: { fontSize: font(14), fontWeight: 'bold' },
     panelDescription: { fontSize: font(10), marginTop: 4 },
 
@@ -1908,9 +2014,24 @@ function createStyles(theme, isMobile, fontScale) {
     chartFooterLabel: { fontSize: font(12), fontWeight: 'bold' },
     chartFooterValue: { fontSize: font(17), fontWeight: 'bold' },
 
-    distributionTitle: { fontSize: font(14), fontWeight: 'bold', marginTop: 16, marginBottom: 9 },
+    distributionTitle: { fontSize: font(14), fontWeight: 'bold', marginTop: 20, marginBottom: 9 },
+    distributionTitleNoTop: { marginTop: 0, marginBottom: 3 },
+    distributionSubtitle: { fontSize: font(10), lineHeight: font(15) },
+    distributionSectionHeader: { width: '100%', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: 12, marginTop: 22, marginBottom: 11 },
+    monthlyCommitmentBadge: { alignSelf: isMobile ? 'stretch' : 'center', borderWidth: 1, borderRadius: 13, paddingHorizontal: 14, paddingVertical: 9, minWidth: isMobile ? 0 : 150 },
+    monthlyCommitmentBadgeLabel: { fontSize: font(8), fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6 },
+    monthlyCommitmentBadgeValue: { fontSize: font(13), fontWeight: '800', marginTop: 2 },
+    monthlyPaymentGrid: { width: '100%', gap: 8 },
+    monthlyPaymentCard: { width: '100%', minHeight: 74, flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: 12, borderWidth: 1, borderRadius: 15, padding: 13 },
+    monthlyPaymentIcon: { width: 42, height: 42, borderRadius: 13, borderWidth: 1, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    monthlyPaymentIconText: { fontSize: font(17) },
+    monthlyPaymentContent: { flex: 1, minWidth: 0 },
+    monthlyPaymentName: { fontSize: font(12), fontWeight: '800' },
+    monthlyPaymentMeta: { fontSize: font(9), marginTop: 3 },
+    monthlyPaymentAmount: { fontSize: font(13), fontWeight: '800', textAlign: isMobile ? 'left' : 'right', flexShrink: 0 },
+    monthlyPaymentPeriod: { fontSize: font(9), fontWeight: '600' },
     noDataText: { fontSize: font(11), fontStyle: 'italic' },
-    distributionCard: { width: '100%', borderWidth: 1, borderRadius: 8, padding: 10, marginBottom: 6 },
+    distributionCard: { width: '100%', borderWidth: 1, borderRadius: 13, padding: isMobile ? 11 : 13, marginBottom: 8 },
     distributionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 6 },
     distributionNameGroup: { flexDirection: 'row', alignItems: 'center', gap: 7 },
     distributionColorDot: { width: 9, height: 9, borderRadius: 5 },
@@ -1931,6 +2052,14 @@ function createStyles(theme, isMobile, fontScale) {
     mobileSidebarPanel: { width: 270, height: '100%', borderRightWidth: 1, padding: 20 },
     dayDrawerPanel: { width: isMobile ? '100%' : 380, height: '100%', borderLeftWidth: 1, paddingTop: isMobile ? 12 : 20, paddingBottom: 12 },
 
+    yearPickerBackdrop: { ...StyleSheet.absoluteFillObject },
+    yearPickerCard: { width: isMobile ? '94%' : 430, maxWidth: 430, borderWidth: 1, borderRadius: 20, padding: isMobile ? 16 : 20, shadowColor: '#000000', shadowOffset: { width: 0, height: 16 }, shadowOpacity: 0.4, shadowRadius: 30, elevation: 24 },
+    yearPickerHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 18 },
+    yearPickerGrid: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
+    yearPickerOption: { width: isMobile ? '48%' : '31.5%', minHeight: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderWidth: 1, borderRadius: 13, paddingHorizontal: 12, paddingVertical: 10 },
+    yearPickerOptionText: { fontSize: font(13), fontWeight: '800' },
+    yearPickerCheck: { color: '#ffffff', fontSize: font(11), fontWeight: '900' },
+
     warningOverlay: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.62)', paddingHorizontal: 20 },
     warningCard: { width: '100%', maxWidth: 390, borderWidth: 1, borderRadius: 22, paddingHorizontal: 24, paddingTop: 26, paddingBottom: 22, alignItems: 'center', shadowColor: '#000000', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.35, shadowRadius: 24, elevation: 20 },
     warningIconBox: { width: 58, height: 58, borderRadius: 18, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
@@ -1942,7 +2071,7 @@ function createStyles(theme, isMobile, fontScale) {
     warningButtonText: { color: '#ffffff', fontSize: font(13), fontWeight: '800' },
 
     appearanceModal: { width: isMobile ? '96%' : 760, maxHeight: '92%', minHeight: 0, borderWidth: 1, borderRadius: 18, padding: 20 },
-    subscriptionModal: { width: isMobile ? '98%' : '94%', maxWidth: 980, height: isMobile ? '96%' : '92%', maxHeight: 850, minHeight: 0, borderWidth: 1, borderRadius: 18, overflow: 'hidden' },
+    subscriptionModal: { width: isMobile ? '96%' : '94%', maxWidth: 980, height: isMobile ? '94%' : '92%', maxHeight: 850, minHeight: 0, borderWidth: 1, borderRadius: isMobile ? 16 : 22, overflow: 'hidden', shadowColor: '#000000', shadowOffset: { width: 0, height: 18 }, shadowOpacity: 0.4, shadowRadius: 32, elevation: 24 },
 
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', flexShrink: 0, paddingHorizontal: isMobile ? 15 : 22, paddingTop: isMobile ? 15 : 20, paddingBottom: 12 },
     modalTitle: { fontSize: isMobile ? font(18) : font(21), fontWeight: 'bold' },
@@ -1986,7 +2115,7 @@ function createStyles(theme, isMobile, fontScale) {
     formColumn: { flex: 1, minWidth: 0 },
 
     inputLabel: { fontSize: font(10), fontWeight: 'bold', marginBottom: 5 },
-    textInput: { width: '100%', minHeight: 40, borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 9, fontSize: font(12), marginBottom: 10 },
+    textInput: { width: '100%', minHeight: isMobile ? 44 : 42, borderWidth: 1, borderRadius: 11, paddingHorizontal: 13, paddingVertical: isMobile ? 10 : 9, fontSize: font(12), marginBottom: 10 },
 
     removableOptionRow: { flexDirection: 'row', gap: 9, paddingTop: 3, paddingBottom: 5, paddingRight: 12 },
     removableOptionWrapper: { position: 'relative', paddingTop: 2, paddingRight: 2 },
@@ -2028,9 +2157,9 @@ function createStyles(theme, isMobile, fontScale) {
     helperText: { fontSize: font(9), marginTop: -4 },
 
     modalFooter: { flexDirection: 'row', flexShrink: 0, gap: 10, borderTopWidth: 1, paddingHorizontal: isMobile ? 14 : 22, paddingVertical: 14 },
-    modalCancelButton: { flex: 1, borderWidth: 1, borderRadius: 8, paddingVertical: 12, alignItems: 'center' },
+    modalCancelButton: { flex: 1, minHeight: 46, borderWidth: 1, borderRadius: 11, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
     modalCancelButtonText: { fontSize: font(12), fontWeight: 'bold' },
-    modalSaveButton: { flex: 2, backgroundColor: theme.activeButton, borderRadius: 8, paddingVertical: 12, alignItems: 'center' },
+    modalSaveButton: { flex: 2, minHeight: 46, backgroundColor: theme.activeButton, borderRadius: 11, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
     modalSaveButtonText: { color: '#ffffff', fontSize: font(12), fontWeight: 'bold' }
   });
 }
