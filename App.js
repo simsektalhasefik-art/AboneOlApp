@@ -13,6 +13,9 @@ const CATEGORY_COLORS = {
   Eğitim: '#f59e0b',
   'Bulut & Depolama': '#3b82f6',
   'Spor & Sağlık': '#ec4899',
+  Fatura: '#06b6d4',
+  'Ev Giderleri': '#14b8a6',
+  Finans: '#8b5cf6',
   Diğer: '#f97316'
 };
 
@@ -41,7 +44,6 @@ const NOTIFICATION_OPTIONS = [
 ];
 
 const MONTH_NAMES = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
-
 const YEARS = [2025, 2026, 2027, 2028, 2029, 2030];
 
 const VIEW_FILTER_OPTIONS = [
@@ -57,20 +59,13 @@ const BACKGROUND_PRESETS = {
   smoke: { label: 'Açık Füme', dark: true, bg: '#30353c', sidebarBg: '#373d45', headerBg: '#3a4048', cardBg: '#414852', inputBg: '#343a42', cardBorder: '#58616d', textPrimary: '#f4f6f8', textSecondary: '#d2d7de', textMuted: '#aeb7c2', summaryBg: '#5b58d6', summaryBorder: '#7470ef', accent: '#63b3ff' },
   anthracite: { label: 'Antrasit', dark: true, bg: '#20242a', sidebarBg: '#272c33', headerBg: '#2a3038', cardBg: '#303741', inputBg: '#252b33', cardBorder: '#434c58', textPrimary: '#f4f5f7', textSecondary: '#cbd1d9', textMuted: '#98a2af', summaryBg: '#4f46c8', summaryBorder: '#6860df', accent: '#55aaff' },
   navy: { label: 'Lacivert', dark: true, bg: '#111827', sidebarBg: '#182131', headerBg: '#1c2636', cardBg: '#222d3d', inputBg: '#172131', cardBorder: '#344154', textPrimary: '#f1f5f9', textSecondary: '#cbd5e1', textMuted: '#94a3b8', summaryBg: '#3730a3', summaryBorder: '#4f46e5', accent: '#60a5fa' },
-  sage: { label: 'Adaçayı', dark: false, bg: '#dfe8df', sidebarBg: '#cedbce', headerBg: '#eaf1ea', cardBg: '#f5f8f4', inputBg: '#e7eee6', cardBorder: '#afc1ae', textPrimary: '#26352a', textSecondary: '#506353', textMuted: '#748278', summaryBg: '#4f7c5a', summaryBorder: '#6d9977', accent: '#d97706' },
-  mint: { label: 'Açık Yeşil', dark: false, bg: '#dff3ea', sidebarBg: '#c9e6d9', headerBg: '#ebf8f2', cardBg: '#f6fcf9', inputBg: '#e3f2eb', cardBorder: '#a8cfbc', textPrimary: '#17392b', textSecondary: '#3f6857', textMuted: '#708d80', summaryBg: '#0f766e', summaryBorder: '#14b8a6', accent: '#ea580c' },
-  apricot: { label: 'Kayısı', dark: false, bg: '#f5e3d1', sidebarBg: '#ebd1b8', headerBg: '#faeee3', cardBg: '#fff8f1', inputBg: '#f2e3d5', cardBorder: '#d7bba1', textPrimary: '#3b291d', textSecondary: '#6e5340', textMuted: '#927764', summaryBg: '#d97706', summaryBorder: '#f59e0b', accent: '#0f766e' },
-  sand: { label: 'Kum', dark: false, bg: '#eee8dc', sidebarBg: '#e0d7c7', headerBg: '#f5f1e8', cardBg: '#fcfaf5', inputBg: '#ece5d9', cardBorder: '#cbc0ae', textPrimary: '#3a342b', textSecondary: '#665e51', textMuted: '#8a8173', summaryBg: '#8b6f47', summaryBorder: '#a98b60', accent: '#2563eb' },
-  lavender: { label: 'Lavanta', dark: false, bg: '#e9e4f4', sidebarBg: '#dcd4eb', headerBg: '#f1edf8', cardBg: '#faf8fd', inputBg: '#e8e2f1', cardBorder: '#c5bad8', textPrimary: '#302740', textSecondary: '#625570', textMuted: '#85768f', summaryBg: '#7c5cbf', summaryBorder: '#9676d4', accent: '#d97706' },
-  rose: { label: 'Gül Kurusu', dark: false, bg: '#f1e1e3', sidebarBg: '#e5cfd2', headerBg: '#f8ecee', cardBg: '#fff8f9', inputBg: '#f0dfe2', cardBorder: '#d3b5ba', textPrimary: '#42282e', textSecondary: '#704d55', textMuted: '#93737a', summaryBg: '#be5f73', summaryBorder: '#d17b8d', accent: '#2563eb' },
   light: { label: 'Açık', dark: false, bg: '#edf1f5', sidebarBg: '#ffffff', headerBg: '#ffffff', cardBg: '#ffffff', inputBg: '#f1f4f8', cardBorder: '#d8dee7', textPrimary: '#1f2937', textSecondary: '#566171', textMuted: '#7d8999', summaryBg: '#4f46e5', summaryBorder: '#6366f1', accent: '#2563eb' }
 };
 
 const FONT_SCALE_OPTIONS = [
   { key: 'small', label: 'Küçük', scale: 0.9 },
   { key: 'normal', label: 'Normal', scale: 1 },
-  { key: 'large', label: 'Büyük', scale: 1.12 },
-  { key: 'xlarge', label: 'Çok Büyük', scale: 1.24 }
+  { key: 'large', label: 'Büyük', scale: 1.12 }
 ];
 
 const getDaysInMonth = (month, year) => new Date(year, month + 1, 0).getDate();
@@ -136,13 +131,25 @@ const getCycleKey = (item, today) => {
 const getAnnualIncreaseMultiplier = (item, targetYear) => {
   const baseYear = Number(item?.billingYear) || targetYear;
   const annualIncreaseRate = Math.max(0, Number(item?.annualIncreaseRate) || 0);
-  const elapsedYears = Math.max(0, targetYear - baseYear);
-  return Math.pow(1 + annualIncreaseRate / 100, elapsedYears);
+  const increaseApplicationType = item?.increaseApplicationType || 'subscription_anniversary';
+  const targetDateYear = Number(targetYear);
+
+  if (targetDateYear <= baseYear) return 1;
+
+  let increasePeriods = 0;
+  if (increaseApplicationType === 'calendar_year') {
+    increasePeriods = Math.max(0, targetDateYear - baseYear);
+  } else {
+    increasePeriods = Math.max(0, targetDateYear - baseYear);
+  }
+
+  return Math.pow(1 + annualIncreaseRate / 100, increasePeriods);
 };
 
 const getSubscriptionCostForMonth = (item, year, monthIndex, rates) => {
   if (!item || item.status === 'cancelled') return 0;
-  const priceInTL = convertToTL(item.price, item.currency || 'TRY', rates) * getAnnualIncreaseMultiplier(item, year);
+  const baseAmount = Number(item.baseAmount ?? item.price) || 0;
+  const priceInTL = convertToTL(baseAmount, item.currency || 'TRY', rates) * getAnnualIncreaseMultiplier(item, year);
   const billingYear = Number(item.billingYear) || year;
   const billingMonth = Math.max(0, Math.min(11, (Number(item.billingMonth) || 1) - 1));
   const targetMonthKey = year * 12 + monthIndex;
@@ -171,6 +178,31 @@ const hexToRgba = (hex, alpha) => {
     const r = (num >> 16) & 255, g = (num >> 8) & 255, b = num & 255;
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   } catch { return hex; }
+};
+
+const normalizeSubscription = s => {
+  if (!s) return null;
+  const baseAmount = Number(s.baseAmount ?? s.amount ?? s.price) || 0;
+  const annualIncreaseRate = Number(s.annualIncreaseRate ?? s.inflationRate ?? s.yearlyIncrease ?? s.increaseRate) || 0;
+  return {
+    ...s,
+    id: s.id || String(Date.now() + Math.random()),
+    name: s.name || 'İsimsiz',
+    baseAmount: String(baseAmount),
+    price: String(baseAmount),
+    currency: s.currency || 'TRY',
+    billingDay: String(s.billingDay || '1'),
+    billingMonth: String(s.billingMonth || '1'),
+    billingYear: String(s.billingYear || new Date().getFullYear()),
+    category: s.category || 'Diğer',
+    paymentMethod: s.paymentMethod || DEFAULT_PAYMENT_METHODS[0],
+    period: s.period || 'monthly',
+    expenseType: s.expenseType || 'subscription',
+    increaseApplicationType: s.increaseApplicationType || 'subscription_anniversary',
+    annualIncreaseRate: String(annualIncreaseRate),
+    notificationDays: s.notificationDays !== undefined ? s.notificationDays : 2,
+    status: s.status || 'active'
+  };
 };
 
 export default function App() {
@@ -234,6 +266,7 @@ export default function App() {
   const [calendarYear, setCalendarYear] = useState(clampedYear);
   const [selectedAnalysisYear, setSelectedAnalysisYear] = useState(clampedYear);
 
+  const [formExpenseType, setFormExpenseType] = useState('subscription');
   const [formName, setFormName] = useState('');
   const [formPrice, setFormPrice] = useState('');
   const [formCurrency, setFormCurrency] = useState('TRY');
@@ -246,8 +279,9 @@ export default function App() {
   const [formCancelUrl, setFormCancelUrl] = useState('');
   const [formColor, setFormColor] = useState('#6366f1');
   const [formNotificationDays, setFormNotificationDays] = useState(2);
-  const [formNotificationChannel, setFormNotificationChannel] = useState('email');
   const [formAnnualIncreaseRate, setFormAnnualIncreaseRate] = useState('0');
+  const [formIncreaseApplicationType, setFormIncreaseApplicationType] = useState('subscription_anniversary');
+  const [isAdvancedSettingsOpen, setIsAdvancedSettingsOpen] = useState(false);
 
   const [showTemplateForm, setShowTemplateForm] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState('');
@@ -266,7 +300,7 @@ export default function App() {
       const savedSubscriptions = localStorage.getItem('cebin_subscriptions_v5');
       if (savedSubscriptions) {
         const parsed = JSON.parse(savedSubscriptions);
-        setSubscriptions(Array.isArray(parsed) ? parsed : []);
+        setSubscriptions(Array.isArray(parsed) ? parsed.map(normalizeSubscription) : []);
       }
 
       const savedTemplates = localStorage.getItem('cebin_templates_v1');
@@ -340,7 +374,6 @@ export default function App() {
     setAuthError('');
     try {
       localStorage.setItem('cebin_auth_v1', 'true');
-      localStorage.setItem('cebin_auth_email_v1', trimmedEmail);
     } catch (e) { console.log(e); }
     setIsLoggedIn(true);
   };
@@ -370,7 +403,6 @@ export default function App() {
   const safePaymentMethods = Array.isArray(paymentMethodsList) ? paymentMethodsList : [];
 
   const styles = createStyles(theme, isMobile, fontScale);
-
   const todayForFiltering = new Date();
 
   const filteredSubscriptions = safeList
@@ -393,7 +425,9 @@ export default function App() {
       return true;
     })
     .sort((a, b) => {
-      if (viewFilter === 'EXPENSIVE') return convertToTL(b.price, b.currency, exchangeRates) - convertToTL(a.price, a.currency, exchangeRates);
+      const priceA = convertToTL(Number(a.baseAmount ?? a.price) * getAnnualIncreaseMultiplier(a, currentDate.getFullYear()), a.currency, exchangeRates);
+      const priceB = convertToTL(Number(b.baseAmount ?? b.price) * getAnnualIncreaseMultiplier(b, currentDate.getFullYear()), b.currency, exchangeRates);
+      if (viewFilter === 'EXPENSIVE') return priceB - priceA;
       if (viewFilter === 'NAME') return String(a.name || '').localeCompare(String(b.name || ''), 'tr');
       if (viewFilter === 'UPCOMING') return getNextRenewal(a, todayForFiltering) - getNextRenewal(b, todayForFiltering);
       return String(a.name || '').localeCompare(String(b.name || ''), 'tr');
@@ -404,7 +438,8 @@ export default function App() {
   const currentProjectionYear = currentDate.getFullYear();
   const monthlyTotalTL = safeList.reduce((total, s) => {
     if (!s || s.status === 'cancelled') return total;
-    const projectedPriceInTL = convertToTL(s.price, s.currency || 'TRY', exchangeRates) * getAnnualIncreaseMultiplier(s, currentProjectionYear);
+    const baseAmount = Number(s.baseAmount ?? s.price) || 0;
+    const projectedPriceInTL = convertToTL(baseAmount, s.currency || 'TRY', exchangeRates) * getAnnualIncreaseMultiplier(s, currentProjectionYear);
     return total + (s.period === 'yearly' ? projectedPriceInTL / 12 : projectedPriceInTL);
   }, 0);
 
@@ -466,7 +501,8 @@ export default function App() {
     const method = s.paymentMethod || 'Nakit / Diğer';
     const startYear = Number(s.billingYear) || selectedAnalysisYear;
     if (startYear > selectedAnalysisYear) return acc;
-    const projectedPriceInTL = convertToTL(s.price, s.currency || 'TRY', exchangeRates) * getAnnualIncreaseMultiplier(s, selectedAnalysisYear);
+    const baseAmount = Number(s.baseAmount ?? s.price) || 0;
+    const projectedPriceInTL = convertToTL(baseAmount, s.currency || 'TRY', exchangeRates) * getAnnualIncreaseMultiplier(s, selectedAnalysisYear);
     const monthlyCommitment = s.period === 'yearly' ? projectedPriceInTL / 12 : projectedPriceInTL;
     acc[method] = (acc[method] || 0) + monthlyCommitment;
     return acc;
@@ -484,7 +520,8 @@ export default function App() {
 
   const mostExpensiveSubscription = safeList.reduce((current, s) => {
     if (s.status === 'cancelled') return current;
-    const priceInTL = convertToTL(s.price, s.currency || 'TRY', exchangeRates);
+    const baseAmount = Number(s.baseAmount ?? s.price) || 0;
+    const priceInTL = convertToTL(baseAmount, s.currency || 'TRY', exchangeRates) * getAnnualIncreaseMultiplier(s, currentProjectionYear);
     const monthlyEquivalent = s.period === 'yearly' ? priceInTL / 12 : priceInTL;
     if (!current || monthlyEquivalent > current.monthlyEquivalent) return { item: s, monthlyEquivalent };
     return current;
@@ -497,8 +534,9 @@ export default function App() {
   const openSubscriptionForm = (item = null) => {
     if (item) {
       setEditingId(item.id);
+      setFormExpenseType(item.expenseType || 'subscription');
       setFormName(item.name || '');
-      setFormPrice(String(item.price || ''));
+      setFormPrice(String(item.baseAmount ?? item.price ?? ''));
       setFormCurrency(item.currency || 'TRY');
       setFormDay(String(item.billingDay || '1'));
       setFormMonth(String(item.billingMonth || calendarMonth + 1));
@@ -509,18 +547,21 @@ export default function App() {
       setFormCancelUrl(item.cancelUrl || '');
       setFormColor(item.color || getServiceColor(item.name, safeTemplates));
       setFormNotificationDays(item.notificationDays !== undefined ? item.notificationDays : 2);
-      setFormNotificationChannel(item.notificationChannel || 'email');
       setFormAnnualIncreaseRate(String(item.annualIncreaseRate ?? 0));
+      setFormIncreaseApplicationType(item.increaseApplicationType || 'subscription_anniversary');
     } else {
       setEditingId(null);
+      setFormExpenseType('subscription');
       setFormName(''); setFormPrice(''); setFormCurrency('TRY');
       setFormDay('1'); setFormMonth(String(currentDate.getMonth() + 1)); setFormYear(String(clampedYear));
       setFormCategory('Eğlence');
       setFormPaymentMethod(safePaymentMethods[0] || DEFAULT_PAYMENT_METHODS[0]);
       setFormPeriod('monthly'); setFormCancelUrl(''); setFormColor('#6366f1');
-      setFormNotificationDays(2); setFormNotificationChannel('email'); setFormAnnualIncreaseRate('0');
+      setFormNotificationDays(2); setFormAnnualIncreaseRate('0');
+      setFormIncreaseApplicationType('subscription_anniversary');
     }
     setFormStep(1);
+    setIsAdvancedSettingsOpen(false);
     setShowTemplateForm(false);
     setShowPaymentMethodForm(false);
     setIsSubscriptionModalOpen(true);
@@ -530,12 +571,10 @@ export default function App() {
     setIsSubscriptionModalOpen(false);
     setEditingId(null);
     setFormStep(1);
-    setShowTemplateForm(false);
-    setShowPaymentMethodForm(false);
   };
 
   const goToStepTwo = () => {
-    if (!formName.trim()) { alert('Lütfen abonelik veya gider adını giriniz.'); return; }
+    if (!formName.trim()) { alert('Lütfen servis veya gider adını giriniz.'); return; }
     const numericPrice = Number(String(formPrice).replace(',', '.'));
     if (!Number.isFinite(numericPrice) || numericPrice <= 0) { alert('Lütfen sıfırdan büyük geçerli bir tutar giriniz.'); return; }
     setFormStep(2);
@@ -550,11 +589,11 @@ export default function App() {
     const numericYear = Number(formYear);
     const numericAnnualIncreaseRate = Number(String(formAnnualIncreaseRate).replace(',', '.'));
 
-    if (!formName.trim()) { alert('Lütfen abonelik veya gider adını giriniz.'); return; }
+    if (!formName.trim()) { alert('Lütfen servis veya gider adını giriniz.'); return; }
     if (!Number.isFinite(numericPrice) || numericPrice <= 0) { alert('Lütfen sıfırdan büyük geçerli bir tutar giriniz.'); return; }
     if (!Number.isInteger(numericMonth) || numericMonth < 1 || numericMonth > 12) { alert('Ay değeri 1 ile 12 arasında olmalıdır.'); return; }
-    if (!YEARS.includes(numericYear)) { alert('Lütfen Geçerli Bir Yıl Seçiniz.'); return; }
-    if (!Number.isFinite(numericAnnualIncreaseRate) || numericAnnualIncreaseRate < 0 || numericAnnualIncreaseRate > 500) { alert('Yıllık Artış Oranı 0 ile 500 Arasında Olmalıdır.'); return; }
+    if (!YEARS.includes(numericYear)) { alert('Lütfen geçerli bir yıl seçiniz.'); return; }
+    if (!Number.isFinite(numericAnnualIncreaseRate) || numericAnnualIncreaseRate < 0 || numericAnnualIncreaseRate > 500) { alert('Yıllık artış oranı 0 ile 500 arasında olmalıdır.'); return; }
 
     const maximumDay = getDaysInMonth(numericMonth - 1, numericYear);
     if (!Number.isInteger(numericDay) || numericDay < 1 || numericDay > maximumDay) {
@@ -581,7 +620,9 @@ export default function App() {
     const payload = {
       ...existingSubscription,
       id: editingId || String(Date.now()),
+      expenseType: formExpenseType,
       name: formName.trim(),
+      baseAmount: String(numericPrice),
       price: String(numericPrice),
       currency: formCurrency,
       billingDay: String(numericDay),
@@ -593,8 +634,8 @@ export default function App() {
       cancelUrl: formCancelUrl.trim(),
       color: formColor,
       notificationDays: formNotificationDays,
-      notificationChannel: formNotificationChannel,
       annualIncreaseRate: numericAnnualIncreaseRate,
+      increaseApplicationType: formIncreaseApplicationType,
       status: existingSubscription?.status || 'active'
     };
 
@@ -658,7 +699,7 @@ export default function App() {
     if (safeList.length === 0) { alert('Dışa aktarılacak kayıt bulunmuyor.'); return; }
     let csvContent = '\uFEFFServis Adi;Fiyat;Para Birimi;Kategori;Odeme Yontemi;Periyot;Odeme Gunu;Odeme Ayi;Odeme Yili;Yillik Artis Orani\n';
     safeList.forEach(s => {
-      csvContent += `"${s.name}";${s.price};"${s.currency}";"${s.category}";"${s.paymentMethod}";"${s.period}";${s.billingDay};${s.billingMonth};${s.billingYear};${Number(s.annualIncreaseRate) || 0}\n`;
+      csvContent += `"${s.name}";${s.baseAmount ?? s.price};"${s.currency}";"${s.category}";"${s.paymentMethod}";"${s.period}";${s.billingDay};${s.billingMonth};${s.billingYear};${Number(s.annualIncreaseRate) || 0}\n`;
     });
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -707,16 +748,12 @@ export default function App() {
         if (!Array.isArray(importedSubscriptions)) throw new Error('Abonelik listesi bulunamadı.');
         if (!confirmAction(`${importedSubscriptions.length} kayıt içe aktarılacak ve mevcut liste değiştirilecek. Devam edilsin mi?`)) return;
 
-        setSubscriptions(importedSubscriptions);
+        setSubscriptions(importedSubscriptions.map(normalizeSubscription));
         if (Array.isArray(parsedBackup.templates)) setTemplatesList(parsedBackup.templates);
         if (Array.isArray(parsedBackup.paymentMethods)) setPaymentMethodsList(parsedBackup.paymentMethods);
         if (parsedBackup.exchangeRates) {
           setExchangeRates({ USD: Number(parsedBackup.exchangeRates.USD) || DEFAULT_RATES.USD, EUR: Number(parsedBackup.exchangeRates.EUR) || DEFAULT_RATES.EUR });
         }
-        const importedAppearance = parsedBackup.appearance;
-        if (importedAppearance && BACKGROUND_PRESETS[importedAppearance.backgroundPreset]) setBackgroundPreset(importedAppearance.backgroundPreset);
-        if (importedAppearance && FONT_SCALE_OPTIONS.some(o => o.key === importedAppearance.fontScaleKey)) setFontScaleKey(importedAppearance.fontScaleKey);
-
         alert('Yedek başarıyla geri yüklendi.');
       } catch (error) {
         alert(`Yedek yüklenemedi: ${error.message}`);
@@ -728,9 +765,6 @@ export default function App() {
   const daysInCurrentMonth = getDaysInMonth(calendarMonth, calendarYear);
   const firstDayOffset = (new Date(calendarYear, calendarMonth, 1).getDay() + 6) % 7;
 
-  const handleAnalysisYearChange = year => { scrollMainToTop(false); setSelectedAnalysisYear(year); };
-  const handleTabChange = tabKey => { scrollMainToTop(false); setActiveTab(tabKey); };
-
   const openDayDrawer = (dayNumber, itemsForDay) => {
     setDayDrawer({ visible: true, day: dayNumber, month: calendarMonth, year: calendarYear, items: itemsForDay });
   };
@@ -740,7 +774,7 @@ export default function App() {
       <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
         <StatusBar barStyle={theme.dark ? 'light-content' : 'dark-content'} />
         <View style={styles.authWrapper}>
-          <View style={[styles.authCard, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.82) : theme.cardBg, borderColor: theme.cardBorder }]}>
+          <View style={[styles.authCard, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.9) : theme.cardBg, borderColor: theme.cardBorder }]}>
             <View style={styles.authHeader}>
               <Text style={[styles.authLogo, { color: theme.textPrimary }]}>Cebin <Text style={{ color: '#9b98ff' }}>PRO</Text></Text>
               <Text style={[styles.authSubtitle, { color: theme.textSecondary }]}>Akıllı Abonelik ve Bütçe Asistanı</Text>
@@ -792,7 +826,7 @@ export default function App() {
 
       <View style={[styles.appWrapper, isDesktop && styles.appWrapperDesktop]}>
         {isDesktop && (
-          <View style={[styles.sidebarContainer, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.sidebarBg, 0.82) : theme.sidebarBg, borderRightColor: theme.cardBorder }]}>
+          <View style={[styles.sidebarContainer, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.sidebarBg, 0.9) : theme.sidebarBg, borderRightColor: theme.cardBorder }]}>
             <View style={styles.sidebarHeader}>
               <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Cebin</Text>
               <View style={styles.proBadge}><Text style={styles.proBadgeText}>PRO</Text></View>
@@ -806,7 +840,7 @@ export default function App() {
                 { key: 'calendar', icon: '📅', label: 'Takvim' },
                 { key: 'analytics', icon: '📊', label: 'Analiz ve Raporlar' }
               ].map(navItem => (
-                <TouchableOpacity key={navItem.key} style={[styles.sidebarNavButton, activeTab === navItem.key && styles.sidebarNavButtonActive]} onPress={() => handleTabChange(navItem.key)}>
+                <TouchableOpacity key={navItem.key} style={[styles.sidebarNavButton, activeTab === navItem.key && styles.sidebarNavButtonActive]} onPress={() => { scrollMainToTop(false); setActiveTab(navItem.key); }}>
                   <Text style={styles.sidebarNavIcon}>{navItem.icon}</Text>
                   <Text style={[styles.sidebarNavText, { color: activeTab === navItem.key ? '#9b98ff' : theme.textSecondary }]}>{navItem.label}</Text>
                 </TouchableOpacity>
@@ -823,7 +857,7 @@ export default function App() {
               <TouchableOpacity style={[styles.secondaryButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={handleImportJSON}>
                 <Text style={[styles.secondaryButtonText, { color: theme.textSecondary }]}>↩️ Yedeği Geri Yükle</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.primaryButton} onPress={() => openSubscriptionForm()}>
+              <TouchableOpacity style={[styles.primaryButton]} onPress={() => openSubscriptionForm()}>
                 <Text style={styles.primaryButtonText}>+ Yeni Abonelik Ekle</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.secondaryButton, { backgroundColor: 'rgba(248,113,113,0.12)', borderColor: theme.danger }]} onPress={handleLogout}>
@@ -834,13 +868,13 @@ export default function App() {
         )}
 
         <View style={styles.contentWrapper}>
-          <View style={[styles.header, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.headerBg, 0.75) : theme.headerBg, borderBottomColor: theme.cardBorder }]}>
+          <View style={[styles.header, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.headerBg, 0.85) : theme.headerBg, borderBottomColor: theme.cardBorder }]}>
             <View style={styles.pageHeaderInfo}>
               <Text style={[styles.pageHeaderTitle, { color: theme.textPrimary }]} numberOfLines={1}>
                 {activeTab === 'list' ? 'Abonelikler' : activeTab === 'calendar' ? 'Ödeme Takvimi' : 'Analiz ve Raporlar'}
               </Text>
               <Text style={[styles.pageHeaderDescription, { color: theme.textSecondary }]} numberOfLines={isMobile ? 2 : 1}>
-                {activeTab === 'list' ? 'Aboneliklerinizi ve Düzenli Ödemelerinizi Yönetin.' : activeTab === 'calendar' ? 'Yaklaşan Ödeme Tarihlerini Takvim Üzerinden Takip Edin.' : 'Aylık Harcama Eğilimlerinizi ve Bütçe Yükünüzü İnceleyin.'}
+                {activeTab === 'list' ? 'Aboneliklerinizi ve düzenli ödemelerinizi yönetin.' : activeTab === 'calendar' ? 'Yaklaşan ödeme tarihlerini takvim üzerinden takip edin.' : 'Aylık harcama eğilimlerinizi ve bütçe yükünüzü inceleyin.'}
               </Text>
             </View>
 
@@ -935,7 +969,9 @@ export default function App() {
                   </View>
                 ) : (
                   filteredSubscriptions.map(subscription => {
-                    const priceInTL = convertToTL(subscription.price, subscription.currency || 'TRY', exchangeRates);
+                    const baseAmount = Number(subscription.baseAmount ?? subscription.price) || 0;
+                    const projectedAmount = baseAmount * getAnnualIncreaseMultiplier(subscription, currentDate.getFullYear());
+                    const priceInTL = convertToTL(projectedAmount, subscription.currency || 'TRY', exchangeRates);
                     const notificationOption = NOTIFICATION_OPTIONS.find(o => o.value === subscription.notificationDays) || NOTIFICATION_OPTIONS[3];
                     const serviceColor = subscription.color || getServiceColor(subscription.name, safeTemplates);
                     const isYearly = subscription.period === 'yearly';
@@ -976,7 +1012,7 @@ export default function App() {
 
                               {(Number(subscription.annualIncreaseRate) || 0) > 0 && (
                                 <View style={[styles.informationTag, { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder }]}>
-                                  <Text style={[styles.informationTagText, { color: theme.accent }]}>↗ Yıllık Artış: %{Number(subscription.annualIncreaseRate).toFixed(1)}</Text>
+                                  <Text style={[styles.informationTagText, { color: theme.accent }]}>↗ Artış: %{Number(subscription.annualIncreaseRate).toFixed(1)}</Text>
                                 </View>
                               )}
                             </View>
@@ -988,7 +1024,7 @@ export default function App() {
                         </View>
 
                         <View style={styles.subscriptionRight}>
-                          <Text style={[styles.subscriptionPrice, { color: theme.textPrimary }]}>{formatCurrency(subscription.price, subscription.currency || 'TRY')} {isYearly ? '/yıl' : '/ay'}</Text>
+                          <Text style={[styles.subscriptionPrice, { color: theme.textPrimary }]}>{formatCurrency(projectedAmount, subscription.currency || 'TRY')} {isYearly ? '/yıl' : '/ay'}</Text>
                           {subscription.currency !== 'TRY' && <Text style={[styles.convertedPrice, { color: theme.accent }]}>≈ {formatCurrency(priceInTL, 'TRY')}</Text>}
 
                           <View style={styles.subscriptionActions}>
@@ -1036,18 +1072,6 @@ export default function App() {
                   </TouchableOpacity>
                 </View>
 
-                <View style={styles.calendarYearSelectorRow}>
-                  <Text style={[styles.calendarYearSelectorLabel, { color: theme.textMuted }]}>Takvim Yılı</Text>
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    style={[styles.calendarYearSelectButton, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
-                    onPress={() => setIsCalendarYearPickerOpen(true)}
-                  >
-                    <Text style={[styles.calendarYearSelectValue, { color: theme.textPrimary }]}>{calendarYear}</Text>
-                    <Text style={[styles.yearSelectChevron, { color: theme.accent }]}>⌄</Text>
-                  </TouchableOpacity>
-                </View>
-
                 <View style={styles.calendarContainer}>
                   <View style={styles.calendarWeekHeader}>
                     {['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].map(dayName => (
@@ -1087,10 +1111,12 @@ export default function App() {
                           <ScrollView style={styles.calendarDayScroll} contentContainerStyle={styles.calendarDayScrollContent} nestedScrollEnabled showsVerticalScrollIndicator={subscriptionsForDay.length > 3}>
                             {subscriptionsForDay.map(subscription => {
                               const badgeColor = subscription.color || CATEGORY_COLORS[subscription.category] || CATEGORY_COLORS.Diğer;
+                              const baseAmount = Number(subscription.baseAmount ?? subscription.price) || 0;
+                              const projectedAmount = baseAmount * getAnnualIncreaseMultiplier(subscription, calendarYear);
                               return (
                                 <View key={subscription.id} style={[styles.calendarSubscriptionBadge, { backgroundColor: badgeColor }]}>
                                   <Text style={styles.calendarSubscriptionName} numberOfLines={1}>{subscription.name}</Text>
-                                  <Text style={styles.calendarSubscriptionPrice}>{formatShortCurrency(convertToTL(subscription.price, subscription.currency, exchangeRates), 'TRY')}</Text>
+                                  <Text style={styles.calendarSubscriptionPrice}>{formatShortCurrency(convertToTL(projectedAmount, subscription.currency, exchangeRates), 'TRY')}</Text>
                                 </View>
                               );
                             })}
@@ -1108,22 +1134,18 @@ export default function App() {
                 <View style={styles.analysisToolbar}>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={[styles.analysisToolbarLabel, { color: theme.textMuted }]}>Raporlama Dönemi</Text>
-                    <Text style={[styles.analysisToolbarHint, { color: theme.textSecondary }]}>Tüm Analizler Seçilen Yıla Göre Güncellenir.</Text>
+                    <Text style={[styles.analysisToolbarHint, { color: theme.textSecondary }]}>Tüm analizler seçilen yıla göre güncellenir.</Text>
                   </View>
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    style={[styles.yearSelectButton, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
-                    onPress={() => setIsAnalysisYearPickerOpen(true)}
-                  >
-                    <View>
-                      <Text style={[styles.yearSelectCaption, { color: theme.textMuted }]}>Yıl</Text>
-                      <Text style={[styles.yearSelectValue, { color: theme.textPrimary }]}>{selectedAnalysisYear}</Text>
-                    </View>
-                    <Text style={[styles.yearSelectChevron, { color: theme.accent }]}>⌄</Text>
-                  </TouchableOpacity>
+                  <View style={[styles.yearSelectorRow, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                    {YEARS.map(year => (
+                      <TouchableOpacity key={year} style={[styles.yearSelectorButton, selectedAnalysisYear === year && { backgroundColor: theme.accent }]} onPress={() => setSelectedAnalysisYear(year)}>
+                        <Text style={[styles.yearSelectorText, { color: selectedAnalysisYear === year ? '#ffffff' : theme.textSecondary }]}>{year}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
                 </View>
 
-                <View style={[styles.insightBox, { backgroundColor: theme.summaryBg, borderColor: theme.summaryBorder, ...(Platform.OS === 'web' ? { backgroundImage: `linear-gradient(135deg, ${theme.summaryBg}, ${theme.activeButton})` } : {}) }]}>
+                <View style={[styles.insightBox, { backgroundColor: theme.summaryBg, borderColor: theme.summaryBorder }]}>
                   <View style={styles.insightIconBox}><Text style={{ fontSize: 20 }}>✨</Text></View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.insightTitle}>Akıllı Asistan Özeti</Text>
@@ -1133,7 +1155,7 @@ export default function App() {
 
                 <View style={[styles.panel, styles.analysisPrimaryPanel, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
                   <Text style={[styles.panelTitle, { color: theme.textPrimary }]}>{selectedAnalysisYear} Aylık Harcama Grafiği</Text>
-                  <Text style={[styles.panelDescription, { color: theme.textMuted }]}>Aylık Harcama Eğilimi ve Kategori Kırılımı.</Text>
+                  <Text style={[styles.panelDescription, { color: theme.textMuted }]}>Aylık harcama eğilimi ve kategori kırılımı.</Text>
 
                   <View style={styles.categoryLegend}>
                     {Object.entries(CATEGORY_COLORS).map(([category, color]) => (
@@ -1165,8 +1187,7 @@ export default function App() {
                                         styles.chartSegment,
                                         {
                                           height: `${(segment.amount / monthTotal) * 100}%`,
-                                          backgroundColor: segment.color,
-                                          ...(Platform.OS === 'web' ? { backgroundImage: `linear-gradient(180deg, ${lightenHex(segment.color, 22)} 0%, ${segment.color} 100%)` } : {})
+                                          backgroundColor: segment.color
                                         }
                                       ]}
                                     />
@@ -1189,51 +1210,9 @@ export default function App() {
                 </View>
 
                 <View style={[styles.analysisSectionCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-                  <View style={styles.distributionSectionHeader}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.distributionTitle, styles.distributionTitleNoTop, { color: theme.textPrimary }]}>Ödeme Yöntemine Göre Aylık Dağılım</Text>
-                      <Text style={[styles.distributionSubtitle, { color: theme.textMuted }]}>Kart ve Hesap Bazında Aylık Ödeme Yükü.</Text>
-                    </View>
-                    <View style={[styles.monthlyCommitmentBadge, { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder }]}>
-                      <Text style={[styles.monthlyCommitmentBadgeLabel, { color: theme.textMuted }]}>Toplam / Ay</Text>
-                      <Text style={[styles.monthlyCommitmentBadgeValue, { color: theme.textPrimary }]}>{formatCurrency(totalMonthlyPaymentCommitment, 'TRY')}</Text>
-                    </View>
-                  </View>
-
-                  {sortedMonthlyPaymentMethodEntries.length === 0 ? (
-                    <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-                      <Text style={styles.emptyIcon}>💳</Text>
-                      <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Aylık Ödeme Yükü Bulunamadı</Text>
-                      <Text style={[styles.emptyDescription, { color: theme.textSecondary }]}>Aktif Bir Abonelik Eklediğinizde Aylık Dağılım Burada Görünür.</Text>
-                    </View>
-                  ) : (
-                    <View style={styles.monthlyPaymentGrid}>
-                      {sortedMonthlyPaymentMethodEntries.map(([paymentMethod, amount]) => {
-                        const percentage = totalMonthlyPaymentCommitment > 0 ? (amount / totalMonthlyPaymentCommitment) * 100 : 0;
-                        return (
-                          <View key={`monthly-${paymentMethod}`} style={[styles.monthlyPaymentCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-                            <View style={[styles.monthlyPaymentIcon, { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder }]}>
-                              <Text style={styles.monthlyPaymentIconText}>💳</Text>
-                            </View>
-                            <View style={styles.monthlyPaymentContent}>
-                              <Text style={[styles.monthlyPaymentName, { color: theme.textPrimary }]} numberOfLines={1}>{paymentMethod}</Text>
-                              <Text style={[styles.monthlyPaymentMeta, { color: theme.textMuted }]}>Aylık Bütçeye Oranı: %{percentage.toFixed(1)}</Text>
-                              <View style={[styles.progressTrack, { backgroundColor: theme.inputBg, marginTop: 8 }]}>
-                                <View style={[styles.progressFill, { width: `${percentage}%`, backgroundColor: theme.accent }]} />
-                              </View>
-                            </View>
-                            <Text style={[styles.monthlyPaymentAmount, { color: theme.textPrimary }]}>{formatCurrency(amount, 'TRY')}<Text style={[styles.monthlyPaymentPeriod, { color: theme.textMuted }]}> / ay</Text></Text>
-                          </View>
-                        );
-                      })}
-                    </View>
-                  )}
-                </View>
-
-                <View style={[styles.analysisSectionCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
                   <Text style={[styles.distributionTitle, styles.distributionTitleNoTop, { color: theme.textPrimary }]}>Kategori Bazlı Aylık Dağılım</Text>
                   {sortedMonthlyCategoryEntries.length === 0 ? (
-                    <Text style={[styles.noDataText, { color: theme.textSecondary }]}>Seçilen Yıl İçin Kategori Verisi Bulunamadı.</Text>
+                    <Text style={[styles.noDataText, { color: theme.textSecondary }]}>Seçilen yıl için kategori verisi bulunamadı.</Text>
                   ) : sortedMonthlyCategoryEntries.map(([category, amount]) => {
                     const categoryColor = CATEGORY_COLORS[category] || CATEGORY_COLORS.Diğer;
                     const percentage = totalMonthlyCategoryExpense > 0 ? ((amount / totalMonthlyCategoryExpense) * 100).toFixed(1) : 0;
@@ -1264,7 +1243,7 @@ export default function App() {
                 { key: 'calendar', icon: '📅', label: 'Takvim' },
                 { key: 'analytics', icon: '📊', label: 'Analiz' }
               ].map(navItem => (
-                <TouchableOpacity key={navItem.key} style={styles.bottomNavigationItem} onPress={() => handleTabChange(navItem.key)}>
+                <TouchableOpacity key={navItem.key} style={styles.bottomNavigationItem} onPress={() => { scrollMainToTop(false); setActiveTab(navItem.key); }}>
                   <Text style={styles.bottomNavigationIcon}>{navItem.icon}</Text>
                   <Text style={[styles.bottomNavigationText, { color: activeTab === navItem.key ? '#9b98ff' : theme.textSecondary }]}>{navItem.label}</Text>
                 </TouchableOpacity>
@@ -1274,445 +1253,441 @@ export default function App() {
         </View>
       </View>
 
-      <Modal visible={dayDrawer.visible} transparent animationType="slide" onRequestClose={() => setDayDrawer(d => ({ ...d, visible: false }))}>
-        <View style={styles.drawerOverlay}>
-          <TouchableOpacity style={styles.drawerBackdrop} activeOpacity={1} onPress={() => setDayDrawer(d => ({ ...d, visible: false }))} />
-          <View style={[styles.dayDrawerPanel, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.94) : theme.cardBg, borderColor: theme.cardBorder }]}>
-            <View style={styles.modalHeader}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>{dayDrawer.day} {dayDrawer.month !== null ? MONTH_NAMES[dayDrawer.month] : ''} {dayDrawer.year}</Text>
-                <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Bu Güne Ait Ödemeler</Text>
-              </View>
-              <TouchableOpacity style={[styles.modalCloseButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={() => setDayDrawer(d => ({ ...d, visible: false }))}>
-                <Text style={[styles.modalCloseText, { color: theme.textSecondary }]}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={{ flex: 1, paddingHorizontal: 20 }}>
-              {(dayDrawer.items || []).length === 0 ? (
-                <View style={[styles.emptyCard, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder, marginTop: 6 }]}>
-                  <Text style={styles.emptyIcon}>📭</Text>
-                  <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Bu Gün İçin Ödeme Yok</Text>
-                </View>
-              ) : (dayDrawer.items || []).map(sub => (
-                <View key={sub.id} style={[styles.subscriptionCard, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder, marginBottom: 10 }]}>
-                  <View style={styles.subscriptionMain}>
-                    <View style={[styles.serviceIcon, { backgroundColor: sub.color || getServiceColor(sub.name, safeTemplates) }]}>
-                      <Text style={styles.serviceIconText}>{sub.name?.charAt(0)?.toUpperCase() || 'C'}</Text>
-                    </View>
-                    <View style={styles.subscriptionInfo}>
-                      <Text style={[styles.subscriptionName, { color: theme.textPrimary }]}>{sub.name}</Text>
-                      <Text style={[styles.subscriptionSubtitle, { color: theme.textSecondary }]}>{sub.category} • {sub.paymentMethod}</Text>
-                    </View>
-                  </View>
-                  <Text style={[styles.subscriptionPrice, { color: theme.textPrimary }]}>{formatCurrency(sub.price, sub.currency)}</Text>
-                </View>
-              ))}
-            </ScrollView>
-
-            {(dayDrawer.items || []).length > 0 && (
-              <View style={[styles.chartFooter, { borderTopColor: theme.cardBorder, marginHorizontal: 20, marginBottom: 18 }]}>
-                <Text style={[styles.chartFooterLabel, { color: theme.textPrimary }]}>Toplam</Text>
-                <Text style={[styles.chartFooterValue, { color: theme.accent }]}>
-                  {formatCurrency((dayDrawer.items || []).reduce((t, s) => t + convertToTL(s.price, s.currency, exchangeRates), 0), 'TRY')}
-                </Text>
-              </View>
-            )}
-          </View>
-        </View>
-      </Modal>
-
-      <Modal visible={isCalendarYearPickerOpen} transparent animationType="fade" onRequestClose={() => setIsCalendarYearPickerOpen(false)}>
-        <View style={styles.modalOverlay}>
-          <TouchableOpacity style={styles.yearPickerBackdrop} activeOpacity={1} onPress={() => setIsCalendarYearPickerOpen(false)} />
-          <View style={[styles.yearPickerCard, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.96) : theme.cardBg, borderColor: theme.cardBorder }]}>
-            <View style={styles.yearPickerHeader}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Takvim Yılı</Text>
-                <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Ödeme Takviminde Görüntülenecek Yılı Seçin.</Text>
-              </View>
-              <TouchableOpacity style={[styles.modalCloseButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={() => setIsCalendarYearPickerOpen(false)}>
-                <Text style={[styles.modalCloseText, { color: theme.textSecondary }]}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.yearPickerGrid}>
-              {YEARS.map(year => {
-                const isSelected = calendarYear === year;
-                return (
-                  <TouchableOpacity
-                    key={`calendar-picker-${year}`}
-                    style={[styles.yearPickerOption, { backgroundColor: isSelected ? theme.activeButton : theme.inputBg, borderColor: isSelected ? theme.activeButtonBorder : theme.cardBorder }]}
-                    onPress={() => { setCalendarYear(year); setIsCalendarYearPickerOpen(false); }}
-                  >
-                    <Text style={[styles.yearPickerOptionText, { color: isSelected ? '#ffffff' : theme.textPrimary }]}>{year}</Text>
-                    {isSelected && <Text style={styles.yearPickerCheck}>✓</Text>}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal visible={isAnalysisYearPickerOpen} transparent animationType="fade" onRequestClose={() => setIsAnalysisYearPickerOpen(false)}>
-        <View style={styles.modalOverlay}>
-          <TouchableOpacity style={styles.yearPickerBackdrop} activeOpacity={1} onPress={() => setIsAnalysisYearPickerOpen(false)} />
-          <View style={[styles.yearPickerCard, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.96) : theme.cardBg, borderColor: theme.cardBorder }]}>
-            <View style={styles.yearPickerHeader}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Raporlama Yılı</Text>
-                <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Finansal Analizlerin Gösterileceği Yılı Seçin.</Text>
-              </View>
-              <TouchableOpacity style={[styles.modalCloseButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={() => setIsAnalysisYearPickerOpen(false)}>
-                <Text style={[styles.modalCloseText, { color: theme.textSecondary }]}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.yearPickerGrid}>
-              {YEARS.map(year => {
-                const isSelected = selectedAnalysisYear === year;
-                return (
-                  <TouchableOpacity
-                    key={`picker-${year}`}
-                    style={[styles.yearPickerOption, { backgroundColor: isSelected ? theme.activeButton : theme.inputBg, borderColor: isSelected ? theme.activeButtonBorder : theme.cardBorder }]}
-                    onPress={() => { handleAnalysisYearChange(year); setIsAnalysisYearPickerOpen(false); }}
-                  >
-                    <Text style={[styles.yearPickerOptionText, { color: isSelected ? '#ffffff' : theme.textPrimary }]}>{year}</Text>
-                    {isSelected && <Text style={styles.yearPickerCheck}>✓</Text>}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal visible={isAppearanceModalOpen} transparent animationType="fade" onRequestClose={() => setIsAppearanceModalOpen(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.appearanceModal, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-            <View style={styles.modalHeader}>
-              <View style={{ flex: 1, paddingRight: 12 }}>
-                <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Görünüm Ayarları</Text>
-                <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Arka Plan Temasını ve Yazı Boyutunu Kişiselleştirin.</Text>
-              </View>
-              <TouchableOpacity style={[styles.modalCloseButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={() => setIsAppearanceModalOpen(false)}>
-                <Text style={[styles.modalCloseText, { color: theme.textSecondary }]}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView showsVerticalScrollIndicator contentContainerStyle={{ paddingBottom: 8 }}>
-              <Text style={[styles.appearanceSectionTitle, { color: theme.textPrimary }]}>Arka Plan Teması</Text>
-              <View style={styles.appearanceOptionGrid}>
-                {Object.entries(BACKGROUND_PRESETS).map(([presetKey, preset]) => (
-                  <TouchableOpacity key={presetKey} style={[styles.appearanceThemeOption, { backgroundColor: preset.cardBg, borderColor: backgroundPreset === presetKey ? theme.activeButtonBorder : preset.cardBorder }, backgroundPreset === presetKey && styles.appearanceOptionActive]} onPress={() => setBackgroundPreset(presetKey)}>
-                    <View style={[styles.themePreview, { backgroundColor: preset.bg }]}>
-                      <View style={[styles.themePreviewSidebar, { backgroundColor: preset.sidebarBg }]} />
-                      <View style={styles.themePreviewContent}>
-                        <View style={[styles.themePreviewHeader, { backgroundColor: preset.headerBg }]} />
-                        <View style={[styles.themePreviewCard, { backgroundColor: preset.summaryBg }]} />
-                      </View>
-                    </View>
-                    <Text style={[styles.appearanceOptionLabel, { color: preset.textPrimary }]}>{preset.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <Text style={[styles.appearanceSectionTitle, { color: theme.textPrimary }]}>Yazı Boyutu</Text>
-              <View style={styles.fontScaleRow}>
-                {FONT_SCALE_OPTIONS.map(option => (
-                  <TouchableOpacity key={option.key} style={[styles.fontScaleOption, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }, fontScaleKey === option.key && styles.fontScaleOptionActive]} onPress={() => setFontScaleKey(option.key)}>
-                    <Text style={[styles.fontScaleOptionText, { color: theme.textSecondary, fontSize: 12 * option.scale }, fontScaleKey === option.key && styles.fontScaleOptionTextActive]}>{option.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
-
-            <TouchableOpacity style={styles.primaryButton} onPress={() => setIsAppearanceModalOpen(false)}>
-              <Text style={styles.primaryButtonText}>Ayarları Uygula</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
+      {/* YENİ ABONELİK / GİDER EKLEME MODALI (2 AŞAMALI) */}
       <Modal visible={isSubscriptionModalOpen} transparent animationType="fade" onRequestClose={closeSubscriptionForm}>
         <View style={styles.modalOverlay}>
-          <View style={[styles.subscriptionModal, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+          <View style={[styles.modalContent, styles.glassSurface, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
             <View style={styles.modalHeader}>
-              <View style={{ flex: 1, paddingRight: 12 }}>
-                <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>{editingId ? 'Abonelik Düzenle' : 'Yeni Abonelik Ekle'}</Text>
-                <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Abonelik veya Sabit Gider Bilgilerini Girin.</Text>
-
-                <View style={styles.stepIndicatorRow}>
-                  {[1, 2].map(step => (
-                    <View key={step} style={[styles.stepDot, { backgroundColor: step <= formStep ? theme.activeButton : theme.inputBg, borderColor: theme.cardBorder }]} />
-                  ))}
-                  <Text style={[styles.stepIndicatorText, { color: theme.textMuted }]}>Adım {formStep} / 2 — {formStep === 1 ? 'Servis ve Tutar' : 'Ödeme ve Hatırlatıcı'}</Text>
-                </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Yeni Abonelik Ekle</Text>
+                <Text style={[styles.modalSubtitle, { color: theme.textSecondary }]}>Abonelik veya düzenli gider bilgilerinizi birkaç adımda ekleyin.</Text>
               </View>
-
-              <TouchableOpacity style={[styles.modalCloseButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={closeSubscriptionForm}>
+              <TouchableOpacity style={styles.modalCloseButton} onPress={closeSubscriptionForm}>
                 <Text style={[styles.modalCloseText, { color: theme.textSecondary }]}>✕</Text>
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.subscriptionModalScroll} contentContainerStyle={styles.subscriptionModalContent} showsVerticalScrollIndicator>
-              {formStep === 1 && (
+            {/* ADIM GÖSTERGESİ */}
+            <View style={styles.stepIndicatorRow}>
+              <View style={[styles.stepBadge, formStep === 1 && { backgroundColor: theme.accent, borderColor: theme.accent }]}>
+                <Text style={[styles.stepBadgeText, formStep === 1 && { color: '#ffffff' }]}>1. Temel Bilgiler</Text>
+              </View>
+              <View style={[styles.stepDivider, { backgroundColor: theme.cardBorder }]} />
+              <View style={[styles.stepBadge, formStep === 2 && { backgroundColor: theme.accent, borderColor: theme.accent }]}>
+                <Text style={[styles.stepBadgeText, formStep === 2 && { color: '#ffffff' }]}>2. Ödeme ve Hatırlatıcı</Text>
+              </View>
+            </View>
+
+            <ScrollView style={styles.modalScrollBody} contentContainerStyle={styles.modalScrollBodyContent} showsVerticalScrollIndicator>
+              {formStep === 1 ? (
                 <>
-                  {!editingId && (
-                    <View style={styles.formSection}>
-                      <View style={styles.formSectionHeader}>
-                        <View style={{ flex: 1, paddingRight: 10 }}>
-                          <Text style={[styles.formSectionTitle, { color: theme.textPrimary }]}>Hızlı Şablon Seç</Text>
-                          <Text style={[styles.formSectionDescription, { color: theme.textMuted }]}>Hazır Bir Servis Seçerek Alanları Otomatik Doldurun.</Text>
-                        </View>
-                        <TouchableOpacity onPress={() => setShowTemplateForm(!showTemplateForm)}>
-                          <Text style={[styles.formSectionAction, { color: theme.accent }]}>{showTemplateForm ? 'Kapat' : '+ Şablon Ekle'}</Text>
-                        </TouchableOpacity>
-                      </View>
+                  <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Abonelik Türü</Text>
+                  <View style={styles.typeSelectorRow}>
+                    {[
+                      { key: 'subscription', label: 'Abonelik' },
+                      { key: 'fixed_expense', label: 'Sabit Gider' }
+                    ].map(type => (
+                      <TouchableOpacity
+                        key={type.key}
+                        style={[styles.typeOptionButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }, formExpenseType === type.key && { borderColor: theme.accent, backgroundColor: hexToRgba(theme.accent, 0.15) }]}
+                        onPress={() => setFormExpenseType(type.key)}
+                      >
+                        <Text style={[styles.typeOptionText, { color: theme.textSecondary }, formExpenseType === type.key && { color: theme.accent }]}>{type.label}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
 
-                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.removableOptionRow}>
-                        {safeTemplates.map((template, index) => (
-                          <View key={`${template.name}-${index}`} style={styles.removableOptionWrapper}>
-                            <TouchableOpacity style={[styles.templateOption, { backgroundColor: template.color }]} onPress={() => {
-                              setFormName(template.name);
-                              setFormPrice(template.price);
-                              setFormCurrency(template.currency);
-                              setFormCategory(template.category);
-                              setFormColor(template.color);
-                            }}>
-                              <Text style={styles.templateOptionText} numberOfLines={1}>{template.name}</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.removeOptionButton} onPress={() => removeTemplate(index)}>
-                              <Text style={styles.removeOptionText}>✕</Text>
-                            </TouchableOpacity>
-                          </View>
-                        ))}
-                      </ScrollView>
+                  <Text style={[styles.inputLabel, { color: theme.textSecondary, marginTop: 12 }]}>Hazır Şablonlar</Text>
+                  <Text style={[styles.inputHint, { color: theme.textMuted }]}>Sık kullanılan bir servisi seçerek alanları otomatik doldurun.</Text>
 
-                      {showTemplateForm && (
-                        <View style={[styles.inlineForm, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}>
-                          <TextInput style={[styles.textInput, { backgroundColor: theme.cardBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} placeholder="Şablon Adı" placeholderTextColor={theme.textMuted} value={newTemplateName} onChangeText={setNewTemplateName} />
-                          <View style={styles.inlineInputRow}>
-                            <TextInput style={[styles.textInput, styles.flexInput, { backgroundColor: theme.cardBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} placeholder="Fiyat" placeholderTextColor={theme.textMuted} keyboardType="decimal-pad" value={newTemplatePrice} onChangeText={setNewTemplatePrice} />
-                            <View style={styles.currencyOptionRow}>
-                              {['TRY', 'USD', 'EUR'].map(currency => (
-                                <TouchableOpacity key={currency} style={[styles.compactOptionButton, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }, newTemplateCurrency === currency && styles.compactOptionButtonActive]} onPress={() => setNewTemplateCurrency(currency)}>
-                                  <Text style={[styles.compactOptionText, { color: theme.textSecondary }, newTemplateCurrency === currency && styles.compactOptionTextActive]}>{currency}</Text>
-                                </TouchableOpacity>
-                              ))}
-                            </View>
-                          </View>
-                          <View style={styles.wrappedOptionRow}>
-                            {Object.keys(CATEGORY_COLORS).map(category => (
-                              <TouchableOpacity key={category} style={[styles.compactOptionButton, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }, newTemplateCategory === category && styles.compactOptionButtonActive]} onPress={() => setNewTemplateCategory(category)}>
-                                <Text style={[styles.compactOptionText, { color: theme.textSecondary }, newTemplateCategory === category && styles.compactOptionTextActive]}>{category}</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalTemplateRow}>
+                    {safeTemplates.map((template, templateIndex) => {
+                      const isSelected = normalizeText(formName) === normalizeText(template.name);
+                      return (
+                        <TouchableOpacity
+                          key={template.name}
+                          style={[styles.templateCard, { backgroundColor: theme.inputBg, borderColor: isSelected ? theme.accent : theme.cardBorder }, isSelected && { borderWidth: 2 }]}
+                          onPress={() => {
+                            setFormName(template.name);
+                            setFormPrice(template.price);
+                            setFormCurrency(template.currency);
+                            setFormCategory(template.category);
+                            setFormColor(template.color || getServiceColor(template.name, safeTemplates));
+                          }}
+                        >
+                          <View style={styles.templateCardTop}>
+                            <Text style={[styles.templateName, { color: theme.textPrimary }]} numberOfLines={1}>{template.name}</Text>
+                            {templateIndex >= DEFAULT_TEMPLATES.length && (
+                              <TouchableOpacity onPress={() => removeTemplate(templateIndex)} style={styles.templateDeleteIcon}>
+                                <Text style={{ fontSize: 11, color: theme.danger }}>✕</Text>
                               </TouchableOpacity>
-                            ))}
+                            )}
                           </View>
-                          <TouchableOpacity style={[styles.primaryButton, styles.inlineSaveButton]} onPress={addTemplate}>
-                            <Text style={styles.primaryButtonText}>Şablonu Kaydet</Text>
-                          </TouchableOpacity>
-                        </View>
-                      )}
+                          <Text style={[styles.templatePrice, { color: theme.accent }]}>{template.price} {template.currency}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+
+                  <Text style={[styles.inputLabel, { color: theme.textSecondary, marginTop: 16 }]}>
+                    {formExpenseType === 'subscription' ? 'Servis veya Abonelik Adı *' : 'Gider Adı *'}
+                  </Text>
+                  <TextInput
+                    style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]}
+                    placeholder="Örn. Netflix, İnternet, Kira"
+                    placeholderTextColor={theme.textMuted}
+                    value={formName}
+                    onChangeText={setFormName}
+                  />
+
+                  <View style={styles.formRowTwo}>
+                    <View style={{ flex: 2, marginRight: 8 }}>
+                      <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Tutar *</Text>
+                      <TextInput
+                        style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]}
+                        placeholder="349.90"
+                        placeholderTextColor={theme.textMuted}
+                        keyboardType="numeric"
+                        value={formPrice}
+                        onChangeText={setFormPrice}
+                      />
                     </View>
-                  )}
-
-                  <View style={styles.formSection}>
-                    <Text style={[styles.formSectionTitle, { color: theme.textPrimary }]}>Temel Bilgiler</Text>
-
-                    <View style={[styles.twoColumnRow, isMobile && styles.singleColumnRow]}>
-                      <View style={styles.formColumn}>
-                        <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Servis / Abonelik Adı</Text>
-                        <TextInput style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} placeholder="Örn: Netflix, Ev Kirası" placeholderTextColor={theme.textMuted} value={formName} onChangeText={setFormName} />
-                      </View>
-                      <View style={styles.formColumn}>
-                        <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Tutar / Fiyat</Text>
-                        <TextInput style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} placeholder="0,00" placeholderTextColor={theme.textMuted} keyboardType="decimal-pad" value={formPrice} onChangeText={setFormPrice} />
-                      </View>
-                    </View>
-
-                    <View style={[styles.twoColumnRow, isMobile && styles.singleColumnRow]}>
-                      <View style={styles.formColumn}>
-                        <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Para Birimi</Text>
-                        <View style={styles.currencyOptionRow}>
-                          {['TRY', 'USD', 'EUR'].map(currency => (
-                            <TouchableOpacity key={currency} style={[styles.compactOptionButton, styles.flexOptionButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }, formCurrency === currency && styles.compactOptionButtonActive]} onPress={() => setFormCurrency(currency)}>
-                              <Text style={[styles.compactOptionText, { color: theme.textSecondary }, formCurrency === currency && styles.compactOptionTextActive]}>{currency}</Text>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
-                      </View>
-                      <View style={styles.formColumn}>
-                        <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Ödeme Periyodu</Text>
-                        <View style={styles.periodOptionRow}>
-                          <TouchableOpacity style={[styles.periodOption, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }, formPeriod === 'monthly' && styles.periodOptionActive]} onPress={() => setFormPeriod('monthly')}>
-                            <Text style={[styles.periodOptionText, { color: theme.textSecondary }, formPeriod === 'monthly' && styles.periodOptionTextActive]}>Aylık</Text>
+                    <View style={{ flex: 1, marginLeft: 8 }}>
+                      <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Para Birimi</Text>
+                      <View style={styles.currencySelectorRow}>
+                        {['TRY', 'USD', 'EUR'].map(curr => (
+                          <TouchableOpacity
+                            key={curr}
+                            style={[styles.currencyOptionButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }, formCurrency === curr && { backgroundColor: theme.accent, borderColor: theme.accent }]}
+                            onPress={() => setFormCurrency(curr)}
+                          >
+                            <Text style={[styles.currencyOptionText, { color: theme.textSecondary }, formCurrency === curr && { color: '#ffffff' }]}>{curr}</Text>
                           </TouchableOpacity>
-                          <TouchableOpacity style={[styles.periodOption, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }, formPeriod === 'yearly' && styles.periodOptionActive]} onPress={() => setFormPeriod('yearly')}>
-                            <Text style={[styles.periodOptionText, { color: theme.textSecondary }, formPeriod === 'yearly' && styles.periodOptionTextActive]}>Yıllık</Text>
-                          </TouchableOpacity>
-                        </View>
+                        ))}
                       </View>
                     </View>
+                  </View>
 
-                    <View style={[styles.projectionFieldCard, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}>
-                      <View style={styles.projectionFieldCopy}>
-                        <Text style={[styles.inputLabel, { color: theme.textPrimary, marginBottom: 3 }]}>Yıllık Tahmini Artış / Zam Oranı (%)</Text>
-                        <Text style={[styles.formSectionDescription, { color: theme.textMuted }]}>Seçilen Oran, Gelecek Yıllardaki Maliyet ve Bütçe Projeksiyonlarına Bileşik Olarak Yansıtılır.</Text>
-                      </View>
-                      <View style={styles.projectionRateInputWrap}>
+                  <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Ödeme Periyodu *</Text>
+                  <View style={styles.periodSelectorRow}>
+                    {[
+                      { key: 'monthly', label: 'Aylık' },
+                      { key: 'yearly', label: 'Yıllık' }
+                    ].map(period => (
+                      <TouchableOpacity
+                        key={period.key}
+                        style={[styles.periodOptionButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }, formPeriod === period.key && { borderColor: theme.accent, backgroundColor: hexToRgba(theme.accent, 0.15) }]}
+                        onPress={() => setFormPeriod(period.key)}
+                      >
+                        <Text style={[styles.periodOptionText, { color: theme.textSecondary }, formPeriod === period.key && { color: theme.accent }]}>{period.label}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  {/* GELİŞMİŞ AYARLAR (YILLIK ARTIŞ ORANI) */}
+                  <View style={[styles.advancedSettingsContainer, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}>
+                    <TouchableOpacity style={styles.advancedSettingsHeader} onPress={() => setIsAdvancedSettingsOpen(!isAdvancedSettingsOpen)}>
+                      <Text style={[styles.advancedSettingsTitle, { color: theme.textPrimary }]}>⚙️ Gelişmiş Ayarlar (Yıllık Artış / Enflasyon)</Text>
+                      <Text style={[styles.advancedSettingsChevron, { color: theme.accent }]}>{isAdvancedSettingsOpen ? '▲' : '▼'}</Text>
+                    </TouchableOpacity>
+
+                    {isAdvancedSettingsOpen && (
+                      <View style={styles.advancedSettingsBody}>
+                        <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Yıllık Tahmini Artış Oranı (%)</Text>
                         <TextInput
-                          style={[styles.textInput, styles.projectionRateInput, { backgroundColor: theme.cardBg, color: theme.textPrimary, borderColor: theme.cardBorder }]}
-                          placeholder="0"
+                          style={[styles.textInput, { backgroundColor: theme.cardBg, color: theme.textPrimary, borderColor: theme.cardBorder }]}
+                          placeholder="25"
                           placeholderTextColor={theme.textMuted}
-                          keyboardType="decimal-pad"
+                          keyboardType="numeric"
                           value={formAnnualIncreaseRate}
                           onChangeText={setFormAnnualIncreaseRate}
                         />
-                        <Text style={[styles.projectionPercent, { color: theme.textSecondary }]}>%</Text>
+                        <Text style={[styles.inputHint, { color: theme.textMuted }]}>Bu oran, abonelik tutarının sonraki yıllardaki tahmini değerini bileşik olarak hesaplamak için kullanılır.</Text>
+
+                        <Text style={[styles.inputLabel, { color: theme.textSecondary, marginTop: 12 }]}>Artış Uygulama Zamanı</Text>
+                        <View style={styles.typeSelectorRow}>
+                          {[
+                            { key: 'subscription_anniversary', label: 'Yenileme Tarihinde' },
+                            { key: 'calendar_year', label: 'Takvim Yılı Başında' }
+                          ].map(appType => (
+                            <TouchableOpacity
+                              key={appType.key}
+                              style={[styles.typeOptionButton, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }, formIncreaseApplicationType === appType.key && { borderColor: theme.accent, backgroundColor: hexToRgba(theme.accent, 0.15) }]}
+                              onPress={() => setFormIncreaseApplicationType(appType.key)}
+                            >
+                              <Text style={[styles.typeOptionText, { color: theme.textSecondary }, formIncreaseApplicationType === appType.key && { color: theme.accent }]}>{appType.label}</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+
+                        {/* TAHMİNİ FİYAT ÖNİZLEMESİ */}
+                        {Number(formPrice) > 0 && Number(formAnnualIncreaseRate) > 0 && (
+                          <View style={[styles.pricePreviewCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                            <Text style={[styles.pricePreviewTitle, { color: theme.textPrimary }]}>Tahmini Fiyat Değişimi Önizlemesi</Text>
+                            {[0, 1, 2, 3].map(offset => {
+                              const targetYear = Number(formYear) + offset;
+                              const mockItem = { baseAmount: formPrice, annualIncreaseRate: formAnnualIncreaseRate, billingYear: formYear, increaseApplicationType: formIncreaseApplicationType };
+                              const predictedPrice = Number(formPrice) * getAnnualIncreaseMultiplier(mockItem, targetYear);
+                              return (
+                                <View key={targetYear} style={styles.pricePreviewRow}>
+                                  <Text style={[styles.pricePreviewYear, { color: theme.textSecondary }]}>{targetYear}</Text>
+                                  <Text style={[styles.pricePreviewAmount, { color: theme.accent }]}>{formatCurrency(predictedPrice, formCurrency)}</Text>
+                                </View>
+                              );
+                            })}
+                            <Text style={[styles.inputHint, { color: theme.textMuted, marginTop: 6 }]}>Bu değerler tahminidir. Gerçek fiyat değişiklikleri farklılık gösterebilir.</Text>
+                          </View>
+                        )}
                       </View>
-                    </View>
+                    )}
                   </View>
                 </>
-              )}
-
-              {formStep === 2 && (
+              ) : (
                 <>
-                  <View style={styles.formSection}>
-                    <View style={styles.formSectionHeader}>
-                      <View style={{ flex: 1, paddingRight: 10 }}>
-                        <Text style={[styles.formSectionTitle, { color: theme.textPrimary }]}>Ödeme Yapılan Kart / Hesap</Text>
-                        <Text style={[styles.formSectionDescription, { color: theme.textMuted }]}>Aboneliğin Tahsil Edildiği Yöntemi Seçin.</Text>
-                      </View>
-                      <TouchableOpacity onPress={() => setShowPaymentMethodForm(!showPaymentMethodForm)}>
-                        <Text style={[styles.formSectionAction, { color: theme.accent }]}>{showPaymentMethodForm ? 'Kapat' : '+ Yöntem Ekle'}</Text>
+                  <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Ödeme Yapılan Kart veya Hesap</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalTemplateRow}>
+                    {safePaymentMethods.map((method, methodIndex) => {
+                      const isSelected = formPaymentMethod === method;
+                      return (
+                        <TouchableOpacity
+                          key={method}
+                          style={[styles.paymentMethodCard, { backgroundColor: theme.inputBg, borderColor: isSelected ? theme.accent : theme.cardBorder }, isSelected && { borderWidth: 2 }]}
+                          onPress={() => setFormPaymentMethod(method)}
+                        >
+                          <Text style={[styles.paymentMethodCardText, { color: theme.textPrimary }]} numberOfLines={1}>{method}</Text>
+                          {methodIndex >= DEFAULT_PAYMENT_METHODS.length && (
+                            <TouchableOpacity onPress={() => removePaymentMethod(method)} style={styles.templateDeleteIcon}>
+                              <Text style={{ fontSize: 11, color: theme.danger }}>✕</Text>
+                            </TouchableOpacity>
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+
+                  <TouchableOpacity style={styles.addInlineButton} onPress={() => setShowPaymentMethodForm(!showPaymentMethodForm)}>
+                    <Text style={[styles.addInlineButtonText, { color: theme.accent }]}>+ Yeni Ödeme Yöntemi Ekle</Text>
+                  </TouchableOpacity>
+
+                  {showPaymentMethodForm && (
+                    <View style={styles.inlineAddBox}>
+                      <TextInput
+                        style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]}
+                        placeholder="Örn. Akbank Kart"
+                        placeholderTextColor={theme.textMuted}
+                        value={newPaymentMethodName}
+                        onChangeText={setNewPaymentMethodName}
+                      />
+                      <TouchableOpacity style={[styles.primaryButton, { marginTop: 8 }]} onPress={addPaymentMethod}>
+                        <Text style={styles.primaryButtonText}>Ödeme Yöntemini Kaydet</Text>
                       </TouchableOpacity>
                     </View>
+                  )}
 
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.removableOptionRow}>
-                      {safePaymentMethods.map(paymentMethod => (
-                        <View key={paymentMethod} style={styles.removableOptionWrapper}>
-                          <TouchableOpacity style={[styles.paymentMethodOption, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }, formPaymentMethod === paymentMethod && styles.paymentMethodOptionActive]} onPress={() => setFormPaymentMethod(paymentMethod)}>
-                            <Text style={[styles.paymentMethodOptionText, { color: formPaymentMethod === paymentMethod ? '#ffffff' : theme.textSecondary }]} numberOfLines={1}>{paymentMethod}</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity style={styles.removeOptionButton} onPress={() => removePaymentMethod(paymentMethod)}>
-                            <Text style={styles.removeOptionText}>✕</Text>
-                          </TouchableOpacity>
-                        </View>
-                      ))}
-                    </ScrollView>
-
-                    {showPaymentMethodForm && (
-                      <View style={[styles.inlineForm, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}>
-                        <View style={styles.inlineInputRow}>
-                          <TextInput style={[styles.textInput, styles.flexInput, { backgroundColor: theme.cardBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} placeholder="Örn: Akbank Axess" placeholderTextColor={theme.textMuted} value={newPaymentMethodName} onChangeText={setNewPaymentMethodName} />
-                          <TouchableOpacity style={[styles.primaryButton, styles.inlineAddButton]} onPress={addPaymentMethod}>
-                            <Text style={styles.primaryButtonText}>Ekle</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    )}
-                  </View>
-
-                  <View style={styles.formSection}>
-                    <Text style={[styles.formSectionTitle, { color: theme.textPrimary }]}>Kategori</Text>
-                    <View style={styles.wrappedOptionRow}>
-                      {Object.keys(CATEGORY_COLORS).map(category => (
-                        <TouchableOpacity key={category} style={[styles.categoryOption, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }, formCategory === category && { backgroundColor: CATEGORY_COLORS[category], borderColor: CATEGORY_COLORS[category] }]} onPress={() => setFormCategory(category)}>
-                          <Text style={[styles.categoryOptionText, { color: formCategory === category ? '#ffffff' : theme.textSecondary }]}>{category}</Text>
+                  <Text style={[styles.inputLabel, { color: theme.textSecondary, marginTop: 12 }]}>Kategori *</Text>
+                  <View style={styles.categoryGrid}>
+                    {Object.keys(CATEGORY_COLORS).map(cat => {
+                      const isSelected = formCategory === cat;
+                      const catColor = CATEGORY_COLORS[cat];
+                      return (
+                        <TouchableOpacity
+                          key={cat}
+                          style={[styles.categoryOptionButton, { backgroundColor: theme.inputBg, borderColor: isSelected ? catColor : theme.cardBorder }, isSelected && { borderWidth: 2, backgroundColor: hexToRgba(catColor, 0.15) }]}
+                          onPress={() => setFormCategory(cat)}
+                        >
+                          <View style={[styles.legendDot, { backgroundColor: catColor }]} />
+                          <Text style={[styles.categoryOptionText, { color: theme.textSecondary }, isSelected && { color: theme.textPrimary, fontWeight: 'bold' }]}>{cat}</Text>
                         </TouchableOpacity>
-                      ))}
+                      );
+                    })}
+                  </View>
+
+                  <Text style={[styles.inputLabel, { color: theme.textSecondary, marginTop: 12 }]}>İlk Ödeme veya Yenileme Tarihi *</Text>
+                  <View style={styles.dateRowThree}>
+                    <View style={{ flex: 1, marginRight: 6 }}>
+                      <Text style={[styles.inputLabelSmall, { color: theme.textMuted }]}>Gün</Text>
+                      <TextInput style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} keyboardNumeric placeholder="1" value={formDay} onChangeText={setFormDay} />
+                    </View>
+                    <View style={{ flex: 1, marginHorizontal: 6 }}>
+                      <Text style={[styles.inputLabelSmall, { color: theme.textMuted }]}>Ay</Text>
+                      <TextInput style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} keyboardNumeric placeholder="1" value={formMonth} onChangeText={setFormMonth} />
+                    </View>
+                    <View style={{ flex: 1, marginLeft: 6 }}>
+                      <Text style={[styles.inputLabelSmall, { color: theme.textMuted }]}>Yıl</Text>
+                      <TextInput style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} keyboardNumeric placeholder="2026" value={formYear} onChangeText={setFormYear} />
                     </View>
                   </View>
 
-                  <View style={styles.formSection}>
-                    <Text style={[styles.formSectionTitle, { color: theme.textPrimary }]}>Ödeme Tarihi</Text>
-                    <View style={styles.dateInputRow}>
-                      <View style={styles.dateInputField}>
-                        <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Gün</Text>
-                        <TextInput style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} placeholder="1" placeholderTextColor={theme.textMuted} keyboardType="number-pad" value={formDay} onChangeText={setFormDay} />
-                      </View>
-                      <View style={styles.dateInputField}>
-                        <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Ay</Text>
-                        <TextInput style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} placeholder="1" placeholderTextColor={theme.textMuted} keyboardType="number-pad" value={formMonth} onChangeText={setFormMonth} />
-                      </View>
-                      <View style={[styles.dateInputField, styles.dateInputYearField]}>
-                        <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Yıl</Text>
-                        <TextInput style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} placeholder="2026" placeholderTextColor={theme.textMuted} keyboardType="number-pad" value={formYear} onChangeText={setFormYear} />
-                      </View>
-                    </View>
-                    <Text style={[styles.helperText, { color: theme.textMuted }]}>Aylık Ödemelerde Başlangıç Ayı, Yıllık Ödemelerde Tahsilat Ayı Olarak Kullanılır.</Text>
-                  </View>
-
-                  <View style={styles.formSection}>
-                    <Text style={[styles.formSectionTitle, { color: theme.textPrimary }]}>Hatırlatıcı Kuralı</Text>
-                    <View style={styles.wrappedOptionRow}>
-                      {NOTIFICATION_OPTIONS.map(option => (
-                        <TouchableOpacity key={option.value} style={[styles.compactOptionButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }, formNotificationDays === option.value && styles.compactOptionButtonActive]} onPress={() => setFormNotificationDays(option.value)}>
-                          <Text style={[styles.compactOptionText, { color: theme.textSecondary }, formNotificationDays === option.value && styles.compactOptionTextActive]}>{option.label}</Text>
+                  <Text style={[styles.inputLabel, { color: theme.textSecondary, marginTop: 12 }]}>Hatırlatma Zamanı</Text>
+                  <View style={styles.notificationRow}>
+                    {NOTIFICATION_OPTIONS.map(opt => {
+                      const isSelected = formNotificationDays === opt.value;
+                      return (
+                        <TouchableOpacity
+                          key={opt.value}
+                          style={[styles.notificationButton, { backgroundColor: theme.inputBg, borderColor: isSelected ? theme.accent : theme.cardBorder }, isSelected && { backgroundColor: hexToRgba(theme.accent, 0.15) }]}
+                          onPress={() => setFormNotificationDays(opt.value)}
+                        >
+                          <Text style={[styles.notificationButtonText, { color: isSelected ? theme.accent : theme.textSecondary }]}>{opt.label}</Text>
                         </TouchableOpacity>
-                      ))}
-                    </View>
-
-                    {formNotificationDays !== -1 && (
-                      <View style={{ marginTop: 12 }}>
-                        <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Bildirim Kanalı</Text>
-                        <View style={styles.periodOptionRow}>
-                          <TouchableOpacity style={[styles.periodOption, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }, formNotificationChannel === 'email' && styles.periodOptionActive]} onPress={() => setFormNotificationChannel('email')}>
-                            <Text style={[styles.periodOptionText, { color: theme.textSecondary }, formNotificationChannel === 'email' && styles.periodOptionTextActive]}>📧 E-posta</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity style={[styles.periodOption, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }, formNotificationChannel === 'browser' && styles.periodOptionActive]} onPress={() => setFormNotificationChannel('browser')}>
-                            <Text style={[styles.periodOptionText, { color: theme.textSecondary }, formNotificationChannel === 'browser' && styles.periodOptionTextActive]}>🌐 Tarayıcı Bildirimi</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    )}
+                      );
+                    })}
                   </View>
 
-                  <View style={styles.formSection}>
-                    <Text style={[styles.formSectionTitle, { color: theme.textPrimary }]}>İptal / Yönetim Bağlantısı</Text>
-                    <TextInput style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} placeholder="https://..." placeholderTextColor={theme.textMuted} keyboardType="url" autoCapitalize="none" value={formCancelUrl} onChangeText={setFormCancelUrl} />
-                  </View>
+                  <Text style={[styles.inputLabel, { color: theme.textSecondary, marginTop: 12 }]}>Yönetim veya İptal Bağlantısı (Opsiyonel)</Text>
+                  <TextInput
+                    style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]}
+                    placeholder="https://netflix.com/youraccount"
+                    placeholderTextColor={theme.textMuted}
+                    autoCapitalize="none"
+                    value={formCancelUrl}
+                    onChangeText={setFormCancelUrl}
+                  />
                 </>
               )}
             </ScrollView>
 
-            <View style={[styles.modalFooter, { borderTopColor: theme.cardBorder, backgroundColor: theme.cardBg }]}>
-              {formStep === 1 ? (
-                <>
-                  <TouchableOpacity style={[styles.modalCancelButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={closeSubscriptionForm}>
-                    <Text style={[styles.modalCancelButtonText, { color: theme.textSecondary }]}>İptal</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.modalSaveButton} onPress={goToStepTwo}>
-                    <Text style={styles.modalSaveButtonText}>İleri →</Text>
-                  </TouchableOpacity>
-                </>
+            <View style={styles.modalFooter}>
+              {formStep === 2 ? (
+                <TouchableOpacity style={[styles.secondaryButton, { flex: 1, marginRight: 8, backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={() => setFormStep(1)}>
+                  <Text style={[styles.secondaryButtonText, { color: theme.textPrimary }]}>Geri</Text>
+                </TouchableOpacity>
               ) : (
-                <>
-                  <TouchableOpacity style={[styles.modalCancelButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={() => setFormStep(1)}>
-                    <Text style={[styles.modalCancelButtonText, { color: theme.textSecondary }]}>← Geri</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.modalSaveButton} onPress={handleSaveSubscription}>
-                    <Text style={styles.modalSaveButtonText}>Kaydet</Text>
-                  </TouchableOpacity>
-                </>
+                <TouchableOpacity style={[styles.secondaryButton, { flex: 1, marginRight: 8, backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={closeSubscriptionForm}>
+                  <Text style={[styles.secondaryButtonText, { color: theme.textPrimary }]}>İptal</Text>
+                </TouchableOpacity>
+              )}
+
+              {formStep === 1 ? (
+                <TouchableOpacity style={[styles.primaryButton, { flex: 1, marginLeft: 8 }]} onPress={goToStepTwo}>
+                  <Text style={styles.primaryButtonText}>Devam Et</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={[styles.primaryButton, { flex: 1, marginLeft: 8, backgroundColor: theme.success }]} onPress={handleSaveSubscription}>
+                  <Text style={[styles.primaryButtonText, { color: '#04331f' }]}>{editingId ? 'Değişiklikleri Kaydet' : 'Aboneliği Kaydet'}</Text>
+                </TouchableOpacity>
               )}
             </View>
           </View>
         </View>
       </Modal>
 
-      <Modal visible={duplicateWarning.visible} transparent animationType="fade" onRequestClose={() => setDuplicateWarning({ visible: false, name: '' })}>
-        <View style={styles.warningOverlay}>
-          <View style={[styles.warningCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-            <View style={[styles.warningIconBox, { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder }]}>
-              <Text style={styles.warningIcon}>⚠️</Text>
+      {/* GÖRÜNÜM VE TEMA AYARLARI MODALI */}
+      <Modal visible={isAppearanceModalOpen} transparent animationType="fade" onRequestClose={() => setIsAppearanceModalOpen(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, styles.glassSurface, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+            <View style={styles.modalHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Görünüm ve Tema</Text>
+                <Text style={[styles.modalSubtitle, { color: theme.textSecondary }]}>Uygulama renk temasını ve yazı boyutunu özelleştirin.</Text>
+              </View>
+              <TouchableOpacity style={styles.modalCloseButton} onPress={() => setIsAppearanceModalOpen(false)}>
+                <Text style={[styles.modalCloseText, { color: theme.textSecondary }]}>✕</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={[styles.warningTitle, { color: theme.textPrimary }]}>Bu Abonelik Zaten Kayıtlı</Text>
-            <Text style={[styles.warningMessage, { color: theme.textSecondary }]}>"{duplicateWarning.name}" İsimli Abonelik Zaten Listenizde Bulunuyor.</Text>
-            <Text style={[styles.warningHint, { color: theme.textMuted }]}>Mevcut Kaydı Düzenleyebilir veya Aboneliği Farklı Bir Adla Ekleyebilirsiniz.</Text>
-            <TouchableOpacity style={styles.warningButton} onPress={() => setDuplicateWarning({ visible: false, name: '' })}>
-              <Text style={styles.warningButtonText}>Tamam</Text>
-            </TouchableOpacity>
+
+            <ScrollView style={styles.modalScrollBody} contentContainerStyle={styles.modalScrollBodyContent}>
+              <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Tema Paleti</Text>
+              <View style={styles.presetGrid}>
+                {Object.entries(BACKGROUND_PRESETS).map(([key, preset]) => {
+                  const isSelected = backgroundPreset === key;
+                  return (
+                    <TouchableOpacity
+                      key={key}
+                      style={[styles.presetCard, { backgroundColor: preset.cardBg, borderColor: isSelected ? theme.accent : preset.cardBorder }, isSelected && { borderWidth: 2 }]}
+                      onPress={() => setBackgroundPreset(key)}
+                    >
+                      <View style={[styles.presetColorDot, { backgroundColor: preset.summaryBg }]} />
+                      <Text style={[styles.presetCardText, { color: preset.textPrimary }]}>{preset.label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <Text style={[styles.inputLabel, { color: theme.textSecondary, marginTop: 16 }]}>Yazı Boyutu</Text>
+              <View style={styles.presetGrid}>
+                {FONT_SCALE_OPTIONS.map(opt => {
+                  const isSelected = fontScaleKey === opt.key;
+                  return (
+                    <TouchableOpacity
+                      key={opt.key}
+                      style={[styles.presetCard, { backgroundColor: theme.inputBg, borderColor: isSelected ? theme.accent : theme.cardBorder }, isSelected && { borderWidth: 2 }]}
+                      onPress={() => setFontScaleKey(opt.key)}
+                    >
+                      <Text style={[styles.presetCardText, { color: theme.textPrimary }]}>{opt.label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity style={[styles.primaryButton, { flex: 1 }]} onPress={() => setIsAppearanceModalOpen(false)}>
+                <Text style={styles.primaryButtonText}>Tamam</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* TAKVİM GÜN DETAY DRAWER / MODALI */}
+      <Modal visible={dayDrawer.visible} transparent animationType="slide" onRequestClose={() => setDayDrawer(d => ({ ...d, visible: false }))}>
+        <View style={styles.drawerOverlay}>
+          <TouchableOpacity style={styles.drawerBackdrop} activeOpacity={1} onPress={() => setDayDrawer(d => ({ ...d, visible: false }))} />
+          <View style={[styles.drawerContent, styles.glassSurface, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+            <View style={styles.modalHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>{dayDrawer.day} {MONTH_NAMES[dayDrawer.month || 0]} {dayDrawer.year}</Text>
+                <Text style={[styles.modalSubtitle, { color: theme.textSecondary }]}>Bu tarihte gerçekleşecek ödemeler</Text>
+              </View>
+              <TouchableOpacity style={styles.modalCloseButton} onPress={() => setDayDrawer(d => ({ ...d, visible: false }))}>
+                <Text style={[styles.modalCloseText, { color: theme.textSecondary }]}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalScrollBody} contentContainerStyle={styles.modalScrollBodyContent}>
+              {dayDrawer.items.length === 0 ? (
+                <Text style={[styles.noDataText, { color: theme.textSecondary, textAlign: 'center', paddingVertical: 20 }]}>Bu tarihte kayıtlı ödeme bulunmuyor.</Text>
+              ) : (
+                dayDrawer.items.map(sub => {
+                  const baseAmount = Number(sub.baseAmount ?? sub.price) || 0;
+                  const projectedAmount = baseAmount * getAnnualIncreaseMultiplier(sub, dayDrawer.year || currentDate.getFullYear());
+                  return (
+                    <View key={sub.id} style={[styles.drawerItemCard, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.drawerItemTitle, { color: theme.textPrimary }]}>{sub.name}</Text>
+                        <Text style={[styles.drawerItemSubtitle, { color: theme.textSecondary }]}>{sub.category} • {sub.paymentMethod}</Text>
+                      </View>
+                      <Text style={[styles.drawerItemPrice, { color: theme.accent }]}>{formatCurrency(projectedAmount, sub.currency)}</Text>
+                    </View>
+                  );
+                })
+              )}
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity style={[styles.primaryButton, { flex: 1 }]} onPress={() => setDayDrawer(d => ({ ...d, visible: false }))}>
+                <Text style={styles.primaryButtonText}>Kapat</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* DUPLICATE WARNING MODAL */}
+      <Modal visible={duplicateWarning.visible} transparent animationType="fade" onRequestClose={() => setDuplicateWarning({ visible: false, name: '' })}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, styles.glassSurface, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+            <Text style={[styles.modalTitle, { color: theme.textPrimary, marginBottom: 8 }]}>Benzer Kayıt Bulundu</Text>
+            <Text style={[styles.modalSubtitle, { color: theme.textSecondary, marginBottom: 16 }]}>Sistemde "{duplicateWarning.name}" adında aktif bir kayıt zaten mevcut. Yine de kaydetmek istiyor musunuz?</Text>
+            <View style={styles.modalFooter}>
+              <TouchableOpacity style={[styles.secondaryButton, { flex: 1, marginRight: 8, backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={() => setDuplicateWarning({ visible: false, name: '' })}>
+                <Text style={[styles.secondaryButtonText, { color: theme.textPrimary }]}>Vazgeç</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.primaryButton, { flex: 1, marginLeft: 8 }]} onPress={() => { setDuplicateWarning({ visible: false, name: '' }); handleSaveSubscription(); }}>
+                <Text style={styles.primaryButtonText}>Yine de Kaydet</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -1720,328 +1695,225 @@ export default function App() {
   );
 }
 
-function createStyles(theme, isMobile, fontScale) {
-  const font = value => Math.round(value * fontScale);
-  const glassSurface = Platform.OS === 'web' ? { backdropFilter: 'blur(20px) saturate(140%)', WebkitBackdropFilter: 'blur(20px) saturate(140%)' } : {};
-
-  return StyleSheet.create({
-    container: { flex: 1, width: '100%', minHeight: 0, overflow: 'hidden', ...(Platform.OS === 'web' ? { height: '100dvh' } : { height: '100%' }) },
-    appWrapper: { flex: 1, width: '100%', height: '100%', minHeight: 0, overflow: 'hidden' },
-    appWrapperDesktop: { flexDirection: 'row', width: '100%', height: '100%', minHeight: 0, overflow: 'hidden' },
-
-    glassSurface,
-
-    authWrapper: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 },
-    authCard: { width: '100%', maxWidth: 420, borderWidth: 1, borderRadius: 22, padding: 28 },
-    authHeader: { alignItems: 'center', marginBottom: 16 },
-    authLogo: { fontSize: font(26), fontWeight: 'bold' },
-    authSubtitle: { fontSize: font(11), marginTop: 4 },
-    authTitle: { fontSize: font(18), fontWeight: 'bold', textAlign: 'center', marginTop: 6, marginBottom: 4 },
-    authErrorText: { color: '#f87171', fontSize: font(11), fontWeight: '600', marginBottom: 8 },
-    authSwitchButton: { marginTop: 16, alignItems: 'center' },
-    authSwitchText: { fontSize: font(12), fontWeight: '600' },
-
-    sidebarContainer: { width: 250, minWidth: 250, flexShrink: 0, padding: 20, borderRightWidth: 1 },
-    sidebarHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    headerTitle: { fontSize: font(22), fontWeight: 'bold' },
-    proBadge: { backgroundColor: '#6366f1', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginLeft: 6 },
-    proBadgeText: { color: '#ffffff', fontSize: font(10), fontWeight: 'bold' },
-    headerSubtitle: { fontSize: font(11), marginTop: 4, marginBottom: 24 },
-
-    sidebarNavGroup: { gap: 6, flex: 1 },
-    sidebarNavButton: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10 },
-    sidebarNavButtonActive: { backgroundColor: theme.activeButtonSoft },
-    sidebarNavIcon: { fontSize: font(16) },
-    sidebarNavText: { fontSize: font(13), fontWeight: '600' },
-
-    sidebarFooter: { gap: 10, paddingTop: 16, borderTopWidth: 1, borderTopColor: theme.cardBorder },
-
-    contentWrapper: { flex: 1, height: '100%', minHeight: 0, overflow: 'hidden' },
-
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, zIndex: 10 },
-    pageHeaderInfo: { flex: 1, marginRight: 12 },
-    pageHeaderTitle: { fontSize: font(18), fontWeight: 'bold' },
-    pageHeaderDescription: { fontSize: font(11), marginTop: 2 },
-
-    headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    miniRatesBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1 },
-    miniRatesIcon: { fontSize: font(12) },
-    miniRatesText: { fontSize: font(11), fontWeight: '600' },
-
-    iconButton: { width: 34, height: 34, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-    iconButtonText: { fontSize: font(14) },
-
-    mainScroll: { flex: 1, width: '100%' },
-    scrollContent: { padding: isMobile ? 14 : 24, paddingBottom: 60, gap: 16 },
-
-    summaryCard: { borderRadius: 18, padding: 20, borderWidth: 1 },
-    summaryLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
-    summaryLabel: { color: 'rgba(255,255,255,0.82)', fontSize: font(12), fontWeight: '600' },
-    changeBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-    changeBadgeText: { fontSize: font(10), fontWeight: 'bold' },
-    summaryValue: { color: '#ffffff', fontSize: font(28), fontWeight: 'bold', marginBottom: 16 },
-    summaryStatsRow: { flexDirection: 'row', gap: 12, paddingTop: 14, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.15)' },
-    summaryStatBox: { flex: 1 },
-    summaryStatLabel: { color: 'rgba(255,255,255,0.7)', fontSize: font(10), marginBottom: 2 },
-    summaryStatValue: { color: '#ffffff', fontSize: font(13), fontWeight: 'bold' },
-
-    searchInput: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, fontSize: font(13) },
-
-    singleFilterSection: { gap: 8 },
-    sectionLabel: { fontSize: font(13), fontWeight: 'bold' },
-    horizontalOptionRow: { gap: 8, paddingBottom: 4 },
-    filterOption: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 },
-    filterOptionActive: { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder },
-    filterOptionText: { fontSize: font(12), fontWeight: '600' },
-    filterOptionTextActive: { color: '#ffffff' },
-
-    sectionTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
-    sectionTitle: { fontSize: font(15), fontWeight: 'bold' },
-    resultCount: { fontSize: font(11) },
-
-    emptyCard: { borderWidth: 1, borderRadius: 14, padding: 24, alignItems: 'center', justifyContent: 'center' },
-    emptyIcon: { fontSize: font(28), marginBottom: 8 },
-    emptyTitle: { fontSize: font(14), fontWeight: 'bold', marginBottom: 4 },
-    emptyDescription: { fontSize: font(12), textAlign: 'center' },
-
-    subscriptionCard: { borderWidth: 1, borderRadius: 14, padding: 14, flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: 12 },
-    subscriptionMain: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-    serviceIcon: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    serviceIconText: { color: '#ffffff', fontSize: font(16), fontWeight: 'bold' },
-    subscriptionInfo: { flex: 1 },
-    subscriptionTitleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 3 },
-    subscriptionName: { fontSize: font(14), fontWeight: 'bold' },
-    remainingDaysBadge: { borderWidth: 1, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-    remainingDaysText: { fontSize: font(10), fontWeight: 'bold' },
-    informationTag: { borderWidth: 1, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-    informationTagText: { fontSize: font(10), fontWeight: '600' },
-    subscriptionSubtitle: { fontSize: font(11) },
-
-    subscriptionRight: { alignItems: isMobile ? 'flex-start' : 'flex-end', gap: 6 },
-    subscriptionPrice: { fontSize: font(15), fontWeight: 'bold' },
-    convertedPrice: { fontSize: font(11), fontWeight: '600' },
-    subscriptionActions: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
-    smallActionButton: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
-    smallActionText: { fontSize: font(11), fontWeight: '600' },
-    deleteButton: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 4 },
-    deleteButtonText: { fontSize: font(11) },
-
-    calendarSection: { gap: 14 },
-    calendarNavigation: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    calendarNavigationButton: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
-    calendarNavigationText: { fontSize: font(12), fontWeight: 'bold' },
-    calendarTitle: { fontSize: font(16), fontWeight: 'bold' },
-    calendarYearSelectorRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8 },
-    calendarYearSelectorLabel: { fontSize: font(11) },
-    calendarYearSelectButton: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, flexDirection: 'row', alignItems: 'center', gap: 6 },
-    calendarYearSelectValue: { fontSize: font(12), fontWeight: 'bold' },
-    yearSelectChevron: { fontSize: font(12), fontWeight: 'bold' },
-
-    calendarContainer: { borderWidth: 1, borderColor: theme.cardBorder, borderRadius: 14, overflow: 'hidden', backgroundColor: theme.cardBg },
-    calendarWeekHeader: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: theme.cardBorder },
-    calendarWeekDay: { flex: 1, paddingVertical: 10, alignItems: 'center' },
-    calendarWeekDayText: { fontSize: font(11), fontWeight: 'bold' },
-    calendarGrid: { flexDirection: 'row', flexWrap: 'wrap' },
-    calendarDay: { width: '14.28%', height: 95, borderWidth: 0.5, borderColor: theme.cardBorder, padding: 4 },
-    calendarDayEmpty: { opacity: 0.3 },
-    calendarDayActive: { borderWidth: 1 },
-    calendarDayNumber: { fontSize: font(11), fontWeight: 'bold', marginBottom: 2 },
-    calendarDayScroll: { flex: 1 },
-    calendarDayScrollContent: { gap: 2 },
-    calendarSubscriptionBadge: { borderRadius: 4, paddingHorizontal: 3, paddingVertical: 2 },
-    calendarSubscriptionName: { color: '#ffffff', fontSize: font(9), fontWeight: 'bold' },
-    calendarSubscriptionPrice: { color: 'rgba(255,255,255,0.85)', fontSize: font(8) },
-
-    analyticsSection: { gap: 16 },
-    analysisToolbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    analysisToolbarLabel: { fontSize: font(11) },
-    analysisToolbarHint: { fontSize: font(13), fontWeight: 'bold', marginTop: 1 },
-    yearSelectButton: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 12 },
-    yearSelectCaption: { fontSize: font(9) },
-    yearSelectValue: { fontSize: font(15), fontWeight: 'bold' },
-
-    insightBox: { borderWidth: 1, borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
-    insightIconBox: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
-    insightTitle: { color: '#ffffff', fontSize: font(12), fontWeight: 'bold', marginBottom: 2 },
-    insightText: { color: 'rgba(255,255,255,0.9)', fontSize: font(11), lineHeight: 16 },
-
-    panel: { borderWidth: 1, borderRadius: 16, padding: 16 },
-    analysisPrimaryPanel: {},
-    panelTitle: { fontSize: font(15), fontWeight: 'bold', marginBottom: 2 },
-    panelDescription: { fontSize: font(11), marginBottom: 14 },
-    categoryLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
-    legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    legendDot: { width: 8, height: 8, borderRadius: 4 },
-    legendText: { fontSize: font(10) },
-
-    chartScrollContent: { paddingBottom: 4 },
-    chartArea: { flexDirection: 'row', height: 210, alignItems: 'flex-end', gap: 12, paddingHorizontal: 4 },
-    chartColumn: { width: 44, alignItems: 'center', height: '100%', justifyContent: 'flex-end' },
-    chartAmount: { fontSize: font(8), marginBottom: 4, height: 14, textAlign: 'center' },
-    chartTrack: { width: 30, flex: 1, borderWidth: 1, borderRadius: 8, overflow: 'hidden', justifyContent: 'flex-end' },
-    chartStack: { width: '100%', flexDirection: 'column-reverse' },
-    chartSegment: { width: '100%' },
-    chartMonthLabel: { fontSize: font(10), fontWeight: 'bold', marginTop: 6 },
-    chartFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, marginTop: 14, borderTopWidth: 1 },
-    chartFooterLabel: { fontSize: font(12), fontWeight: 'bold' },
-    chartFooterValue: { fontSize: font(14), fontWeight: 'bold' },
-
-    analysisSectionCard: { borderWidth: 1, borderRadius: 16, padding: 16, gap: 12 },
-    distributionSectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 },
-    distributionTitle: { fontSize: font(14), fontWeight: 'bold' },
-    distributionTitleNoTop: { marginTop: 0 },
-    distributionSubtitle: { fontSize: font(11), marginTop: 2 },
-    monthlyCommitmentBadge: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6, alignItems: 'flex-end' },
-    monthlyCommitmentBadgeLabel: { fontSize: font(9) },
-    monthlyCommitmentBadgeValue: { fontSize: font(13), fontWeight: 'bold' },
-
-    monthlyPaymentGrid: { gap: 10 },
-    monthlyPaymentCard: { borderWidth: 1, borderRadius: 12, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
-    monthlyPaymentIcon: { width: 36, height: 36, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-    monthlyPaymentIconText: { fontSize: font(14) },
-    monthlyPaymentContent: { flex: 1 },
-    monthlyPaymentName: { fontSize: font(13), fontWeight: 'bold', marginBottom: 2 },
-    monthlyPaymentMeta: { fontSize: font(10) },
-    monthlyPaymentAmount: { fontSize: font(14), fontWeight: 'bold' },
-    monthlyPaymentPeriod: { fontSize: font(10) },
-
-    distributionCard: { borderWidth: 1, borderRadius: 12, padding: 12, gap: 8 },
-    distributionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    distributionNameGroup: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    distributionColorDot: { width: 10, height: 10, borderRadius: 5 },
-    distributionName: { fontSize: font(13), fontWeight: 'bold' },
-    distributionAmount: { fontSize: font(12), fontWeight: '600' },
-    noDataText: { fontSize: font(12), fontStyle: 'italic' },
-
-    progressTrack: { height: 6, borderRadius: 3, overflow: 'hidden' },
-    progressFill: { height: '100%', borderRadius: 3 },
-
-    bottomNavigation: { flexDirection: 'row', height: 60, borderTopWidth: 1, alignItems: 'center', justifyContent: 'space-around', zIndex: 10 },
-    bottomNavigationItem: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 },
-    bottomNavigationIcon: { fontSize: font(16) },
-    bottomNavigationText: { fontSize: font(10), fontWeight: 'bold' },
-
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 16 },
-    drawerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-    drawerBackdrop: { flex: 1 },
-    dayDrawerPanel: { width: '100%', maxHeight: '75%', borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: 1, paddingBottom: 20 },
-
-    modalHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', padding: 20, paddingBottom: 14 },
-    modalTitle: { fontSize: font(16), fontWeight: 'bold' },
-    modalSubtitle: { fontSize: font(11), marginTop: 2 },
-    modalCloseButton: { width: 32, height: 32, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-    modalCloseText: { fontSize: font(12), fontWeight: 'bold' },
-
-    yearPickerBackdrop: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 },
-    yearPickerCard: { width: '100%', maxWidth: 360, borderWidth: 1, borderRadius: 20, padding: 20 },
-    yearPickerHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 },
-    yearPickerGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    yearPickerOption: { width: '31%', borderWidth: 1, borderRadius: 10, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
-    yearPickerOptionText: { fontSize: font(14), fontWeight: 'bold' },
-    yearPickerCheck: { color: '#ffffff', fontSize: font(12), fontWeight: 'bold' },
-
-    appearanceModal: { width: '100%', maxWidth: 440, maxHeight: '85%', borderWidth: 1, borderRadius: 22, padding: 20 },
-    appearanceSectionTitle: { fontSize: font(13), fontWeight: 'bold', marginTop: 12, marginBottom: 8 },
-    appearanceOptionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-    appearanceThemeOption: { width: '30%', borderWidth: 1, borderRadius: 12, padding: 8, alignItems: 'center', gap: 6 },
-    appearanceOptionActive: { borderWidth: 2 },
-    themePreview: { width: '100%', height: 48, borderRadius: 6, overflow: 'hidden', flexDirection: 'row' },
-    themePreviewSidebar: { width: 12, height: '100%' },
-    themePreviewContent: { flex: 1, padding: 4, gap: 4 },
-    themePreviewHeader: { height: 8, borderRadius: 2 },
-    themePreviewCard: { height: 16, borderRadius: 2 },
-
-    fontScaleRow: { flexDirection: 'row', gap: 8 },
-    fontScaleOption: { flex: 1, borderWidth: 1, borderRadius: 10, paddingVertical: 10, alignItems: 'center', justifyContent: 'center' },
-    fontScaleOptionActive: { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder },
-    fontScaleOptionText: { fontWeight: '600' },
-    fontScaleOptionTextActive: { color: '#ffffff', fontWeight: 'bold' },
-
-    subscriptionModal: { width: '100%', maxWidth: 540, maxHeight: '90%', borderWidth: 1, borderRadius: 22, overflow: 'hidden' },
-    subscriptionModalScroll: { maxHeight: 460 },
-    subscriptionModalContent: { padding: 20, paddingTop: 4, gap: 16 },
-
-    stepIndicatorRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
-    stepDot: { width: 8, height: 8, borderRadius: 4, borderWidth: 1 },
-    stepIndicatorText: { fontSize: font(10), fontWeight: '600' },
-
-    formSection: { gap: 10 },
-    formSectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    formSectionTitle: { fontSize: font(13), fontWeight: 'bold' },
-    formSectionDescription: { fontSize: font(10) },
-    formSectionAction: { fontSize: font(11), fontWeight: 'bold' },
-
-    removableOptionWrapper: { position: 'relative' },
-    removableOptionRow: { gap: 8, paddingBottom: 4 },
-    templateOption: { borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, maxWidth: 130 },
-    templateOptionText: { color: '#ffffff', fontSize: font(12), fontWeight: 'bold' },
-    removeOptionButton: { position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: 10, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', zIndex: 5 },
-    removeOptionText: { color: '#ffffff', fontSize: font(10), fontWeight: 'bold' },
-
-    inlineForm: { borderWidth: 1, borderRadius: 12, padding: 12, gap: 10, marginTop: 4 },
-    inlineInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    inlineSaveButton: { marginTop: 4 },
-    inlineAddButton: { paddingHorizontal: 16 },
-    flexInput: { flex: 1 },
-
-    wrappedOptionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-    compactOptionButton: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7 },
-    compactOptionButtonActive: { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder },
-    compactOptionText: { fontSize: font(11), fontWeight: '600' },
-    compactOptionTextActive: { color: '#ffffff', fontWeight: 'bold' },
-    flexOptionButton: { flex: 1, alignItems: 'center' },
-
-    twoColumnRow: { flexDirection: 'row', gap: 12 },
-    singleColumnRow: { flexDirection: 'column' },
-    formColumn: { flex: 1, gap: 4 },
-
-    inputLabel: { fontSize: font(11), fontWeight: '600' },
-    textInput: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: font(13) },
-
-    currencyOptionRow: { flexDirection: 'row', gap: 6 },
-    periodOptionRow: { flexDirection: 'row', gap: 8 },
-    periodOption: { flex: 1, borderWidth: 1, borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
-    periodOptionActive: { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder },
-    periodOptionText: { fontSize: font(12), fontWeight: '600' },
-    periodOptionTextActive: { color: '#ffffff', fontWeight: 'bold' },
-
-    projectionFieldCard: { borderWidth: 1, borderRadius: 12, padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-    projectionFieldCopy: { flex: 1 },
-    projectionRateInputWrap: { width: 90, flexDirection: 'row', alignItems: 'center', gap: 4 },
-    projectionRateInput: { flex: 1, textAlign: 'center' },
-    projectionPercent: { fontSize: font(13), fontWeight: 'bold' },
-
-    paymentMethodOption: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, maxWidth: 140 },
-    paymentMethodOptionActive: { backgroundColor: theme.activeButton, borderColor: theme.activeButtonBorder },
-    paymentMethodOptionText: { fontSize: font(12), fontWeight: '600' },
-
-    categoryOption: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7 },
-    categoryOptionText: { fontSize: font(11), fontWeight: '600' },
-
-    dateInputRow: { flexDirection: 'row', gap: 10 },
-    dateInputField: { flex: 1, gap: 4 },
-    dateInputYearField: { flex: 1.3 },
-    helperText: { fontSize: font(10), marginTop: 4 },
-
-    modalFooter: { flexDirection: 'row', gap: 10, padding: 20, borderTopWidth: 1 },
-    modalCancelButton: { flex: 1, borderWidth: 1, borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
-    modalCancelButtonText: { fontSize: font(13), fontWeight: 'bold' },
-    modalSaveButton: { flex: 1, backgroundColor: theme.activeButton, borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
-    modalSaveButtonText: { color: '#ffffff', fontSize: font(13), fontWeight: 'bold' },
-
-    primaryButton: { backgroundColor: theme.activeButton, borderRadius: 10, paddingVertical: 11, paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center' },
-    primaryButtonText: { color: '#ffffff', fontSize: font(13), fontWeight: 'bold' },
-    secondaryButton: { borderWidth: 1, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 14, alignItems: 'center' },
-    secondaryButtonText: { fontSize: font(12), fontWeight: 'bold' },
-
-    warningOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 20 },
-    warningCard: { width: '100%', maxWidth: 360, borderWidth: 1, borderRadius: 22, padding: 24, alignItems: 'center' },
-    warningIconBox: { width: 48, height: 48, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
-    warningIcon: { fontSize: font(20) },
-    warningTitle: { fontSize: font(16), fontWeight: 'bold', marginBottom: 6, textAlign: 'center' },
-    warningMessage: { fontSize: font(12), textAlign: 'center', marginBottom: 6 },
-    warningHint: { fontSize: font(11), textAlign: 'center', marginBottom: 20 },
-    warningButton: { width: '100%', backgroundColor: theme.activeButton, borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
-    warningButtonText: { color: '#ffffff', fontSize: font(13), fontWeight: 'bold' }
-  });
-}
+const createStyles = (theme, isMobile, fontScale) => StyleSheet.create({
+  container: { flex: 1 },
+  glassSurface: { ...(Platform.OS === 'web' ? { backdropFilter: 'blur(16px)' } : {}) },
+  appWrapper: { flex: 1, flexDirection: 'row' },
+  appWrapperDesktop: { maxWidth: 1440, alignSelf: 'center', width: '100%' },
+  sidebarContainer: { width: 280, padding: 20, borderRightWidth: 1, justifyContent: 'space-between' },
+  sidebarHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  headerTitle: { fontSize: 24 * fontScale, fontWeight: '800', letterSpacing: -0.5 },
+  proBadge: { backgroundColor: '#6366f1', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginLeft: 8 },
+  proBadgeText: { color: '#ffffff', fontSize: 10 * fontScale, fontWeight: '700' },
+  headerSubtitle: { fontSize: 12 * fontScale, marginBottom: 24 },
+  sidebarNavGroup: { flex: 1 },
+  sidebarNavButton: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 12, borderRadius: 10, marginBottom: 6 },
+  sidebarNavButtonActive: { backgroundColor: theme.inputBg },
+  sidebarNavIcon: { fontSize: 16 * fontScale, marginRight: 12 },
+  sidebarNavText: { fontSize: 14 * fontScale, fontWeight: '600' },
+  sidebarFooter: { gap: 8 },
+  contentWrapper: { flex: 1, flexDirection: 'column', height: '100%' },
+  header: { paddingHorizontal: 20, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1 },
+  pageHeaderInfo: { flex: 1, marginRight: 12 },
+  pageHeaderTitle: { fontSize: 20 * fontScale, fontWeight: '700', letterSpacing: -0.3 },
+  pageHeaderDescription: { fontSize: 12 * fontScale, marginTop: 2 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  miniRatesBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1 },
+  miniRatesIcon: { fontSize: 12 * fontScale, marginRight: 6 },
+  miniRatesText: { fontSize: 11 * fontScale, fontWeight: '500' },
+  iconButton: { width: 36, height: 36, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  iconButtonText: { fontSize: 14 * fontScale },
+  mainScroll: { flex: 1 },
+  scrollContent: { padding: 20, paddingBottom: 40 },
+  summaryCard: { padding: 20, borderRadius: 16, borderWidth: 1, marginBottom: 20 },
+  summaryLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  summaryLabel: { fontSize: 13 * fontScale, color: '#ffffff', opacity: 0.85, fontWeight: '600' },
+  summaryValue: { fontSize: 32 * fontScale, fontWeight: '800', color: '#ffffff', letterSpacing: -1, marginBottom: 16 },
+  summaryStatsRow: { flexDirection: 'row', gap: 12 },
+  summaryStatBox: { flex: 1, backgroundColor: 'rgba(0,0,0,0.15)', padding: 12, borderRadius: 10 },
+  summaryStatLabel: { fontSize: 11 * fontScale, color: '#ffffff', opacity: 0.8, marginBottom: 4 },
+  summaryStatValue: { fontSize: 15 * fontScale, fontWeight: '700', color: '#ffffff' },
+  changeBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  changeBadgeText: { fontSize: 11 * fontScale, fontWeight: '700' },
+  searchInput: { height: 44, borderRadius: 10, borderWidth: 1, paddingHorizontal: 14, fontSize: 14 * fontScale, marginBottom: 16 },
+  singleFilterSection: { marginBottom: 16 },
+  sectionLabel: { fontSize: 13 * fontScale, fontWeight: '600', marginBottom: 8 },
+  horizontalOptionRow: { gap: 8, paddingBottom: 4 },
+  filterOption: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, borderWidth: 1 },
+  filterOptionActive: { backgroundColor: '#6366f1', borderColor: '#6366f1' },
+  filterOptionText: { fontSize: 13 * fontScale, fontWeight: '500' },
+  filterOptionTextActive: { color: '#ffffff', fontWeight: '600' },
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, marginTop: 4 },
+  sectionTitle: { fontSize: 16 * fontScale, fontWeight: '700' },
+  resultCount: { fontSize: 12 * fontScale },
+  subscriptionCard: { padding: 16, borderRadius: 14, borderWidth: 1, marginBottom: 12, flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: 12 },
+  subscriptionMain: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 12 },
+  serviceIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  serviceIconText: { color: '#ffffff', fontSize: 18 * fontScale, fontWeight: '800' },
+  subscriptionInfo: { flex: 1 },
+  subscriptionTitleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 4 },
+  subscriptionName: { fontSize: 15 * fontScale, fontWeight: '700', marginRight: 4 },
+  subscriptionSubtitle: { fontSize: 12 * fontScale },
+  remainingDaysBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 1 },
+  remainingDaysText: { fontSize: 10 * fontScale, fontWeight: '700' },
+  informationTag: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 1 },
+  informationTagText: { fontSize: 10 * fontScale, fontWeight: '500' },
+  subscriptionRight: { alignItems: isMobile ? 'flex-start' : 'flex-end', gap: 6 },
+  subscriptionPrice: { fontSize: 16 * fontScale, fontWeight: '800' },
+  convertedPrice: { fontSize: 11 * fontScale, fontWeight: '600' },
+  subscriptionActions: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
+  smallActionButton: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, borderWidth: 1 },
+  smallActionText: { fontSize: 11 * fontScale, fontWeight: '600' },
+  deleteButton: { width: 28, height: 28, borderRadius: 6, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  deleteButtonText: { fontSize: 12 * fontScale },
+  emptyCard: { padding: 32, borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
+  emptyIcon: { fontSize: 32 * fontScale, marginBottom: 8 },
+  emptyTitle: { fontSize: 16 * fontScale, fontWeight: '700', marginBottom: 4 },
+  emptyDescription: { fontSize: 13 * fontScale, textAlign: 'center' },
+  primaryButton: { backgroundColor: '#6366f1', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  primaryButtonText: { color: '#ffffff', fontSize: 14 * fontScale, fontWeight: '700' },
+  secondaryButton: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  secondaryButtonText: { fontSize: 13 * fontScale, fontWeight: '600' },
+  bottomNavigation: { flexDirection: 'row', borderTopWidth: 1, paddingVertical: 8, paddingHorizontal: 12, justifyContent: 'space-around' },
+  bottomNavigationItem: { alignItems: 'center', padding: 4 },
+  bottomNavigationIcon: { fontSize: 18 * fontScale, marginBottom: 2 },
+  bottomNavigationText: { fontSize: 10 * fontScale, fontWeight: '600' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'center', alignItems: 'center', padding: isMobile ? 12 : 24 },
+  modalContent: { width: '100%', maxWidth: 640, maxHeight: '90%', borderRadius: 18, borderWidth: 1, padding: 20, flexDirection: 'column' },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+  modalTitle: { fontSize: 18 * fontScale, fontWeight: '800' },
+  modalSubtitle: { fontSize: 12 * fontScale, marginTop: 2 },
+  modalCloseButton: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  modalCloseText: { fontSize: 16 * fontScale, fontWeight: '700' },
+  stepIndicatorRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, gap: 8 },
+  stepBadge: { flex: 1, paddingVertical: 6, borderRadius: 8, borderWidth: 1, alignItems: 'center' },
+  stepBadgeText: { fontSize: 12 * fontScale, fontWeight: '600' },
+  stepDivider: { width: 12, height: 1 },
+  modalScrollBody: { flex: 1 },
+  modalScrollBodyContent: { paddingBottom: 16 },
+  modalFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', paddingTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', gap: 8 },
+  inputLabel: { fontSize: 12 * fontScale, fontWeight: '700', marginBottom: 6, marginTop: 10 },
+  inputLabelSmall: { fontSize: 11 * fontScale, fontWeight: '600', marginBottom: 4 },
+  inputHint: { fontSize: 11 * fontScale, marginBottom: 6 },
+  textInput: { height: 42, borderRadius: 8, borderWidth: 1, paddingHorizontal: 12, fontSize: 14 * fontScale },
+  typeSelectorRow: { flexDirection: 'row', gap: 8 },
+  typeOptionButton: { flex: 1, paddingVertical: 8, borderRadius: 8, borderWidth: 1, alignItems: 'center' },
+  typeOptionText: { fontSize: 13 * fontScale, fontWeight: '600' },
+  horizontalTemplateRow: { gap: 8, paddingBottom: 6 },
+  templateCard: { width: 130, padding: 10, borderRadius: 10, borderWidth: 1 },
+  templateCardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
+  templateName: { fontSize: 13 * fontScale, fontWeight: '700', flex: 1, marginRight: 4 },
+  templateDeleteIcon: { width: 16, height: 16, alignItems: 'center', justifyContent: 'center' },
+  templatePrice: { fontSize: 12 * fontScale, fontWeight: '600' },
+  formRowTwo: { flexDirection: 'row', gap: 8, marginTop: 4 },
+  currencySelectorRow: { flexDirection: 'row', gap: 4 },
+  currencyOptionButton: { flex: 1, height: 42, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  currencyOptionText: { fontSize: 12 * fontScale, fontWeight: '700' },
+  periodSelectorRow: { flexDirection: 'row', gap: 8 },
+  periodOptionButton: { flex: 1, paddingVertical: 8, borderRadius: 8, borderWidth: 1, alignItems: 'center' },
+  periodOptionText: { fontSize: 13 * fontScale, fontWeight: '600' },
+  advancedSettingsContainer: { borderRadius: 10, borderWidth: 1, marginTop: 14, overflow: 'hidden' },
+  advancedSettingsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12 },
+  advancedSettingsTitle: { fontSize: 13 * fontScale, fontWeight: '700' },
+  advancedSettingsChevron: { fontSize: 12 * fontScale },
+  advancedSettingsBody: { padding: 12, paddingTop: 0 },
+  pricePreviewCard: { padding: 10, borderRadius: 8, borderWidth: 1, marginTop: 12 },
+  pricePreviewTitle: { fontSize: 12 * fontScale, fontWeight: '700', marginBottom: 6 },
+  pricePreviewRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 2 },
+  pricePreviewYear: { fontSize: 12 * fontScale },
+  pricePreviewAmount: { fontSize: 12 * fontScale, fontWeight: '700' },
+  paymentMethodCard: { width: 140, padding: 10, borderRadius: 10, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  paymentMethodCardText: { fontSize: 12 * fontScale, fontWeight: '600', flex: 1 },
+  addInlineButton: { marginTop: 6, marginBottom: 4 },
+  addInlineButtonText: { fontSize: 12 * fontScale, fontWeight: '600' },
+  inlineAddBox: { padding: 10, borderRadius: 8, borderWidth: 1, marginTop: 6 },
+  categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  categoryOptionButton: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, borderWidth: 1, gap: 6 },
+  categoryOptionText: { fontSize: 12 * fontScale, fontWeight: '500' },
+  dateRowThree: { flexDirection: 'row' },
+  notificationRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  notificationButton: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, borderWidth: 1 },
+  notificationButtonText: { fontSize: 11 * fontScale, fontWeight: '600' },
+  presetGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
+  presetCard: { flex: 1, minWidth: '45%'.replace('%', ''), padding: 12, borderRadius: 10, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  presetColorDot: { width: 16, height: 16, borderRadius: 8 },
+  presetCardText: { fontSize: 13 * fontScale, fontWeight: '600' },
+  calendarSection: { gap: 16 },
+  calendarNavigation: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  calendarNavigationButton: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1 },
+  calendarNavigationText: { fontSize: 13 * fontScale, fontWeight: '600' },
+  calendarTitle: { fontSize: 18 * fontScale, fontWeight: '800' },
+  calendarContainer: { borderRadius: 16, borderWidth: 1, padding: 12 },
+  calendarWeekHeader: { flexDirection: 'row', marginBottom: 8 },
+  calendarWeekDay: { flex: 1, alignItems: 'center', paddingVertical: 4 },
+  calendarWeekDayText: { fontSize: 12 * fontScale, fontWeight: '700' },
+  calendarGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  calendarDay: { width: `${100 / 7}%`.replace('%', ''), aspectRatio: 0.85, borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.08)', padding: 4, borderRadius: 6 },
+  calendarDayEmpty: { opacity: 0.3 },
+  calendarDayActive: { borderWidth: 1.5 },
+  calendarDayNumber: { fontSize: 11 * fontScale, fontWeight: '700', marginBottom: 2 },
+  calendarDayScroll: { flex: 1 },
+  calendarDayScrollContent: { gap: 2 },
+  calendarSubscriptionBadge: { paddingHorizontal: 4, paddingVertical: 2, borderRadius: 4 },
+  calendarSubscriptionName: { fontSize: 8 * fontScale, fontWeight: '700', color: '#ffffff' },
+  calendarSubscriptionPrice: { fontSize: 7 * fontScale, color: '#ffffff', opacity: 0.9 },
+  analyticsSection: { gap: 16 },
+  analysisToolbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  analysisToolbarLabel: { fontSize: 13 * fontScale, fontWeight: '600' },
+  analysisToolbarHint: { fontSize: 11 * fontScale, marginTop: 2 },
+  yearSelectorRow: { flexDirection: 'row', borderRadius: 8, borderWidth: 1, overflow: 'hidden' },
+  yearSelectorButton: { paddingHorizontal: 10, paddingVertical: 6 },
+  yearSelectorText: { fontSize: 12 * fontScale, fontWeight: '700' },
+  insightBox: { padding: 16, borderRadius: 14, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  insightIconBox: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+  insightTitle: { fontSize: 14 * fontScale, fontWeight: '800', color: '#ffffff', marginBottom: 2 },
+  insightText: { fontSize: 12 * fontScale, color: '#ffffff', opacity: 0.9, lineHeight: 16 },
+  panel: { padding: 16, borderRadius: 16, borderWidth: 1 },
+  analysisPrimaryPanel: {},
+  panelTitle: { fontSize: 16 * fontScale, fontWeight: '700', marginBottom: 2 },
+  panelDescription: { fontSize: 12 * fontScale, marginBottom: 12 },
+  categoryLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  legendDot: { width: 8, height: 8, borderRadius: 4 },
+  legendText: { fontSize: 11 * fontScale, fontWeight: '500' },
+  chartScrollContent: { paddingBottom: 8 },
+  chartArea: { flexDirection: 'row', height: 180, alignItems: 'flex-end', gap: 12, paddingHorizontal: 4 },
+  chartColumn: { width: 44, alignItems: 'center', height: '100%', justifyContent: 'flex-end' },
+  chartAmount: { fontSize: 9 * fontScale, marginBottom: 4, transform: [{ rotate: '-45deg' }] },
+  chartTrack: { width: 28, height: 120, borderRadius: 6, borderWidth: 1, overflow: 'hidden', justifyContent: 'flex-end' },
+  chartStack: { width: '100%', flexDirection: 'column' },
+  chartSegment: { width: '100%' },
+  chartMonthLabel: { fontSize: 11 * fontScale, fontWeight: '600', marginTop: 6 },
+  chartFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, paddingTop: 12, borderTopWidth: 1 },
+  chartFooterLabel: { fontSize: 13 * fontScale, fontWeight: '600' },
+  chartFooterValue: { fontSize: 15 * fontScale, fontWeight: '800' },
+  analysisSectionCard: { padding: 16, borderRadius: 16, borderWidth: 1, gap: 12 },
+  distributionTitle: { fontSize: 15 * fontScale, fontWeight: '700', marginBottom: 4 },
+  distributionTitleNoTop: { marginTop: 0 },
+  distributionSubtitle: { fontSize: 12 * fontScale, marginBottom: 8 },
+  noDataText: { fontSize: 13 * fontScale, fontStyle: 'italic' },
+  distributionCard: { padding: 12, borderRadius: 10, borderWidth: 1, gap: 8 },
+  distributionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  distributionNameGroup: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  distributionColorDot: { width: 10, height: 10, borderRadius: 5 },
+  distributionName: { fontSize: 13 * fontScale, fontWeight: '600' },
+  distributionAmount: { fontSize: 12 * fontScale, fontWeight: '700' },
+  progressTrack: { height: 6, borderRadius: 3, overflow: 'hidden' },
+  progressFill: { height: '100%', borderRadius: 3 },
+  drawerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  drawerBackdrop: { flex: 1 },
+  drawerContent: { borderTopLeftRadius: 20, borderTopRightRadius: 20, borderWidth: 1, padding: 20, maxHeight: '60%' },
+  drawerItemCard: { padding: 12, borderRadius: 10, borderWidth: 1, flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  drawerItemTitle: { fontSize: 14 * fontScale, fontWeight: '700', marginBottom: 2 },
+  drawerItemSubtitle: { fontSize: 12 * fontScale },
+  drawerItemPrice: { fontSize: 15 * fontScale, fontWeight: '800' },
+  authWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  authCard: { width: '100%', maxWidth: 400, padding: 24, borderRadius: 20, borderWidth: 1 },
+  authHeader: { alignItems: 'center', marginBottom: 20 },
+  authLogo: { fontSize: 26 * fontScale, fontWeight: '900', letterSpacing: -0.5 },
+  authSubtitle: { fontSize: 12 * fontScale, marginTop: 4 },
+  authTitle: { fontSize: 18 * fontScale, fontWeight: '700', textAlign: 'center', marginBottom: 4 },
+  authErrorText: { color: '#f87171', fontSize: 12 * fontScale, marginTop: 8, textAlign: 'center' },
+  authSwitchButton: { marginTop: 16, alignItems: 'center' },
+  authSwitchText: { fontSize: 13 * fontScale, fontWeight: '600' }
+});
