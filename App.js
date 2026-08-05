@@ -198,23 +198,26 @@ export default function App() {
     });
   };
 
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [authMode, setAuthMode] = useState('login');
-  const [authEmail, setAuthEmail] = useState('');
-  const [authPassword, setAuthPassword] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [authEmail, setAuthEmail] = useState('kullanici@cebin.com');
+  const [authPassword, setAuthPassword] = useState('123456');
   const [authError, setAuthError] = useState('');
 
-  const [subscriptions, setSubscriptions] = useState([]);
+  const [subscriptions, setSubscriptions] = useState([
+    { id: '1', name: 'Netflix', price: '299', currency: 'TRY', billingDay: '15', billingMonth: '1', billingYear: '2026', category: 'Eğlence', paymentMethod: 'Garanti Bonus', period: 'monthly', cancelUrl: 'https://netflix.com', color: '#E50914', notificationDays: 2, notificationChannel: 'email', annualIncreaseRate: 0, status: 'active' },
+    { id: '2', name: 'Spotify', price: '89', currency: 'TRY', billingDay: '10', billingMonth: '1', billingYear: '2026', category: 'Müzik', paymentMethod: 'Enpara Kart', period: 'monthly', cancelUrl: 'https://spotify.com', color: '#1DB954', notificationDays: 1, notificationChannel: 'email', annualIncreaseRate: 0, status: 'active' },
+    { id: '3', name: 'ChatGPT Plus', price: '20', currency: 'USD', billingDay: '5', billingMonth: '1', billingYear: '2026', category: 'Yazılım & AI', paymentMethod: 'Papara', period: 'monthly', cancelUrl: 'https://openai.com', color: '#10A37F', notificationDays: 3, notificationChannel: 'email', annualIncreaseRate: 0, status: 'active' }
+  ]);
   const [exchangeRates, setExchangeRates] = useState(DEFAULT_RATES);
   const [templatesList, setTemplatesList] = useState(DEFAULT_TEMPLATES);
   const [paymentMethodsList, setPaymentMethodsList] = useState(DEFAULT_PAYMENT_METHODS);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(true);
 
   const [activeTab, setActiveTab] = useState('list');
   const [viewFilter, setViewFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [backgroundPreset, setBackgroundPreset] = useState('smoke');
+  const [backgroundPreset, setBackgroundPreset] = useState('light');
   const [fontScaleKey, setFontScaleKey] = useState('normal');
   const [isAppearanceModalOpen, setIsAppearanceModalOpen] = useState(false);
   const [isAnalysisYearPickerOpen, setIsAnalysisYearPickerOpen] = useState(false);
@@ -258,111 +261,26 @@ export default function App() {
   const [showPaymentMethodForm, setShowPaymentMethodForm] = useState(false);
   const [newPaymentMethodName, setNewPaymentMethodName] = useState('');
 
-  useEffect(() => {
-    try {
-      const savedAuth = localStorage.getItem('cebin_auth_v1');
-      if (savedAuth === 'true') setIsLoggedIn(true);
-
-      const savedSubscriptions = localStorage.getItem('cebin_subscriptions_v5');
-      if (savedSubscriptions) {
-        const parsed = JSON.parse(savedSubscriptions);
-        setSubscriptions(Array.isArray(parsed) ? parsed : []);
-      }
-
-      const savedTemplates = localStorage.getItem('cebin_templates_v1');
-      if (savedTemplates) {
-        const parsed = JSON.parse(savedTemplates);
-        setTemplatesList(Array.isArray(parsed) ? parsed : DEFAULT_TEMPLATES);
-      }
-
-      const savedPaymentMethods = localStorage.getItem('cebin_payment_methods_v1');
-      if (savedPaymentMethods) {
-        const parsed = JSON.parse(savedPaymentMethods);
-        setPaymentMethodsList(Array.isArray(parsed) ? parsed : DEFAULT_PAYMENT_METHODS);
-      }
-
-      const savedRates = localStorage.getItem('cebin_exchange_rates_v1');
-      if (savedRates) {
-        const parsed = JSON.parse(savedRates);
-        setExchangeRates({ USD: Number(parsed?.USD) || DEFAULT_RATES.USD, EUR: Number(parsed?.EUR) || DEFAULT_RATES.EUR });
-      }
-
-      const savedAppearance = localStorage.getItem('cebin_appearance_v1');
-      if (savedAppearance) {
-        const parsed = JSON.parse(savedAppearance);
-        if (BACKGROUND_PRESETS[parsed?.backgroundPreset]) setBackgroundPreset(parsed.backgroundPreset);
-        if (FONT_SCALE_OPTIONS.some(o => o.key === parsed?.fontScaleKey)) setFontScaleKey(parsed.fontScaleKey);
-      }
-    } catch (error) {
-      console.log('Kayıtlı veriler okunamadı:', error);
-    }
-    setIsLoaded(true);
-  }, []);
-
-  useEffect(() => { if (isLoaded) try { localStorage.setItem('cebin_subscriptions_v5', JSON.stringify(subscriptions)); } catch (e) { console.log(e); } }, [subscriptions, isLoaded]);
-  useEffect(() => { if (isLoaded) try { localStorage.setItem('cebin_templates_v1', JSON.stringify(templatesList)); } catch (e) { console.log(e); } }, [templatesList, isLoaded]);
-  useEffect(() => { if (isLoaded) try { localStorage.setItem('cebin_payment_methods_v1', JSON.stringify(paymentMethodsList)); } catch (e) { console.log(e); } }, [paymentMethodsList, isLoaded]);
-  useEffect(() => { if (isLoaded) try { localStorage.setItem('cebin_exchange_rates_v1', JSON.stringify(exchangeRates)); } catch (e) { console.log(e); } }, [exchangeRates, isLoaded]);
-  useEffect(() => { if (isLoaded) try { localStorage.setItem('cebin_appearance_v1', JSON.stringify({ backgroundPreset, fontScaleKey })); } catch (e) { console.log(e); } }, [backgroundPreset, fontScaleKey, isLoaded]);
-
-  useEffect(() => {
-    let isMounted = true;
-    const fetchExchangeRates = async () => {
-      try {
-        const [usdRes, eurRes] = await Promise.all([
-          fetch('https://api.frankfurter.dev/v2/rate/USD/TRY?providers=TCMB'),
-          fetch('https://api.frankfurter.dev/v2/rate/EUR/TRY?providers=TCMB')
-        ]);
-        if (!usdRes.ok || !eurRes.ok) throw new Error('Kur servisi yanıt vermedi.');
-        const usdData = await usdRes.json();
-        const eurData = await eurRes.json();
-        if (!isMounted) return;
-        const usdRate = Number(usdData?.rate);
-        const eurRate = Number(eurData?.rate);
-        if (!Number.isFinite(usdRate) || !Number.isFinite(eurRate)) throw new Error('Kur değerleri geçersiz.');
-        setExchangeRates({ USD: usdRate, EUR: eurRate });
-      } catch (error) {
-        console.log('Güncel döviz kurları alınamadı:', error);
-      }
-    };
-    fetchExchangeRates();
-    const intervalId = setInterval(fetchExchangeRates, 6 * 60 * 60 * 1000);
-    return () => { isMounted = false; clearInterval(intervalId); };
-  }, []);
-
-  useEffect(() => { scrollMainToTop(false); }, [activeTab, selectedAnalysisYear]);
-
   const handleLogin = () => {
-    const trimmedEmail = authEmail.trim();
-    if (!trimmedEmail || !authPassword) { setAuthError('Lütfen e-posta ve şifrenizi giriniz.'); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) { setAuthError('Lütfen geçerli bir e-posta adresi giriniz.'); return; }
-    if (authPassword.length < 4) { setAuthError('Şifre en az 4 karakter olmalıdır.'); return; }
-    setAuthError('');
-    try {
-      localStorage.setItem('cebin_auth_v1', 'true');
-      localStorage.setItem('cebin_auth_email_v1', trimmedEmail);
-    } catch (e) { console.log(e); }
     setIsLoggedIn(true);
   };
 
   const handleLogout = () => {
-    if (!confirmAction('Oturumu kapatmak istediğinize emin misiniz?')) return;
-    try { localStorage.setItem('cebin_auth_v1', 'false'); } catch (e) { console.log(e); }
     setIsLoggedIn(false);
   };
 
-  const selectedPreset = BACKGROUND_PRESETS[backgroundPreset] || BACKGROUND_PRESETS.smoke;
+  const selectedPreset = BACKGROUND_PRESETS[backgroundPreset] || BACKGROUND_PRESETS.light;
   const selectedFontOption = FONT_SCALE_OPTIONS.find(o => o.key === fontScaleKey) || FONT_SCALE_OPTIONS[1];
   const fontScale = selectedFontOption.scale;
 
   const theme = {
     ...selectedPreset,
-    danger: '#f87171',
-    success: '#34d399',
-    warning: '#fbbf24',
-    activeButton: '#6965e8',
-    activeButtonBorder: '#7c78f0',
-    activeButtonSoft: '#7772ff26'
+    danger: '#ef4444',
+    success: '#10b981',
+    warning: '#f59e0b',
+    activeButton: '#4f46e5',
+    activeButtonBorder: '#6366f1',
+    activeButtonSoft: '#e0e7ff'
   };
 
   const safeList = Array.isArray(subscriptions) ? subscriptions : [];
@@ -607,7 +525,7 @@ export default function App() {
   const handleDeleteSubscription = id => {
     const preservedScrollPosition = mainScrollPositionRef.current;
     const target = safeList.find(s => s.id === id);
-    if (!confirmAction(`"${target?.name || 'Bu kayıt'}" kalıcı olarak silinsin mi?`)) return;
+    if (!confirmAction(`"${target?.name || 'Bu kayıt'}" silinsin mi?`)) return;
     setSubscriptions(safeList.filter(s => s.id !== id));
     restoreMainScrollPosition(preservedScrollPosition);
   };
@@ -740,13 +658,13 @@ export default function App() {
       <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
         <StatusBar barStyle={theme.dark ? 'light-content' : 'dark-content'} />
         <View style={styles.authWrapper}>
-          <View style={[styles.authCard, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.82) : theme.cardBg, borderColor: theme.cardBorder }]}>
+          <View style={[styles.authCard, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.95) : theme.cardBg, borderColor: theme.cardBorder }]}>
             <View style={styles.authHeader}>
-              <Text style={[styles.authLogo, { color: theme.textPrimary }]}>Cebin <Text style={{ color: '#9b98ff' }}>PRO</Text></Text>
+              <Text style={[styles.authLogo, { color: theme.textPrimary }]}>Cebin <Text style={{ color: theme.activeButton }}>PRO</Text></Text>
               <Text style={[styles.authSubtitle, { color: theme.textSecondary }]}>Akıllı Abonelik ve Bütçe Asistanı</Text>
             </View>
 
-            <Text style={[styles.authTitle, { color: theme.textPrimary }]}>{authMode === 'login' ? 'Giriş Yap' : 'Kayıt Ol'}</Text>
+            <Text style={[styles.authTitle, { color: theme.textPrimary }]}>Hoş Geldiniz</Text>
 
             <Text style={[styles.inputLabel, { color: theme.textSecondary, marginTop: 16 }]}>E-posta</Text>
             <TextInput
@@ -771,14 +689,8 @@ export default function App() {
 
             {!!authError && <Text style={styles.authErrorText}>{authError}</Text>}
 
-            <TouchableOpacity style={[styles.primaryButton, { marginTop: 8, paddingVertical: 13 }]} onPress={handleLogin}>
-              <Text style={styles.primaryButtonText}>{authMode === 'login' ? 'Giriş Yap' : 'Kayıt Ol'}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.authSwitchButton} onPress={() => { setAuthMode(authMode === 'login' ? 'register' : 'login'); setAuthError(''); }}>
-              <Text style={[styles.authSwitchText, { color: theme.accent }]}>
-                {authMode === 'login' ? 'Hesabın yok mu? Kayıt Ol' : 'Zaten hesabın var mı? Giriş Yap'}
-              </Text>
+            <TouchableOpacity style={[styles.primaryButton, { marginTop: 12, paddingVertical: 14 }]} onPress={handleLogin}>
+              <Text style={styles.primaryButtonText}>Giriş Yap</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -792,7 +704,7 @@ export default function App() {
 
       <View style={[styles.appWrapper, isDesktop && styles.appWrapperDesktop]}>
         {isDesktop && (
-          <View style={[styles.sidebarContainer, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.sidebarBg, 0.82) : theme.sidebarBg, borderRightColor: theme.cardBorder }]}>
+          <View style={[styles.sidebarContainer, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.sidebarBg, 0.95) : theme.sidebarBg, borderRightColor: theme.cardBorder }]}>
             <View style={styles.sidebarHeader}>
               <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Cebin</Text>
               <View style={styles.proBadge}><Text style={styles.proBadgeText}>PRO</Text></View>
@@ -808,7 +720,7 @@ export default function App() {
               ].map(navItem => (
                 <TouchableOpacity key={navItem.key} style={[styles.sidebarNavButton, activeTab === navItem.key && styles.sidebarNavButtonActive]} onPress={() => handleTabChange(navItem.key)}>
                   <Text style={styles.sidebarNavIcon}>{navItem.icon}</Text>
-                  <Text style={[styles.sidebarNavText, { color: activeTab === navItem.key ? '#9b98ff' : theme.textSecondary }]}>{navItem.label}</Text>
+                  <Text style={[styles.sidebarNavText, { color: activeTab === navItem.key ? theme.activeButton : theme.textSecondary }]}>{navItem.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -826,15 +738,15 @@ export default function App() {
               <TouchableOpacity style={styles.primaryButton} onPress={() => openSubscriptionForm()}>
                 <Text style={styles.primaryButtonText}>+ Yeni Abonelik Ekle</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.secondaryButton, { backgroundColor: 'rgba(248,113,113,0.12)', borderColor: theme.danger }]} onPress={handleLogout}>
-                <Text style={[styles.secondaryButtonText, { color: theme.danger }]}>🚪 Çıkış Yap</Text>
+              <TouchableOpacity style={[styles.secondaryButton, { backgroundColor: 'transparent', borderColor: theme.cardBorder }]} onPress={handleLogout}>
+                <Text style={[styles.secondaryButtonText, { color: theme.textSecondary }]}>Oturumu Kapat</Text>
               </TouchableOpacity>
             </View>
           </View>
         )}
 
         <View style={styles.contentWrapper}>
-          <View style={[styles.header, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.headerBg, 0.75) : theme.headerBg, borderBottomColor: theme.cardBorder }]}>
+          <View style={[styles.header, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.headerBg, 0.9) : theme.headerBg, borderBottomColor: theme.cardBorder }]}>
             <View style={styles.pageHeaderInfo}>
               <Text style={[styles.pageHeaderTitle, { color: theme.textPrimary }]} numberOfLines={1}>
                 {activeTab === 'list' ? 'Abonelikler' : activeTab === 'calendar' ? 'Ödeme Takvimi' : 'Analiz ve Raporlar'}
@@ -878,7 +790,7 @@ export default function App() {
                   <View style={styles.summaryLabelRow}>
                     <Text style={styles.summaryLabel}>Aylık Maliyet</Text>
                     {hasMonthlyChangeData && (
-                      <View style={[styles.changeBadge, { backgroundColor: monthlyChangePercent <= 0 ? 'rgba(52,211,153,0.22)' : 'rgba(248,113,113,0.22)' }]}>
+                      <View style={[styles.changeBadge, { backgroundColor: monthlyChangePercent <= 0 ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)' }]}>
                         <Text style={[styles.changeBadgeText, { color: monthlyChangePercent <= 0 ? '#34d399' : '#f87171' }]}>
                           {monthlyChangePercent <= 0 ? '↓' : '↑'} %{Math.abs(monthlyChangePercent).toFixed(1)} Geçen Aya Göre
                         </Text>
@@ -960,7 +872,7 @@ export default function App() {
                             <View style={styles.subscriptionTitleRow}>
                               <Text style={[styles.subscriptionName, { color: theme.textPrimary }]}>{subscription.name}</Text>
 
-                              <View style={[styles.remainingDaysBadge, { backgroundColor: hexToRgba(daysColor, 0.14), borderColor: daysColor }]}>
+                              <View style={[styles.remainingDaysBadge, { backgroundColor: hexToRgba(daysColor, 0.12), borderColor: daysColor }]}>
                                 <Text style={[styles.remainingDaysText, { color: daysColor }]}>⏳ {daysLabel}</Text>
                               </View>
 
@@ -976,7 +888,7 @@ export default function App() {
 
                               {(Number(subscription.annualIncreaseRate) || 0) > 0 && (
                                 <View style={[styles.informationTag, { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder }]}>
-                                  <Text style={[styles.informationTagText, { color: theme.accent }]}>↗ Yıllık Artış: %{Number(subscription.annualIncreaseRate).toFixed(1)}</Text>
+                                  <Text style={[styles.informationTagText, { color: theme.activeButton }]}>↗ Yıllık Artış: %{Number(subscription.annualIncreaseRate).toFixed(1)}</Text>
                                 </View>
                               )}
                             </View>
@@ -993,7 +905,7 @@ export default function App() {
 
                           <View style={styles.subscriptionActions}>
                             <TouchableOpacity style={[styles.smallActionButton, { backgroundColor: isPaid ? theme.success : theme.inputBg, borderColor: isPaid ? theme.success : theme.cardBorder }]} onPress={() => togglePaid(subscription)}>
-                              <Text style={[styles.smallActionText, { color: isPaid ? '#04331f' : theme.textSecondary }]}>{isPaid ? '✓ Ödendi' : 'Ödendi İşaretle'}</Text>
+                              <Text style={[styles.smallActionText, { color: isPaid ? '#ffffff' : theme.textSecondary }]}>{isPaid ? '✓ Ödendi' : 'Ödendi İşaretle'}</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity style={[styles.smallActionButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={() => openSubscriptionForm(subscription)}>
@@ -1024,7 +936,7 @@ export default function App() {
                   <TouchableOpacity style={[styles.calendarNavigationButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={() => {
                     if (calendarMonth === 0) { setCalendarMonth(11); setCalendarYear(Math.max(YEARS[0], calendarYear - 1)); } else setCalendarMonth(calendarMonth - 1);
                   }}>
-                    <Text style={[styles.calendarNavigationText, { color: theme.accent }]}>◀ Önceki</Text>
+                    <Text style={[styles.calendarNavigationText, { color: theme.activeButton }]}>◀ Önceki</Text>
                   </TouchableOpacity>
 
                   <Text style={[styles.calendarTitle, { color: theme.textPrimary }]}>{MONTH_NAMES[calendarMonth]} {calendarYear}</Text>
@@ -1032,7 +944,7 @@ export default function App() {
                   <TouchableOpacity style={[styles.calendarNavigationButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={() => {
                     if (calendarMonth === 11) { setCalendarMonth(0); setCalendarYear(Math.min(YEARS[YEARS.length - 1], calendarYear + 1)); } else setCalendarMonth(calendarMonth + 1);
                   }}>
-                    <Text style={[styles.calendarNavigationText, { color: theme.accent }]}>Sonraki ▶</Text>
+                    <Text style={[styles.calendarNavigationText, { color: theme.activeButton }]}>Sonraki ▶</Text>
                   </TouchableOpacity>
                 </View>
 
@@ -1044,7 +956,7 @@ export default function App() {
                     onPress={() => setIsCalendarYearPickerOpen(true)}
                   >
                     <Text style={[styles.calendarYearSelectValue, { color: theme.textPrimary }]}>{calendarYear}</Text>
-                    <Text style={[styles.yearSelectChevron, { color: theme.accent }]}>⌄</Text>
+                    <Text style={[styles.yearSelectChevron, { color: theme.activeButton }]}>⌄</Text>
                   </TouchableOpacity>
                 </View>
 
@@ -1119,11 +1031,11 @@ export default function App() {
                       <Text style={[styles.yearSelectCaption, { color: theme.textMuted }]}>Yıl</Text>
                       <Text style={[styles.yearSelectValue, { color: theme.textPrimary }]}>{selectedAnalysisYear}</Text>
                     </View>
-                    <Text style={[styles.yearSelectChevron, { color: theme.accent }]}>⌄</Text>
+                    <Text style={[styles.yearSelectChevron, { color: theme.activeButton }]}>⌄</Text>
                   </TouchableOpacity>
                 </View>
 
-                <View style={[styles.insightBox, { backgroundColor: theme.summaryBg, borderColor: theme.summaryBorder, ...(Platform.OS === 'web' ? { backgroundImage: `linear-gradient(135deg, ${theme.summaryBg}, ${theme.activeButton})` } : {}) }]}>
+                <View style={[styles.insightBox, { backgroundColor: theme.summaryBg, borderColor: theme.summaryBorder }]}>
                   <View style={styles.insightIconBox}><Text style={{ fontSize: 20 }}>✨</Text></View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.insightTitle}>Akıllı Asistan Özeti</Text>
@@ -1165,8 +1077,7 @@ export default function App() {
                                         styles.chartSegment,
                                         {
                                           height: `${(segment.amount / monthTotal) * 100}%`,
-                                          backgroundColor: segment.color,
-                                          ...(Platform.OS === 'web' ? { backgroundImage: `linear-gradient(180deg, ${lightenHex(segment.color, 22)} 0%, ${segment.color} 100%)` } : {})
+                                          backgroundColor: segment.color
                                         }
                                       ]}
                                     />
@@ -1184,7 +1095,7 @@ export default function App() {
 
                   <View style={[styles.chartFooter, { borderTopColor: theme.cardBorder }]}>
                     <Text style={[styles.chartFooterLabel, { color: theme.textPrimary }]}>Aylık Ortalama Harcama ({selectedAnalysisYear})</Text>
-                    <Text style={[styles.chartFooterValue, { color: theme.accent }]}>{formatCurrency(averageMonthlyExpense, 'TRY')}</Text>
+                    <Text style={[styles.chartFooterValue, { color: theme.activeButton }]}>{formatCurrency(averageMonthlyExpense, 'TRY')}</Text>
                   </View>
                 </View>
 
@@ -1219,7 +1130,7 @@ export default function App() {
                               <Text style={[styles.monthlyPaymentName, { color: theme.textPrimary }]} numberOfLines={1}>{paymentMethod}</Text>
                               <Text style={[styles.monthlyPaymentMeta, { color: theme.textMuted }]}>Aylık Bütçeye Oranı: %{percentage.toFixed(1)}</Text>
                               <View style={[styles.progressTrack, { backgroundColor: theme.inputBg, marginTop: 8 }]}>
-                                <View style={[styles.progressFill, { width: `${percentage}%`, backgroundColor: theme.accent }]} />
+                                <View style={[styles.progressFill, { width: `${percentage}%`, backgroundColor: theme.activeButton }]} />
                               </View>
                             </View>
                             <Text style={[styles.monthlyPaymentAmount, { color: theme.textPrimary }]}>{formatCurrency(amount, 'TRY')}<Text style={[styles.monthlyPaymentPeriod, { color: theme.textMuted }]}> / ay</Text></Text>
@@ -1266,7 +1177,7 @@ export default function App() {
               ].map(navItem => (
                 <TouchableOpacity key={navItem.key} style={styles.bottomNavigationItem} onPress={() => handleTabChange(navItem.key)}>
                   <Text style={styles.bottomNavigationIcon}>{navItem.icon}</Text>
-                  <Text style={[styles.bottomNavigationText, { color: activeTab === navItem.key ? '#9b98ff' : theme.textSecondary }]}>{navItem.label}</Text>
+                  <Text style={[styles.bottomNavigationText, { color: activeTab === navItem.key ? theme.activeButton : theme.textSecondary }]}>{navItem.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -1277,7 +1188,7 @@ export default function App() {
       <Modal visible={dayDrawer.visible} transparent animationType="slide" onRequestClose={() => setDayDrawer(d => ({ ...d, visible: false }))}>
         <View style={styles.drawerOverlay}>
           <TouchableOpacity style={styles.drawerBackdrop} activeOpacity={1} onPress={() => setDayDrawer(d => ({ ...d, visible: false }))} />
-          <View style={[styles.dayDrawerPanel, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.94) : theme.cardBg, borderColor: theme.cardBorder }]}>
+          <View style={[styles.dayDrawerPanel, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.98) : theme.cardBg, borderColor: theme.cardBorder }]}>
             <View style={styles.modalHeader}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>{dayDrawer.day} {dayDrawer.month !== null ? MONTH_NAMES[dayDrawer.month] : ''} {dayDrawer.year}</Text>
@@ -1313,7 +1224,7 @@ export default function App() {
             {(dayDrawer.items || []).length > 0 && (
               <View style={[styles.chartFooter, { borderTopColor: theme.cardBorder, marginHorizontal: 20, marginBottom: 18 }]}>
                 <Text style={[styles.chartFooterLabel, { color: theme.textPrimary }]}>Toplam</Text>
-                <Text style={[styles.chartFooterValue, { color: theme.accent }]}>
+                <Text style={[styles.chartFooterValue, { color: theme.activeButton }]}>
                   {formatCurrency((dayDrawer.items || []).reduce((t, s) => t + convertToTL(s.price, s.currency, exchangeRates), 0), 'TRY')}
                 </Text>
               </View>
@@ -1325,7 +1236,7 @@ export default function App() {
       <Modal visible={isCalendarYearPickerOpen} transparent animationType="fade" onRequestClose={() => setIsCalendarYearPickerOpen(false)}>
         <View style={styles.modalOverlay}>
           <TouchableOpacity style={styles.yearPickerBackdrop} activeOpacity={1} onPress={() => setIsCalendarYearPickerOpen(false)} />
-          <View style={[styles.yearPickerCard, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.96) : theme.cardBg, borderColor: theme.cardBorder }]}>
+          <View style={[styles.yearPickerCard, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.98) : theme.cardBg, borderColor: theme.cardBorder }]}>
             <View style={styles.yearPickerHeader}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Takvim Yılı</Text>
@@ -1357,7 +1268,7 @@ export default function App() {
       <Modal visible={isAnalysisYearPickerOpen} transparent animationType="fade" onRequestClose={() => setIsAnalysisYearPickerOpen(false)}>
         <View style={styles.modalOverlay}>
           <TouchableOpacity style={styles.yearPickerBackdrop} activeOpacity={1} onPress={() => setIsAnalysisYearPickerOpen(false)} />
-          <View style={[styles.yearPickerCard, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.96) : theme.cardBg, borderColor: theme.cardBorder }]}>
+          <View style={[styles.yearPickerCard, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.98) : theme.cardBg, borderColor: theme.cardBorder }]}>
             <View style={styles.yearPickerHeader}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Raporlama Yılı</Text>
@@ -1465,7 +1376,7 @@ export default function App() {
                           <Text style={[styles.formSectionDescription, { color: theme.textMuted }]}>Hazır Bir Servis Seçerek Alanları Otomatik Doldurun.</Text>
                         </View>
                         <TouchableOpacity onPress={() => setShowTemplateForm(!showTemplateForm)}>
-                          <Text style={[styles.formSectionAction, { color: theme.accent }]}>{showTemplateForm ? 'Kapat' : '+ Şablon Ekle'}</Text>
+                          <Text style={[styles.formSectionAction, { color: theme.activeButton }]}>{showTemplateForm ? 'Kapat' : '+ Şablon Ekle'}</Text>
                         </TouchableOpacity>
                       </View>
 
@@ -1584,7 +1495,7 @@ export default function App() {
                         <Text style={[styles.formSectionDescription, { color: theme.textMuted }]}>Aboneliğin Tahsil Edildiği Yöntemi Seçin.</Text>
                       </View>
                       <TouchableOpacity onPress={() => setShowPaymentMethodForm(!showPaymentMethodForm)}>
-                        <Text style={[styles.formSectionAction, { color: theme.accent }]}>{showPaymentMethodForm ? 'Kapat' : '+ Yöntem Ekle'}</Text>
+                        <Text style={[styles.formSectionAction, { color: theme.activeButton }]}>{showPaymentMethodForm ? 'Kapat' : '+ Yöntem Ekle'}</Text>
                       </TouchableOpacity>
                     </View>
 
@@ -1722,7 +1633,7 @@ export default function App() {
 
 function createStyles(theme, isMobile, fontScale) {
   const font = value => Math.round(value * fontScale);
-  const glassSurface = Platform.OS === 'web' ? { backdropFilter: 'blur(20px) saturate(140%)', WebkitBackdropFilter: 'blur(20px) saturate(140%)' } : {};
+  const glassSurface = Platform.OS === 'web' ? { backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' } : {};
 
   return StyleSheet.create({
     container: { flex: 1, width: '100%', minHeight: 0, overflow: 'hidden', ...(Platform.OS === 'web' ? { height: '100dvh' } : { height: '100%' }) },
@@ -1732,316 +1643,309 @@ function createStyles(theme, isMobile, fontScale) {
     glassSurface,
 
     authWrapper: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 },
-    authCard: { width: '100%', maxWidth: 420, borderWidth: 1, borderRadius: 22, padding: 28 },
-    authHeader: { alignItems: 'center', marginBottom: 16 },
-    authLogo: { fontSize: font(26), fontWeight: 'bold' },
-    authSubtitle: { fontSize: font(11), marginTop: 4 },
-    authTitle: { fontSize: font(18), fontWeight: 'bold', textAlign: 'center', marginTop: 6, marginBottom: 4 },
-    authErrorText: { color: '#f87171', fontSize: font(11), fontWeight: '600', marginBottom: 8 },
-    authSwitchButton: { marginTop: 16, alignItems: 'center' },
-    authSwitchText: { fontSize: font(12), fontWeight: '600' },
+    authCard: { width: '100%', maxWidth: 420, borderWidth: 1, borderRadius: 24, padding: 32, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.08, shadowRadius: 20, elevation: 4 },
+    authHeader: { alignItems: 'center', marginBottom: 20 },
+    authLogo: { fontSize: font(28), fontWeight: '800', letterSpacing: -0.5 },
+    authSubtitle: { fontSize: font(12), marginTop: 6, fontWeight: '500' },
+    authTitle: { fontSize: font(20), fontWeight: '700', textAlign: 'center', marginBottom: 4 },
+    authErrorText: { color: '#ef4444', fontSize: font(12), fontWeight: '600', marginTop: 8 },
 
-    sidebarContainer: { width: 250, minWidth: 250, flexShrink: 0, padding: 20, borderRightWidth: 1 },
-    sidebarHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    headerTitle: { fontSize: font(22), fontWeight: 'bold' },
-    proBadge: { backgroundColor: '#6366f1', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginLeft: 6 },
+    sidebarContainer: { width: 260, minWidth: 260, flexShrink: 0, padding: 24, borderRightWidth: 1 },
+    sidebarHeader: { flexDirection: 'row', alignItems: 'center' },
+    headerTitle: { fontSize: font(24), fontWeight: '800', letterSpacing: -0.5 },
+    proBadge: { backgroundColor: theme.activeButton, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, marginLeft: 8 },
     proBadgeText: { color: '#ffffff', fontSize: font(10), fontWeight: 'bold' },
-    headerSubtitle: { fontSize: font(11), marginTop: 4, marginBottom: 24 },
+    headerSubtitle: { fontSize: font(12), marginTop: 6, marginBottom: 28, fontWeight: '500' },
 
-    sidebarNavGroup: { gap: 6, flex: 1 },
-    sidebarNavButton: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10 },
+    sidebarNavGroup: { gap: 8, flex: 1 },
+    sidebarNavButton: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 12 },
     sidebarNavButtonActive: { backgroundColor: theme.activeButtonSoft },
-    sidebarNavIcon: { fontSize: font(16) },
-    sidebarNavText: { fontSize: font(13), fontWeight: '600' },
+    sidebarNavIcon: { fontSize: font(18) },
+    sidebarNavText: { fontSize: font(14), fontWeight: '600' },
 
-    sidebarFooter: { gap: 10, paddingTop: 16, borderTopWidth: 1, borderTopColor: theme.cardBorder },
+    sidebarFooter: { gap: 12, paddingTop: 20, borderTopWidth: 1, borderTopColor: theme.cardBorder },
 
     contentWrapper: { flex: 1, height: '100%', minHeight: 0, overflow: 'hidden' },
 
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, zIndex: 10 },
-    pageHeaderInfo: { flex: 1, marginRight: 12 },
-    pageHeaderTitle: { fontSize: font(18), fontWeight: 'bold' },
-    pageHeaderDescription: { fontSize: font(11), marginTop: 2 },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, paddingVertical: 16, borderBottomWidth: 1, zIndex: 10 },
+    pageHeaderInfo: { flex: 1, marginRight: 16 },
+    pageHeaderTitle: { fontSize: font(20), fontWeight: '800', letterSpacing: -0.5 },
+    pageHeaderDescription: { fontSize: font(13), marginTop: 3, fontWeight: '500' },
 
-    headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    miniRatesBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1 },
-    miniRatesIcon: { fontSize: font(12) },
-    miniRatesText: { fontSize: font(11), fontWeight: '600' },
+    headerActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    miniRatesBadge: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1 },
+    miniRatesIcon: { fontSize: font(14) },
+    miniRatesText: { fontSize: font(12), fontWeight: '600' },
 
-    iconButton: { width: 34, height: 34, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-    iconButtonText: { fontSize: font(14) },
+    iconButton: { width: 38, height: 38, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+    iconButtonText: { fontSize: font(16) },
 
     mainScroll: { flex: 1, width: '100%' },
-    scrollContent: { padding: isMobile ? 14 : 24, paddingBottom: 60, gap: 16 },
+    scrollContent: { padding: isMobile ? 16 : 28, paddingBottom: 80, gap: 20 },
 
-    summaryCard: { borderRadius: 18, padding: 20, borderWidth: 1 },
-    summaryLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
-    summaryLabel: { color: 'rgba(255,255,255,0.82)', fontSize: font(12), fontWeight: '600' },
-    changeBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-    changeBadgeText: { fontSize: font(10), fontWeight: 'bold' },
-    summaryValue: { color: '#ffffff', fontSize: font(28), fontWeight: 'bold', marginBottom: 16 },
-    summaryStatsRow: { flexDirection: 'row', gap: 12, paddingTop: 14, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.15)' },
+    summaryCard: { borderRadius: 20, padding: 24, borderWidth: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.06, shadowRadius: 16, elevation: 3 },
+    summaryLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+    summaryLabel: { color: 'rgba(255,255,255,0.9)', fontSize: font(13), fontWeight: '600' },
+    changeBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+    changeBadgeText: { fontSize: font(11), fontWeight: '700' },
+    summaryValue: { color: '#ffffff', fontSize: font(32), fontWeight: '800', marginBottom: 20, letterSpacing: -1 },
+    summaryStatsRow: { flexDirection: 'row', gap: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.2)' },
     summaryStatBox: { flex: 1 },
-    summaryStatLabel: { color: 'rgba(255,255,255,0.7)', fontSize: font(10), marginBottom: 2 },
-    summaryStatValue: { color: '#ffffff', fontSize: font(13), fontWeight: 'bold' },
+    summaryStatLabel: { color: 'rgba(255,255,255,0.75)', fontSize: font(11), marginBottom: 3, fontWeight: '500' },
+    summaryStatValue: { color: '#ffffff', fontSize: font(15), fontWeight: '700' },
 
-    searchInput: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, fontSize: font(13) },
+    searchInput: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 13, fontSize: font(14) },
 
-    singleFilterSection: { gap: 8 },
-    sectionLabel: { fontSize: font(13), fontWeight: 'bold' },
-    horizontalOptionRow: { gap: 8, paddingBottom: 4 },
-    filterOption: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 },
+    singleFilterSection: { gap: 10 },
+    sectionLabel: { fontSize: font(14), fontWeight: '700' },
+    horizontalOptionRow: { gap: 10, paddingBottom: 4 },
+    filterOption: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9 },
     filterOptionActive: { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder },
-    filterOptionText: { fontSize: font(12), fontWeight: '600' },
-    filterOptionTextActive: { color: '#ffffff' },
+    filterOptionText: { fontSize: font(13), fontWeight: '600' },
+    filterOptionTextActive: { color: theme.activeButton },
 
     sectionTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
-    sectionTitle: { fontSize: font(15), fontWeight: 'bold' },
-    resultCount: { fontSize: font(11) },
+    sectionTitle: { fontSize: font(16), fontWeight: '800', letterSpacing: -0.3 },
+    resultCount: { fontSize: font(12), fontWeight: '600' },
 
-    emptyCard: { borderWidth: 1, borderRadius: 14, padding: 24, alignItems: 'center', justifyContent: 'center' },
-    emptyIcon: { fontSize: font(28), marginBottom: 8 },
-    emptyTitle: { fontSize: font(14), fontWeight: 'bold', marginBottom: 4 },
-    emptyDescription: { fontSize: font(12), textAlign: 'center' },
+    emptyCard: { borderWidth: 1, borderRadius: 16, padding: 32, alignItems: 'center', justifyContent: 'center' },
+    emptyIcon: { fontSize: font(32), marginBottom: 10 },
+    emptyTitle: { fontSize: font(15), fontWeight: '700', marginBottom: 4 },
+    emptyDescription: { fontSize: font(13), textAlign: 'center', fontWeight: '500' },
 
-    subscriptionCard: { borderWidth: 1, borderRadius: 14, padding: 14, flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: 12 },
-    subscriptionMain: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-    serviceIcon: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    serviceIconText: { color: '#ffffff', fontSize: font(16), fontWeight: 'bold' },
-    subscriptionInfo: { flex: 1 },
-    subscriptionTitleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 3 },
-    subscriptionName: { fontSize: font(14), fontWeight: 'bold' },
-    remainingDaysBadge: { borderWidth: 1, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-    remainingDaysText: { fontSize: font(10), fontWeight: 'bold' },
-    informationTag: { borderWidth: 1, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-    informationTagText: { fontSize: font(10), fontWeight: '600' },
-    subscriptionSubtitle: { fontSize: font(11) },
+    subscriptionCard: { borderWidth: 1, borderRadius: 16, padding: 18, flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 8, elevation: 1 },
+    subscriptionMain: { flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1 },
+    serviceIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    serviceIconText: { color: '#ffffff', fontSize: font(18), fontWeight: '800' },
+    subscriptionInfo: { flex: 1, gap: 4 },
+    subscriptionTitleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
+    subscriptionName: { fontSize: font(16), fontWeight: '700' },
+    remainingDaysBadge: { borderWidth: 1, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+    remainingDaysText: { fontSize: font(11), fontWeight: '700' },
+    informationTag: { borderWidth: 1, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+    informationTagText: { fontSize: font(11), fontWeight: '600' },
+    subscriptionSubtitle: { fontSize: font(13), fontWeight: '500' },
 
-    subscriptionRight: { alignItems: isMobile ? 'flex-start' : 'flex-end', gap: 6 },
-    subscriptionPrice: { fontSize: font(15), fontWeight: 'bold' },
-    convertedPrice: { fontSize: font(11), fontWeight: '600' },
-    subscriptionActions: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
-    smallActionButton: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
-    smallActionText: { fontSize: font(11), fontWeight: '600' },
-    deleteButton: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 4 },
-    deleteButtonText: { fontSize: font(11) },
+    subscriptionRight: { alignItems: isMobile ? 'flex-start' : 'flex-end', gap: 8 },
+    subscriptionPrice: { fontSize: font(16), fontWeight: '800' },
+    convertedPrice: { fontSize: font(12), fontWeight: '600' },
+    subscriptionActions: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+    smallActionButton: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
+    smallActionText: { fontSize: font(12), fontWeight: '600' },
+    deleteButton: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 6, alignItems: 'center', justifyContent: 'center' },
+    deleteButtonText: { fontSize: font(12) },
 
-    calendarSection: { gap: 14 },
+    calendarSection: { gap: 16 },
     calendarNavigation: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    calendarNavigationButton: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
-    calendarNavigationText: { fontSize: font(12), fontWeight: 'bold' },
-    calendarTitle: { fontSize: font(16), fontWeight: 'bold' },
-    calendarYearSelectorRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8 },
-    calendarYearSelectorLabel: { fontSize: font(11) },
-    calendarYearSelectButton: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, flexDirection: 'row', alignItems: 'center', gap: 6 },
-    calendarYearSelectValue: { fontSize: font(12), fontWeight: 'bold' },
-    yearSelectChevron: { fontSize: font(12), fontWeight: 'bold' },
+    calendarNavigationButton: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9 },
+    calendarNavigationText: { fontSize: font(13), fontWeight: '700' },
+    calendarTitle: { fontSize: font(18), fontWeight: '800', letterSpacing: -0.5 },
+    calendarYearSelectorRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4 },
+    calendarYearSelectorLabel: { fontSize: font(13), fontWeight: '600' },
+    calendarYearSelectButton: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 },
+    calendarYearSelectValue: { fontSize: font(14), fontWeight: '700' },
+    yearSelectChevron: { fontSize: font(14), fontWeight: '800' },
 
-    calendarContainer: { borderWidth: 1, borderColor: theme.cardBorder, borderRadius: 14, overflow: 'hidden', backgroundColor: theme.cardBg },
-    calendarWeekHeader: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: theme.cardBorder },
-    calendarWeekDay: { flex: 1, paddingVertical: 10, alignItems: 'center' },
-    calendarWeekDayText: { fontSize: font(11), fontWeight: 'bold' },
+    calendarContainer: { borderWidth: 1, borderRadius: 20, overflow: 'hidden', backgroundColor: theme.cardBg },
+    calendarWeekHeader: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: theme.cardBorder, backgroundColor: theme.inputBg },
+    calendarWeekDay: { flex: 1, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
+    calendarWeekDayText: { fontSize: font(12), fontWeight: '700' },
     calendarGrid: { flexDirection: 'row', flexWrap: 'wrap' },
-    calendarDay: { width: '14.28%', height: 95, borderWidth: 0.5, borderColor: theme.cardBorder, padding: 4 },
-    calendarDayEmpty: { opacity: 0.3 },
-    calendarDayActive: { borderWidth: 1 },
-    calendarDayNumber: { fontSize: font(11), fontWeight: 'bold', marginBottom: 2 },
+    calendarDay: { width: `${100 / 7}%`, aspectRatio: 0.85, borderWidth: 0.5, borderColor: theme.cardBorder, padding: 6, gap: 4 },
+    calendarDayEmpty: { backgroundColor: theme.inputBg, opacity: 0.4 },
+    calendarDayActive: { backgroundColor: theme.inputBg },
+    calendarDayNumber: { fontSize: font(12), fontWeight: '700' },
     calendarDayScroll: { flex: 1 },
-    calendarDayScrollContent: { gap: 2 },
-    calendarSubscriptionBadge: { borderRadius: 4, paddingHorizontal: 3, paddingVertical: 2 },
-    calendarSubscriptionName: { color: '#ffffff', fontSize: font(9), fontWeight: 'bold' },
-    calendarSubscriptionPrice: { color: 'rgba(255,255,255,0.85)', fontSize: font(8) },
+    calendarDayScrollContent: { gap: 3 },
+    calendarSubscriptionBadge: { borderRadius: 4, paddingHorizontal: 4, paddingVertical: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 4 },
+    calendarSubscriptionName: { color: '#ffffff', fontSize: font(9), fontWeight: '700', flex: 1 },
+    calendarSubscriptionPrice: { color: '#ffffff', fontSize: font(9), fontWeight: '600' },
 
-    analyticsSection: { gap: 16 },
-    analysisToolbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    analysisToolbarLabel: { fontSize: font(11) },
-    analysisToolbarHint: { fontSize: font(13), fontWeight: 'bold', marginTop: 1 },
-    yearSelectButton: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 12 },
-    yearSelectCaption: { fontSize: font(9) },
-    yearSelectValue: { fontSize: font(15), fontWeight: 'bold' },
+    analyticsSection: { gap: 20 },
+    analysisToolbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 },
+    analysisToolbarLabel: { fontSize: font(12), fontWeight: '600' },
+    analysisToolbarHint: { fontSize: font(13), marginTop: 2, fontWeight: '500' },
+    yearSelectButton: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10 },
+    yearSelectCaption: { fontSize: font(11), fontWeight: '600' },
+    yearSelectValue: { fontSize: font(16), fontWeight: '800' },
 
-    insightBox: { borderWidth: 1, borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
-    insightIconBox: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
-    insightTitle: { color: '#ffffff', fontSize: font(12), fontWeight: 'bold', marginBottom: 2 },
-    insightText: { color: 'rgba(255,255,255,0.9)', fontSize: font(11), lineHeight: 16 },
+    insightBox: { borderWidth: 1, borderRadius: 16, padding: 18, flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
+    insightIconBox: { width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    insightTitle: { color: '#ffffff', fontSize: font(15), fontWeight: '800', marginBottom: 4 },
+    insightText: { color: 'rgba(255,255,255,0.9)', fontSize: font(13), lineHeight: 18, fontWeight: '500' },
 
-    panel: { borderWidth: 1, borderRadius: 16, padding: 16 },
-    analysisPrimaryPanel: {},
-    panelTitle: { fontSize: font(15), fontWeight: 'bold', marginBottom: 2 },
-    panelDescription: { fontSize: font(11), marginBottom: 14 },
-    categoryLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
+    panel: { borderWidth: 1, borderRadius: 20, padding: 22, gap: 16 },
+    analysisPrimaryPanel: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 12, elevation: 2 },
+    panelTitle: { fontSize: font(18), fontWeight: '800', letterSpacing: -0.4 },
+    panelDescription: { fontSize: font(13), fontWeight: '500', marginTop: -10 },
+    categoryLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 4 },
     legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     legendDot: { width: 8, height: 8, borderRadius: 4 },
-    legendText: { fontSize: font(10) },
+    legendText: { fontSize: font(12), fontWeight: '600' },
 
-    chartScrollContent: { paddingBottom: 4 },
-    chartArea: { flexDirection: 'row', height: 210, alignItems: 'flex-end', gap: 12, paddingHorizontal: 4 },
-    chartColumn: { width: 44, alignItems: 'center', height: '100%', justifyContent: 'flex-end' },
-    chartAmount: { fontSize: font(8), marginBottom: 4, height: 14, textAlign: 'center' },
-    chartTrack: { width: 30, flex: 1, borderWidth: 1, borderRadius: 8, overflow: 'hidden', justifyContent: 'flex-end' },
-    chartStack: { width: '100%', flexDirection: 'column-reverse' },
+    chartScrollContent: { paddingVertical: 8 },
+    chartArea: { flexDirection: 'row', alignItems: 'flex-end', height: 220, gap: 16, paddingHorizontal: 8 },
+    chartColumn: { width: 52, alignItems: 'center', height: '100%', justifyContent: 'flex-end', gap: 8 },
+    chartAmount: { fontSize: font(10), fontWeight: '700', textAlign: 'center' },
+    chartTrack: { width: 32, height: 160, borderWidth: 1, borderRadius: 8, overflow: 'hidden', justifyContent: 'flex-end' },
+    chartStack: { width: '100%', borderRadius: 6, overflow: 'hidden' },
     chartSegment: { width: '100%' },
-    chartMonthLabel: { fontSize: font(10), fontWeight: 'bold', marginTop: 6 },
-    chartFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, marginTop: 14, borderTopWidth: 1 },
-    chartFooterLabel: { fontSize: font(12), fontWeight: 'bold' },
-    chartFooterValue: { fontSize: font(14), fontWeight: 'bold' },
+    chartMonthLabel: { fontSize: font(12), fontWeight: '700' },
+    chartFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 16, borderTopWidth: 1 },
+    chartFooterLabel: { fontSize: font(14), fontWeight: '700' },
+    chartFooterValue: { fontSize: font(16), fontWeight: '800' },
 
-    analysisSectionCard: { borderWidth: 1, borderRadius: 16, padding: 16, gap: 12 },
-    distributionSectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 },
-    distributionTitle: { fontSize: font(14), fontWeight: 'bold' },
+    analysisSectionCard: { borderWidth: 1, borderRadius: 20, padding: 22, gap: 16 },
+    distributionSectionHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
+    distributionTitle: { fontSize: font(18), fontWeight: '800', letterSpacing: -0.4 },
     distributionTitleNoTop: { marginTop: 0 },
-    distributionSubtitle: { fontSize: font(11), marginTop: 2 },
-    monthlyCommitmentBadge: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6, alignItems: 'flex-end' },
-    monthlyCommitmentBadgeLabel: { fontSize: font(9) },
-    monthlyCommitmentBadgeValue: { fontSize: font(13), fontWeight: 'bold' },
+    distributionSubtitle: { fontSize: font(13), fontWeight: '500', marginTop: 3 },
+    monthlyCommitmentBadge: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 8, alignItems: 'flex-end' },
+    monthlyCommitmentBadgeLabel: { fontSize: font(10), fontWeight: '600' },
+    monthlyCommitmentBadgeValue: { fontSize: font(15), fontWeight: '800', marginTop: 2 },
+    monthlyPaymentGrid: { gap: 12 },
+    monthlyPaymentCard: { borderWidth: 1, borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+    monthlyPaymentIcon: { width: 40, height: 40, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    monthlyPaymentIconText: { fontSize: font(16) },
+    monthlyPaymentContent: { flex: 1, gap: 4 },
+    monthlyPaymentName: { fontSize: font(14), fontWeight: '700' },
+    monthlyPaymentMeta: { fontSize: font(12), fontWeight: '500' },
+    monthlyPaymentAmount: { fontSize: font(15), fontWeight: '800' },
+    monthlyPaymentPeriod: { fontSize: font(11), fontWeight: '500' },
 
-    monthlyPaymentGrid: { gap: 10 },
-    monthlyPaymentCard: { borderWidth: 1, borderRadius: 12, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
-    monthlyPaymentIcon: { width: 36, height: 36, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-    monthlyPaymentIconText: { fontSize: font(14) },
-    monthlyPaymentContent: { flex: 1 },
-    monthlyPaymentName: { fontSize: font(13), fontWeight: 'bold', marginBottom: 2 },
-    monthlyPaymentMeta: { fontSize: font(10) },
-    monthlyPaymentAmount: { fontSize: font(14), fontWeight: 'bold' },
-    monthlyPaymentPeriod: { fontSize: font(10) },
-
-    distributionCard: { borderWidth: 1, borderRadius: 12, padding: 12, gap: 8 },
+    distributionCard: { borderWidth: 1, borderRadius: 14, padding: 14, gap: 10 },
     distributionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     distributionNameGroup: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     distributionColorDot: { width: 10, height: 10, borderRadius: 5 },
-    distributionName: { fontSize: font(13), fontWeight: 'bold' },
-    distributionAmount: { fontSize: font(12), fontWeight: '600' },
-    noDataText: { fontSize: font(12), fontStyle: 'italic' },
+    distributionName: { fontSize: font(14), fontWeight: '700' },
+    distributionAmount: { fontSize: font(14), fontWeight: '700' },
+    progressTrack: { height: 8, borderRadius: 4, overflow: 'hidden' },
+    progressFill: { height: '100%', borderRadius: 4 },
+    noDataText: { fontSize: font(13), fontWeight: '500' },
 
-    progressTrack: { height: 6, borderRadius: 3, overflow: 'hidden' },
-    progressFill: { height: '100%', borderRadius: 3 },
+    bottomNavigation: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', borderTopWidth: 1, paddingVertical: 8, paddingHorizontal: 12, zIndex: 20 },
+    bottomNavigationItem: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 6 },
+    bottomNavigationIcon: { fontSize: font(18) },
+    bottomNavigationText: { fontSize: font(11), fontWeight: '700' },
 
-    bottomNavigation: { flexDirection: 'row', height: 60, borderTopWidth: 1, alignItems: 'center', justifyContent: 'space-around', zIndex: 10 },
-    bottomNavigationItem: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 },
-    bottomNavigationIcon: { fontSize: font(16) },
-    bottomNavigationText: { fontSize: font(10), fontWeight: 'bold' },
+    drawerOverlay: { flex: 1, justifyContent: 'flex-end' },
+    drawerBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
+    dayDrawerPanel: { borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1, maxHeight: '75%', paddingBottom: 24 },
 
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 16 },
-    drawerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-    drawerBackdrop: { flex: 1 },
-    dayDrawerPanel: { width: '100%', maxHeight: '75%', borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: 1, paddingBottom: 20 },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 16 },
+    yearPickerBackdrop: { ...StyleSheet.absoluteFillObject },
+    yearPickerCard: { width: '100%', maxWidth: 360, borderWidth: 1, borderRadius: 24, padding: 24, gap: 20 },
+    yearPickerHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
+    yearPickerGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    yearPickerOption: { width: '30%', flexGrow: 1, borderWidth: 1, borderRadius: 12, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+    yearPickerOptionText: { fontSize: font(14), fontWeight: '700' },
+    yearPickerCheck: { color: '#ffffff', fontSize: font(14), fontWeight: '800' },
 
-    modalHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', padding: 20, paddingBottom: 14 },
-    modalTitle: { fontSize: font(16), fontWeight: 'bold' },
-    modalSubtitle: { fontSize: font(11), marginTop: 2 },
-    modalCloseButton: { width: 32, height: 32, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-    modalCloseText: { fontSize: font(12), fontWeight: 'bold' },
-
-    yearPickerBackdrop: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 },
-    yearPickerCard: { width: '100%', maxWidth: 360, borderWidth: 1, borderRadius: 20, padding: 20 },
-    yearPickerHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 },
-    yearPickerGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    yearPickerOption: { width: '31%', borderWidth: 1, borderRadius: 10, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
-    yearPickerOptionText: { fontSize: font(14), fontWeight: 'bold' },
-    yearPickerCheck: { color: '#ffffff', fontSize: font(12), fontWeight: 'bold' },
-
-    appearanceModal: { width: '100%', maxWidth: 440, maxHeight: '85%', borderWidth: 1, borderRadius: 22, padding: 20 },
-    appearanceSectionTitle: { fontSize: font(13), fontWeight: 'bold', marginTop: 12, marginBottom: 8 },
-    appearanceOptionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-    appearanceThemeOption: { width: '30%', borderWidth: 1, borderRadius: 12, padding: 8, alignItems: 'center', gap: 6 },
-    appearanceOptionActive: { borderWidth: 2 },
-    themePreview: { width: '100%', height: 48, borderRadius: 6, overflow: 'hidden', flexDirection: 'row' },
-    themePreviewSidebar: { width: 12, height: '100%' },
-    themePreviewContent: { flex: 1, padding: 4, gap: 4 },
+    appearanceModal: { width: '100%', maxWidth: 480, borderWidth: 1, borderRadius: 24, padding: 24, maxHeight: '85%', gap: 20 },
+    appearanceSectionTitle: { fontSize: font(15), fontWeight: '800', marginTop: 12, marginBottom: 12 },
+    appearanceOptionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+    appearanceThemeOption: { width: '48%', flexGrow: 1, borderWidth: 1, borderRadius: 14, padding: 12, gap: 10 },
+    appearanceOptionActive: { borderColor: theme.activeButtonBorder, backgroundColor: theme.activeButtonSoft },
+    themePreview: { height: 48, borderRadius: 8, flexDirection: 'row', overflow: 'hidden' },
+    themePreviewSidebar: { width: 14 },
+    themePreviewContent: { flex: 1, padding: 6, gap: 4 },
     themePreviewHeader: { height: 8, borderRadius: 2 },
-    themePreviewCard: { height: 16, borderRadius: 2 },
-
+    themePreviewCard: { height: 16, borderRadius: 4 },
+    appearanceOptionLabel: { fontSize: font(13), fontWeight: '700', textAlign: 'center' },
     fontScaleRow: { flexDirection: 'row', gap: 8 },
-    fontScaleOption: { flex: 1, borderWidth: 1, borderRadius: 10, paddingVertical: 10, alignItems: 'center', justifyContent: 'center' },
+    fontScaleOption: { flex: 1, borderWidth: 1, borderRadius: 10, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
     fontScaleOptionActive: { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder },
-    fontScaleOptionText: { fontWeight: '600' },
-    fontScaleOptionTextActive: { color: '#ffffff', fontWeight: 'bold' },
+    fontScaleOptionText: { fontWeight: '700' },
+    fontScaleOptionTextActive: { color: theme.activeButton },
 
-    subscriptionModal: { width: '100%', maxWidth: 540, maxHeight: '90%', borderWidth: 1, borderRadius: 22, overflow: 'hidden' },
-    subscriptionModalScroll: { maxHeight: 460 },
-    subscriptionModalContent: { padding: 20, paddingTop: 4, gap: 16 },
-
-    stepIndicatorRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
+    subscriptionModal: { width: '100%', maxWidth: 560, borderWidth: 1, borderRadius: 24, maxHeight: '90%', overflow: 'hidden' },
+    modalHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', padding: 22, borderBottomWidth: 1, borderBottomColor: theme.cardBorder },
+    modalTitle: { fontSize: font(18), fontWeight: '800', letterSpacing: -0.4 },
+    modalSubtitle: { fontSize: font(12), marginTop: 3, fontWeight: '500' },
+    stepIndicatorRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },
     stepDot: { width: 8, height: 8, borderRadius: 4, borderWidth: 1 },
-    stepIndicatorText: { fontSize: font(10), fontWeight: '600' },
+    stepIndicatorText: { fontSize: font(11), fontWeight: '600' },
+    modalCloseButton: { width: 34, height: 34, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+    modalCloseText: { fontSize: font(14), fontWeight: '700' },
 
-    formSection: { gap: 10 },
+    subscriptionModalScroll: { flex: 1, paddingHorizontal: 22 },
+    subscriptionModalContent: { paddingVertical: 20, gap: 20 },
+    formSection: { gap: 12 },
     formSectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    formSectionTitle: { fontSize: font(13), fontWeight: 'bold' },
-    formSectionDescription: { fontSize: font(10) },
-    formSectionAction: { fontSize: font(11), fontWeight: 'bold' },
+    formSectionTitle: { fontSize: font(15), fontWeight: '800' },
+    formSectionDescription: { fontSize: font(12), fontWeight: '500', marginTop: 2 },
+    formSectionAction: { fontSize: font(13), fontWeight: '700' },
 
+    removableOptionRow: { gap: 10, paddingBottom: 4 },
     removableOptionWrapper: { position: 'relative' },
-    removableOptionRow: { gap: 8, paddingBottom: 4 },
-    templateOption: { borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, maxWidth: 130 },
-    templateOptionText: { color: '#ffffff', fontSize: font(12), fontWeight: 'bold' },
-    removeOptionButton: { position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: 10, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', zIndex: 5 },
+    templateOption: { borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, minWidth: 100, alignItems: 'center', justifyContent: 'center' },
+    templateOptionText: { color: '#ffffff', fontSize: font(13), fontWeight: '700' },
+    removeOptionButton: { position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: 10, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#ffffff' },
     removeOptionText: { color: '#ffffff', fontSize: font(10), fontWeight: 'bold' },
 
-    inlineForm: { borderWidth: 1, borderRadius: 12, padding: 12, gap: 10, marginTop: 4 },
-    inlineInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    inlineSaveButton: { marginTop: 4 },
-    inlineAddButton: { paddingHorizontal: 16 },
+    inlineForm: { borderWidth: 1, borderRadius: 14, padding: 14, gap: 12 },
+    inlineInputRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     flexInput: { flex: 1 },
-
-    wrappedOptionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-    compactOptionButton: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7 },
+    currencyOptionRow: { flexDirection: 'row', gap: 6 },
+    compactOptionButton: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, alignItems: 'center', justifyContent: 'center' },
     compactOptionButtonActive: { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder },
-    compactOptionText: { fontSize: font(11), fontWeight: '600' },
-    compactOptionTextActive: { color: '#ffffff', fontWeight: 'bold' },
-    flexOptionButton: { flex: 1, alignItems: 'center' },
+    compactOptionText: { fontSize: font(12), fontWeight: '700' },
+    compactOptionTextActive: { color: theme.activeButton },
+    flexOptionButton: { flex: 1 },
+    wrappedOptionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    inlineSaveButton: { marginTop: 4, paddingVertical: 10 },
+    inlineAddButton: { paddingHorizontal: 20 },
+
+    paymentMethodOption: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, minWidth: 120, alignItems: 'center', justifyContent: 'center' },
+    paymentMethodOptionActive: { backgroundColor: theme.activeButton, borderColor: theme.activeButtonBorder },
+    paymentMethodOptionText: { fontSize: font(13), fontWeight: '700' },
+
+    categoryOption: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 },
+    categoryOptionText: { fontSize: font(12), fontWeight: '700' },
 
     twoColumnRow: { flexDirection: 'row', gap: 12 },
     singleColumnRow: { flexDirection: 'column' },
-    formColumn: { flex: 1, gap: 4 },
+    formColumn: { flex: 1, gap: 6 },
+    inputLabel: { fontSize: font(13), fontWeight: '700' },
+    textInput: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, fontSize: font(14), fontWeight: '500' },
 
-    inputLabel: { fontSize: font(11), fontWeight: '600' },
-    textInput: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: font(13) },
-
-    currencyOptionRow: { flexDirection: 'row', gap: 6 },
     periodOptionRow: { flexDirection: 'row', gap: 8 },
-    periodOption: { flex: 1, borderWidth: 1, borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
+    periodOption: { flex: 1, borderWidth: 1, borderRadius: 10, paddingVertical: 10, alignItems: 'center', justifyContent: 'center' },
     periodOptionActive: { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder },
-    periodOptionText: { fontSize: font(12), fontWeight: '600' },
-    periodOptionTextActive: { color: '#ffffff', fontWeight: 'bold' },
+    periodOptionText: { fontSize: font(13), fontWeight: '700' },
+    periodOptionTextActive: { color: theme.activeButton },
 
-    projectionFieldCard: { borderWidth: 1, borderRadius: 12, padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+    projectionFieldCard: { borderWidth: 1, borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 4 },
     projectionFieldCopy: { flex: 1 },
-    projectionRateInputWrap: { width: 90, flexDirection: 'row', alignItems: 'center', gap: 4 },
-    projectionRateInput: { flex: 1, textAlign: 'center' },
-    projectionPercent: { fontSize: font(13), fontWeight: 'bold' },
-
-    paymentMethodOption: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, maxWidth: 140 },
-    paymentMethodOptionActive: { backgroundColor: theme.activeButton, borderColor: theme.activeButtonBorder },
-    paymentMethodOptionText: { fontSize: font(12), fontWeight: '600' },
-
-    categoryOption: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7 },
-    categoryOptionText: { fontSize: font(11), fontWeight: '600' },
+    projectionRateInputWrap: { width: 90, position: 'relative', justifyContent: 'center' },
+    projectionRateInput: { paddingRight: 24, textAlign: 'right' },
+    projectionPercent: { position: 'absolute', right: 10, fontSize: font(13), fontWeight: '700' },
 
     dateInputRow: { flexDirection: 'row', gap: 10 },
-    dateInputField: { flex: 1, gap: 4 },
-    dateInputYearField: { flex: 1.3 },
-    helperText: { fontSize: font(10), marginTop: 4 },
+    dateInputField: { flex: 1, gap: 6 },
+    dateInputYearField: { flex: 1.4 },
+    helperText: { fontSize: font(12), fontWeight: '500', marginTop: 4 },
 
-    modalFooter: { flexDirection: 'row', gap: 10, padding: 20, borderTopWidth: 1 },
+    modalFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 18, borderTopWidth: 1, gap: 12 },
     modalCancelButton: { flex: 1, borderWidth: 1, borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
-    modalCancelButtonText: { fontSize: font(13), fontWeight: 'bold' },
+    modalCancelButtonText: { fontSize: font(14), fontWeight: '700' },
     modalSaveButton: { flex: 1, backgroundColor: theme.activeButton, borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
-    modalSaveButtonText: { color: '#ffffff', fontSize: font(13), fontWeight: 'bold' },
+    modalSaveButtonText: { color: '#ffffff', fontSize: font(14), fontWeight: '700' },
 
-    primaryButton: { backgroundColor: theme.activeButton, borderRadius: 10, paddingVertical: 11, paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center' },
-    primaryButtonText: { color: '#ffffff', fontSize: font(13), fontWeight: 'bold' },
-    secondaryButton: { borderWidth: 1, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 14, alignItems: 'center' },
-    secondaryButtonText: { fontSize: font(12), fontWeight: 'bold' },
+    primaryButton: { backgroundColor: theme.activeButton, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center' },
+    primaryButtonText: { color: '#ffffff', fontSize: font(14), fontWeight: '700' },
 
-    warningOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 20 },
-    warningCard: { width: '100%', maxWidth: 360, borderWidth: 1, borderRadius: 22, padding: 24, alignItems: 'center' },
-    warningIconBox: { width: 48, height: 48, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
-    warningIcon: { fontSize: font(20) },
-    warningTitle: { fontSize: font(16), fontWeight: 'bold', marginBottom: 6, textAlign: 'center' },
-    warningMessage: { fontSize: font(12), textAlign: 'center', marginBottom: 6 },
-    warningHint: { fontSize: font(11), textAlign: 'center', marginBottom: 20 },
-    warningButton: { width: '100%', backgroundColor: theme.activeButton, borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
-    warningButtonText: { color: '#ffffff', fontSize: font(13), fontWeight: 'bold' }
+    secondaryButton: { borderWidth: 1, borderRadius: 12, paddingVertical: 11, paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center' },
+    secondaryButtonText: { fontSize: font(13), fontWeight: '700' },
+
+    warningOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+    warningCard: { width: '100%', maxWidth: 380, borderWidth: 1, borderRadius: 24, padding: 24, alignItems: 'center', gap: 12 },
+    warningIconBox: { width: 48, height: 48, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+    warningIcon: { fontSize: font(22) },
+    warningTitle: { fontSize: font(18), fontWeight: '800', textAlign: 'center' },
+    warningMessage: { fontSize: font(13), textAlign: 'center', fontWeight: '500' },
+    warningHint: { fontSize: font(12), textAlign: 'center', fontWeight: '500' },
+    warningButton: { width: '100%', backgroundColor: theme.activeButton, borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
+    warningButtonText: { color: '#ffffff', fontSize: font(14), fontWeight: '700' }
   });
 }
