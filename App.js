@@ -512,18 +512,6 @@ export default function App() {
     ? 'Henüz analiz oluşturmak için yeterli abonelik verisi bulunmuyor.'
     : `${selectedAnalysisYear} döneminde aylık bütçede en yüksek pay ${topCategoryLabel} kategorisinde: ${formatShortCurrency(topCategoryAmount, 'TRY')} (%${topCategoryPercent}).${mostExpensiveSubscription ? ` En yüksek aylık abonelik etkisi ${mostExpensiveSubscription.item.name} kaydından geliyor.` : ''}`;
 
-  const todayForRenewals = new Date();
-  const upcomingRenewals = safeList
-    .filter(s => s.status !== 'cancelled')
-    .map(s => {
-      const nextDate = getNextRenewal(s, todayForRenewals);
-      const todayStart = new Date(todayForRenewals.getFullYear(), todayForRenewals.getMonth(), todayForRenewals.getDate());
-      const daysUntil = Math.round((nextDate - todayStart) / 86400000);
-      return { item: s, nextDate, daysUntil };
-    })
-    .filter(r => r.daysUntil >= 0 && r.daysUntil <= 14)
-    .sort((a, b) => a.daysUntil - b.daysUntil);
-
   /* ------------------------------------------------------------------ */
   /*                    ABONELİK FORMUNU AÇMA/KAPATMA                     */
   /* ------------------------------------------------------------------ */
@@ -1157,13 +1145,10 @@ export default function App() {
 
             {activeTab === 'analytics' && (
               <View style={styles.analyticsSection}>
-                <Text style={[styles.pageTitle, { color: theme.textPrimary }]}>Analiz ve Raporlar</Text>
-                <Text style={[styles.pageDescription, { color: theme.textSecondary }]}>Aylık Harcama Dağılımlarını ve Bütçe Yükünü İnceleyin</Text>
-
                 <View style={styles.analysisToolbar}>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={[styles.analysisToolbarLabel, { color: theme.textMuted }]}>Raporlama Dönemi</Text>
-                    <Text style={[styles.analysisToolbarHint, { color: theme.textSecondary }]}>Grafikler ve Dağılımlar Seçilen Yıla Göre Güncellenir.</Text>
+                    <Text style={[styles.analysisToolbarHint, { color: theme.textSecondary }]}>Tüm Analizler Seçilen Yıla Göre Güncellenir.</Text>
                   </View>
                   <TouchableOpacity
                     activeOpacity={0.8}
@@ -1186,43 +1171,9 @@ export default function App() {
                   </View>
                 </View>
 
-                <View style={styles.analyticsSummaryRow}>
-                  <View style={[styles.analyticsSummaryCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-                    <Text style={[styles.analyticsSummaryLabel, { color: theme.textSecondary }]}>Aylık Ortalama</Text>
-                    <Text style={[styles.analyticsSummaryValue, { color: theme.textPrimary }]}>{formatShortCurrency(averageMonthlyExpense, 'TRY')}</Text>
-                  </View>
-                  <View style={[styles.analyticsSummaryCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-                    <Text style={[styles.analyticsSummaryLabel, { color: theme.textSecondary }]}>Aylık Kart Yükü</Text>
-                    <Text style={[styles.analyticsSummaryValue, { color: theme.textPrimary }]}>{formatShortCurrency(totalMonthlyPaymentCommitment, 'TRY')}</Text>
-                  </View>
-                  <View style={[styles.analyticsSummaryCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-                    <Text style={[styles.analyticsSummaryLabel, { color: theme.textSecondary }]}>Öne Çıkan Kategori</Text>
-                    <Text style={[styles.analyticsSummaryValue, { color: theme.textPrimary }]} numberOfLines={1}>{topCategoryLabel}</Text>
-                  </View>
-                </View>
-
-                {upcomingRenewals.length > 0 && (
-                  <View style={[styles.panel, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-                    <Text style={[styles.panelTitle, { color: theme.textPrimary }]}>⏰ Yaklaşan Yenilemeler (14 gün)</Text>
-                    {upcomingRenewals.map(renewal => {
-                      const renewalColor = renewal.item.color || CATEGORY_COLORS[renewal.item.category] || CATEGORY_COLORS.Diğer;
-                      return (
-                        <View key={renewal.item.id} style={[styles.renewalRow, { borderBottomColor: theme.cardBorder }]}>
-                          <View style={[styles.renewalDot, { backgroundColor: renewalColor }]} />
-                          <Text style={[styles.renewalName, { color: theme.textPrimary }]}>{renewal.item.name}</Text>
-                          <Text style={[styles.renewalDateText, { color: renewal.daysUntil <= 2 ? theme.danger : theme.textSecondary }]}>
-                            {renewal.daysUntil === 0 ? 'Bugün' : renewal.daysUntil === 1 ? 'Yarın' : `${renewal.daysUntil} gün sonra`}
-                          </Text>
-                          <Text style={[styles.renewalAmount, { color: theme.textPrimary }]}>{formatCurrency(renewal.item.price, renewal.item.currency)}</Text>
-                        </View>
-                      );
-                    })}
-                  </View>
-                )}
-
-                <View style={[styles.panel, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                <View style={[styles.panel, styles.analysisPrimaryPanel, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
                   <Text style={[styles.panelTitle, { color: theme.textPrimary }]}>{selectedAnalysisYear} Aylık Harcama Grafiği</Text>
-                  <Text style={[styles.panelDescription, { color: theme.textMuted }]}>Aylık Harcamalar Kategori Renkleriyle Gösterilir.</Text>
+                  <Text style={[styles.panelDescription, { color: theme.textMuted }]}>Aylık Harcama Eğilimi ve Kategori Kırılımı.</Text>
 
                   <View style={styles.categoryLegend}>
                     {Object.entries(CATEGORY_COLORS).map(([category, color]) => (
@@ -1277,10 +1228,11 @@ export default function App() {
                   </View>
                 </View>
 
-                <View style={styles.distributionSectionHeader}>
+                <View style={[styles.analysisSectionCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                  <View style={styles.distributionSectionHeader}>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.distributionTitle, styles.distributionTitleNoTop, { color: theme.textPrimary }]}>Ödeme Yöntemine Göre Aylık Yük</Text>
-                    <Text style={[styles.distributionSubtitle, { color: theme.textMuted }]}>Kart ve Hesap Bazında Aylık Ödeme Tutarları.</Text>
+                    <Text style={[styles.distributionSubtitle, { color: theme.textMuted }]}>Kart ve Hesap Bazında Aylık Ödeme Yükü.</Text>
                   </View>
                   <View style={[styles.monthlyCommitmentBadge, { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder }]}>
                     <Text style={[styles.monthlyCommitmentBadgeLabel, { color: theme.textMuted }]}>Toplam / Ay</Text>
@@ -1316,10 +1268,12 @@ export default function App() {
                     })}
                   </View>
                 )}
+                </View>
 
-                <Text style={[styles.distributionTitle, { color: theme.textPrimary }]}>📂 Kategori Bazlı Dağılım</Text>
+                <View style={[styles.analysisSectionCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                  <Text style={[styles.distributionTitle, styles.distributionTitleNoTop, { color: theme.textPrimary }]}>Kategori Bazlı Aylık Dağılım</Text>
                 {sortedMonthlyCategoryEntries.length === 0 ? (
-                  <Text style={[styles.noDataText, { color: theme.textSecondary }]}>Seçilen Yıl İçin Aylık Kategori Verisi Bulunamadı.</Text>
+                  <Text style={[styles.noDataText, { color: theme.textSecondary }]}>Seçilen Yıl İçin Kategori Verisi Bulunamadı.</Text>
                 ) : sortedMonthlyCategoryEntries.map(([category, amount]) => {
                   const categoryColor = CATEGORY_COLORS[category] || CATEGORY_COLORS.Diğer;
                   const percentage = totalMonthlyCategoryExpense > 0 ? ((amount / totalMonthlyCategoryExpense) * 100).toFixed(1) : 0;
@@ -1338,6 +1292,7 @@ export default function App() {
                     </View>
                   );
                 })}
+                </View>
               </View>
             )}
           </ScrollView>
@@ -1981,8 +1936,8 @@ function createStyles(theme, isMobile, fontScale) {
     calendarSubscriptionName: { color: '#ffffff', fontSize: font(8), fontWeight: 'bold' },
     calendarSubscriptionPrice: { color: '#ffffff', fontSize: font(7), marginTop: 1 },
 
-    analyticsSection: { width: '100%', marginTop: 4, paddingBottom: isMobile ? 10 : 18 },
-    analysisToolbar: { width: '100%', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: 14, marginTop: 14, marginBottom: 22 },
+    analyticsSection: { width: '100%', marginTop: 4, paddingBottom: isMobile ? 14 : 24 },
+    analysisToolbar: { width: '100%', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: 14, marginTop: 4, marginBottom: 20 },
     analysisToolbarLabel: { fontSize: font(10), fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.7 },
     analysisToolbarHint: { fontSize: font(11), lineHeight: font(17), marginTop: 4 },
     yearSelectButton: { minWidth: isMobile ? '100%' : 176, minHeight: 58, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 10, shadowColor: '#000000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.16, shadowRadius: 14, elevation: 5 },
@@ -1992,25 +1947,16 @@ function createStyles(theme, isMobile, fontScale) {
     pageTitle: { fontSize: font(21), fontWeight: 'bold' },
     pageDescription: { fontSize: font(12), marginTop: 4, marginBottom: 14 },
 
-    insightBox: { flexDirection: 'row', gap: 12, borderWidth: 1, borderRadius: 18, padding: isMobile ? 16 : 20, marginBottom: 18, alignItems: 'flex-start', shadowColor: '#312e81', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.24, shadowRadius: 22, elevation: 8 },
+    insightBox: { flexDirection: 'row', gap: 12, borderWidth: 1, borderRadius: 18, padding: isMobile ? 16 : 20, marginBottom: 24, alignItems: 'flex-start', shadowColor: '#312e81', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.24, shadowRadius: 22, elevation: 8 },
     insightIconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
     insightTitle: { color: '#ffffff', fontSize: font(13), fontWeight: 'bold', marginBottom: 4 },
     insightText: { color: 'rgba(255,255,255,0.92)', fontSize: font(11), lineHeight: font(16) },
 
-    analyticsSummaryRow: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 2, marginBottom: 14 },
-    analyticsSummaryCard: { flexGrow: 1, flexBasis: isMobile ? '46%' : 150, minWidth: isMobile ? '46%' : 150, borderWidth: 1, borderRadius: 12, padding: 12 },
-    analyticsSummaryLabel: { fontSize: font(10), fontWeight: '600' },
-    analyticsSummaryValue: { fontSize: font(14), fontWeight: 'bold', marginTop: 4 },
-
-    panel: { width: '100%', borderWidth: 1, borderRadius: 16, padding: isMobile ? 13 : 17, marginBottom: 16, shadowColor: '#000000', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 3 },
+    panel: { width: '100%', borderWidth: 1, borderRadius: 16, padding: isMobile ? 14 : 18, marginBottom: 24, shadowColor: '#000000', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 3 },
+    analysisPrimaryPanel: { marginTop: 0 },
+    analysisSectionCard: { width: '100%', borderWidth: 1, borderRadius: 16, padding: isMobile ? 14 : 18, marginBottom: 24, shadowColor: '#000000', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 2 },
     panelTitle: { fontSize: font(14), fontWeight: 'bold' },
     panelDescription: { fontSize: font(10), marginTop: 4 },
-
-    renewalRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, borderBottomWidth: 1 },
-    renewalDot: { width: 8, height: 8, flexShrink: 0, borderRadius: 4 },
-    renewalName: { flex: 1, minWidth: 0, fontSize: font(11), fontWeight: '600' },
-    renewalDateText: { fontSize: font(10), fontWeight: 'bold' },
-    renewalAmount: { fontSize: font(11), fontWeight: 'bold' },
 
     categoryLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: 9, marginTop: 12, marginBottom: 12 },
     legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
@@ -2032,7 +1978,7 @@ function createStyles(theme, isMobile, fontScale) {
     distributionTitle: { fontSize: font(14), fontWeight: 'bold', marginTop: 20, marginBottom: 9 },
     distributionTitleNoTop: { marginTop: 0, marginBottom: 3 },
     distributionSubtitle: { fontSize: font(10), lineHeight: font(15) },
-    distributionSectionHeader: { width: '100%', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: 12, marginTop: 22, marginBottom: 11 },
+    distributionSectionHeader: { width: '100%', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: 12, marginTop: 0, marginBottom: 14 },
     monthlyCommitmentBadge: { alignSelf: isMobile ? 'stretch' : 'center', borderWidth: 1, borderRadius: 13, paddingHorizontal: 14, paddingVertical: 9, minWidth: isMobile ? 0 : 150 },
     monthlyCommitmentBadgeLabel: { fontSize: font(8), fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6 },
     monthlyCommitmentBadgeValue: { fontSize: font(13), fontWeight: '800', marginTop: 2 },
