@@ -217,6 +217,7 @@ export default function App() {
   const [fontScaleKey, setFontScaleKey] = useState('normal');
   const [isAppearanceModalOpen, setIsAppearanceModalOpen] = useState(false);
   const [isAnalysisYearPickerOpen, setIsAnalysisYearPickerOpen] = useState(false);
+  const [isCalendarYearPickerOpen, setIsCalendarYearPickerOpen] = useState(false);
 
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [formStep, setFormStep] = useState(1);
@@ -468,14 +469,6 @@ export default function App() {
   const averageMonthlyExpense = monthsWithExpense > 0 ? totalYearlyExpense / monthsWithExpense : 0;
   const maxMonthlyExpense = Math.max(...monthlyTotals, 1);
 
-  const yearlyPaymentMethodStats = safeList.reduce((acc, s) => {
-    const method = s.paymentMethod || 'Nakit / Diğer';
-    const yearlyAmount = Array.from({ length: 12 }, (_, m) => getSubscriptionCostForMonth(s, selectedAnalysisYear, m, exchangeRates)).reduce((t, a) => t + a, 0);
-    if (yearlyAmount <= 0) return acc;
-    acc[method] = (acc[method] || 0) + yearlyAmount;
-    return acc;
-  }, {});
-
   const yearlyCategoryStats = safeList.reduce((acc, s) => {
     const category = s.category || 'Diğer';
     const yearlyAmount = Array.from({ length: 12 }, (_, m) => getSubscriptionCostForMonth(s, selectedAnalysisYear, m, exchangeRates)).reduce((t, a) => t + a, 0);
@@ -497,13 +490,15 @@ export default function App() {
     return acc;
   }, {});
 
-  const sortedPaymentMethodEntries = Object.entries(yearlyPaymentMethodStats).sort((a, b) => b[1] - a[1]);
   const sortedMonthlyPaymentMethodEntries = Object.entries(monthlyPaymentMethodStats).sort((a, b) => b[1] - a[1]);
   const totalMonthlyPaymentCommitment = sortedMonthlyPaymentMethodEntries.reduce((total, [, amount]) => total + amount, 0);
   const sortedCategoryEntries = Object.entries(yearlyCategoryStats).sort((a, b) => b[1] - a[1]);
+  const categoryMonthDivisor = Math.max(monthsWithExpense, 1);
+  const sortedMonthlyCategoryEntries = sortedCategoryEntries.map(([category, amount]) => [category, amount / categoryMonthDivisor]);
+  const totalMonthlyCategoryExpense = sortedMonthlyCategoryEntries.reduce((total, [, amount]) => total + amount, 0);
   const topCategoryLabel = sortedCategoryEntries[0]?.[0] || '-';
-  const topCategoryAmount = sortedCategoryEntries[0]?.[1] || 0;
-  const topCategoryPercent = totalYearlyExpense > 0 ? ((topCategoryAmount / totalYearlyExpense) * 100).toFixed(0) : 0;
+  const topCategoryAmount = sortedMonthlyCategoryEntries[0]?.[1] || 0;
+  const topCategoryPercent = totalMonthlyCategoryExpense > 0 ? ((topCategoryAmount / totalMonthlyCategoryExpense) * 100).toFixed(0) : 0;
 
   const mostExpensiveSubscription = safeList.reduce((current, s) => {
     if (s.status === 'cancelled') return current;
@@ -513,9 +508,9 @@ export default function App() {
     return current;
   }, null);
 
-  const insightText = sortedCategoryEntries.length === 0
-    ? 'Henüz yeterli veri yok. Bir abonelik eklediğinizde size özel içgörüler burada görünecek.'
-    : `${selectedAnalysisYear} yılında en çok "${topCategoryLabel}" kategorisine harcama yaptınız — toplam harcamanızın yaklaşık %${topCategoryPercent}'i bu kategoriden geliyor (${formatShortCurrency(topCategoryAmount, 'TRY')}).${mostExpensiveSubscription ? ` En yüksek bireysel gideriniz "${mostExpensiveSubscription.item.name}".` : ''}${hasMonthlyChangeData ? ` Bu ay harcamanız geçen aya göre %${Math.abs(monthlyChangePercent).toFixed(1)} ${monthlyChangePercent <= 0 ? 'azaldı' : 'arttı'}.` : ''}`;
+  const insightText = sortedMonthlyCategoryEntries.length === 0
+    ? 'Henüz analiz oluşturmak için yeterli abonelik verisi bulunmuyor.'
+    : `${selectedAnalysisYear} döneminde aylık bütçede en yüksek pay ${topCategoryLabel} kategorisinde: ${formatShortCurrency(topCategoryAmount, 'TRY')} (%${topCategoryPercent}).${mostExpensiveSubscription ? ` En yüksek aylık abonelik etkisi ${mostExpensiveSubscription.item.name} kaydından geliyor.` : ''}`;
 
   const todayForRenewals = new Date();
   const upcomingRenewals = safeList
@@ -861,7 +856,7 @@ export default function App() {
               {[
                 { key: 'list', icon: '💳', label: 'Abonelikler' },
                 { key: 'calendar', icon: '📅', label: 'Takvim' },
-                { key: 'analytics', icon: '📊', label: 'Analiz & Raporlar' }
+                { key: 'analytics', icon: '📊', label: 'Analiz ve Raporlar' }
               ].map(navItem => (
                 <TouchableOpacity key={navItem.key} style={[styles.sidebarNavButton, activeTab === navItem.key && styles.sidebarNavButtonActive]} onPress={() => handleTabChange(navItem.key)}>
                   <Text style={styles.sidebarNavIcon}>{navItem.icon}</Text>
@@ -900,10 +895,10 @@ export default function App() {
 
             <View style={styles.pageHeaderInfo}>
               <Text style={[styles.pageHeaderTitle, { color: theme.textPrimary }]}>
-                {activeTab === 'list' ? 'Abonelikler' : activeTab === 'calendar' ? 'Ödeme Takvimi' : 'Finansal Analiz'}
+                {activeTab === 'list' ? 'Abonelikler' : activeTab === 'calendar' ? 'Ödeme Takvimi' : 'Analiz ve Raporlar'}
               </Text>
               <Text style={[styles.pageHeaderDescription, { color: theme.textSecondary }]}>
-                {activeTab === 'list' ? 'Aboneliklerinizi ve düzenli ödemelerinizi yönetin.' : activeTab === 'calendar' ? 'Yaklaşan ödeme tarihlerini takvim üzerinden takip edin.' : 'Harcama eğilimlerinizi ve yıllık maliyetlerinizi inceleyin.'}
+                {activeTab === 'list' ? 'Aboneliklerinizi ve Düzenli Ödemelerinizi Yönetin.' : activeTab === 'calendar' ? 'Yaklaşan Ödeme Tarihlerini Takvim Üzerinden Takip Edin.' : 'Aylık Harcama Eğilimlerinizi ve Bütçe Yükünüzü İnceleyin.'}
               </Text>
             </View>
 
@@ -1093,13 +1088,17 @@ export default function App() {
                   </TouchableOpacity>
                 </View>
 
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalOptionRow}>
-                  {YEARS.map(year => (
-                    <TouchableOpacity key={year} style={[styles.yearButton, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }, calendarYear === year && styles.yearButtonActive]} onPress={() => setCalendarYear(year)}>
-                      <Text style={[styles.yearButtonText, { color: theme.textSecondary }, calendarYear === year && styles.yearButtonTextActive]}>{year}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
+                <View style={styles.calendarYearSelectorRow}>
+                  <Text style={[styles.calendarYearSelectorLabel, { color: theme.textMuted }]}>Takvim Yılı</Text>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    style={[styles.calendarYearSelectButton, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
+                    onPress={() => setIsCalendarYearPickerOpen(true)}
+                  >
+                    <Text style={[styles.calendarYearSelectValue, { color: theme.textPrimary }]}>{calendarYear}</Text>
+                    <Text style={[styles.yearSelectChevron, { color: theme.accent }]}>⌄</Text>
+                  </TouchableOpacity>
+                </View>
 
                 <View style={styles.calendarContainer}>
                   <View style={styles.calendarWeekHeader}>
@@ -1158,13 +1157,13 @@ export default function App() {
 
             {activeTab === 'analytics' && (
               <View style={styles.analyticsSection}>
-                <Text style={[styles.pageTitle, { color: theme.textPrimary }]}>Finansal Analiz & Raporlar</Text>
-                <Text style={[styles.pageDescription, { color: theme.textSecondary }]}>Aylık harcama dağılımları, ödeme yöntemleri ve kategori trendleri</Text>
+                <Text style={[styles.pageTitle, { color: theme.textPrimary }]}>Analiz ve Raporlar</Text>
+                <Text style={[styles.pageDescription, { color: theme.textSecondary }]}>Aylık Harcama Dağılımlarını ve Bütçe Yükünü İnceleyin</Text>
 
                 <View style={styles.analysisToolbar}>
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={[styles.analysisToolbarLabel, { color: theme.textMuted }]}>Raporlama dönemi</Text>
-                    <Text style={[styles.analysisToolbarHint, { color: theme.textSecondary }]}>Grafik ve dağılımlar seçilen yıla göre güncellenir.</Text>
+                    <Text style={[styles.analysisToolbarLabel, { color: theme.textMuted }]}>Raporlama Dönemi</Text>
+                    <Text style={[styles.analysisToolbarHint, { color: theme.textSecondary }]}>Grafikler ve Dağılımlar Seçilen Yıla Göre Güncellenir.</Text>
                   </View>
                   <TouchableOpacity
                     activeOpacity={0.8}
@@ -1193,16 +1192,12 @@ export default function App() {
                     <Text style={[styles.analyticsSummaryValue, { color: theme.textPrimary }]}>{formatShortCurrency(averageMonthlyExpense, 'TRY')}</Text>
                   </View>
                   <View style={[styles.analyticsSummaryCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-                    <Text style={[styles.analyticsSummaryLabel, { color: theme.textSecondary }]}>En Yüksek Kategori</Text>
+                    <Text style={[styles.analyticsSummaryLabel, { color: theme.textSecondary }]}>Aylık Kart Yükü</Text>
+                    <Text style={[styles.analyticsSummaryValue, { color: theme.textPrimary }]}>{formatShortCurrency(totalMonthlyPaymentCommitment, 'TRY')}</Text>
+                  </View>
+                  <View style={[styles.analyticsSummaryCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                    <Text style={[styles.analyticsSummaryLabel, { color: theme.textSecondary }]}>Öne Çıkan Kategori</Text>
                     <Text style={[styles.analyticsSummaryValue, { color: theme.textPrimary }]} numberOfLines={1}>{topCategoryLabel}</Text>
-                  </View>
-                  <View style={[styles.analyticsSummaryCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-                    <Text style={[styles.analyticsSummaryLabel, { color: theme.textSecondary }]}>En Pahalı Abonelik</Text>
-                    <Text style={[styles.analyticsSummaryValue, { color: theme.textPrimary }]} numberOfLines={1}>{mostExpensiveSubscription?.item?.name || '-'}</Text>
-                  </View>
-                  <View style={[styles.analyticsSummaryCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-                    <Text style={[styles.analyticsSummaryLabel, { color: theme.textSecondary }]}>Toplam Abonelik</Text>
-                    <Text style={[styles.analyticsSummaryValue, { color: theme.textPrimary }]}>{safeList.length} adet</Text>
                   </View>
                 </View>
 
@@ -1227,7 +1222,7 @@ export default function App() {
 
                 <View style={[styles.panel, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
                   <Text style={[styles.panelTitle, { color: theme.textPrimary }]}>{selectedAnalysisYear} Aylık Harcama Grafiği</Text>
-                  <Text style={[styles.panelDescription, { color: theme.textMuted }]}>Her çubukta o aya ait kategoriler farklı renklerle gösterilir.</Text>
+                  <Text style={[styles.panelDescription, { color: theme.textMuted }]}>Aylık Harcamalar Kategori Renkleriyle Gösterilir.</Text>
 
                   <View style={styles.categoryLegend}>
                     {Object.entries(CATEGORY_COLORS).map(([category, color]) => (
@@ -1277,36 +1272,18 @@ export default function App() {
                   </ScrollView>
 
                   <View style={[styles.chartFooter, { borderTopColor: theme.cardBorder }]}>
-                    <Text style={[styles.chartFooterLabel, { color: theme.textPrimary }]}>Yıllık Toplam Harcama ({selectedAnalysisYear})</Text>
-                    <Text style={[styles.chartFooterValue, { color: theme.accent }]}>{formatCurrency(totalYearlyExpense, 'TRY')}</Text>
+                    <Text style={[styles.chartFooterLabel, { color: theme.textPrimary }]}>Aylık Ortalama Harcama ({selectedAnalysisYear})</Text>
+                    <Text style={[styles.chartFooterValue, { color: theme.accent }]}>{formatCurrency(averageMonthlyExpense, 'TRY')}</Text>
                   </View>
                 </View>
 
-                <Text style={[styles.distributionTitle, { color: theme.textPrimary }]}>💳 Ödeme Yöntemine Göre Harcama Dağılımı</Text>
-                {sortedPaymentMethodEntries.length === 0 ? (
-                  <Text style={[styles.noDataText, { color: theme.textSecondary }]}>Seçilen yıl için ödeme yöntemi verisi bulunamadı.</Text>
-                ) : sortedPaymentMethodEntries.map(([paymentMethod, amount]) => {
-                  const percentage = totalYearlyExpense > 0 ? ((amount / totalYearlyExpense) * 100).toFixed(1) : 0;
-                  return (
-                    <View key={paymentMethod} style={[styles.distributionCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-                      <View style={styles.distributionHeader}>
-                        <Text style={[styles.distributionName, { color: theme.textPrimary }]}>💳 {paymentMethod}</Text>
-                        <Text style={[styles.distributionAmount, { color: theme.textPrimary }]}>{formatCurrency(amount, 'TRY')} (%{percentage})</Text>
-                      </View>
-                      <View style={[styles.progressTrack, { backgroundColor: theme.inputBg }]}>
-                        <View style={[styles.progressFill, { width: `${percentage}%`, backgroundColor: theme.accent }]} />
-                      </View>
-                    </View>
-                  );
-                })}
-
                 <View style={styles.distributionSectionHeader}>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.distributionTitle, styles.distributionTitleNoTop, { color: theme.textPrimary }]}>📆 Ödeme Yöntemine Göre Aylık Yük</Text>
-                    <Text style={[styles.distributionSubtitle, { color: theme.textMuted }]}>Her kart veya hesaptan aylık ortalama çekilmesi beklenen net taahhüt.</Text>
+                    <Text style={[styles.distributionTitle, styles.distributionTitleNoTop, { color: theme.textPrimary }]}>Ödeme Yöntemine Göre Aylık Yük</Text>
+                    <Text style={[styles.distributionSubtitle, { color: theme.textMuted }]}>Kart ve Hesap Bazında Aylık Ödeme Tutarları.</Text>
                   </View>
                   <View style={[styles.monthlyCommitmentBadge, { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder }]}>
-                    <Text style={[styles.monthlyCommitmentBadgeLabel, { color: theme.textMuted }]}>Toplam / ay</Text>
+                    <Text style={[styles.monthlyCommitmentBadgeLabel, { color: theme.textMuted }]}>Toplam / Ay</Text>
                     <Text style={[styles.monthlyCommitmentBadgeValue, { color: theme.textPrimary }]}>{formatCurrency(totalMonthlyPaymentCommitment, 'TRY')}</Text>
                   </View>
                 </View>
@@ -1314,8 +1291,8 @@ export default function App() {
                 {sortedMonthlyPaymentMethodEntries.length === 0 ? (
                   <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
                     <Text style={styles.emptyIcon}>💳</Text>
-                    <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Aylık ödeme yükü bulunamadı</Text>
-                    <Text style={[styles.emptyDescription, { color: theme.textSecondary }]}>Aktif bir abonelik eklediğinizde kart bazlı aylık dağılım burada görünür.</Text>
+                    <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Aylık Ödeme Yükü Bulunamadı</Text>
+                    <Text style={[styles.emptyDescription, { color: theme.textSecondary }]}>Aktif Bir Abonelik Eklediğinizde Aylık Dağılım Burada Görünür.</Text>
                   </View>
                 ) : (
                   <View style={styles.monthlyPaymentGrid}>
@@ -1328,7 +1305,7 @@ export default function App() {
                           </View>
                           <View style={styles.monthlyPaymentContent}>
                             <Text style={[styles.monthlyPaymentName, { color: theme.textPrimary }]} numberOfLines={1}>{paymentMethod}</Text>
-                            <Text style={[styles.monthlyPaymentMeta, { color: theme.textMuted }]}>Aylık yükün %{percentage.toFixed(1)}'i</Text>
+                            <Text style={[styles.monthlyPaymentMeta, { color: theme.textMuted }]}>Aylık Bütçeye Oranı: %{percentage.toFixed(1)}</Text>
                             <View style={[styles.progressTrack, { backgroundColor: theme.inputBg, marginTop: 8 }]}>
                               <View style={[styles.progressFill, { width: `${percentage}%`, backgroundColor: theme.accent }]} />
                             </View>
@@ -1341,11 +1318,11 @@ export default function App() {
                 )}
 
                 <Text style={[styles.distributionTitle, { color: theme.textPrimary }]}>📂 Kategori Bazlı Dağılım</Text>
-                {sortedCategoryEntries.length === 0 ? (
-                  <Text style={[styles.noDataText, { color: theme.textSecondary }]}>Seçilen yıl için kategori verisi bulunamadı.</Text>
-                ) : sortedCategoryEntries.map(([category, amount]) => {
+                {sortedMonthlyCategoryEntries.length === 0 ? (
+                  <Text style={[styles.noDataText, { color: theme.textSecondary }]}>Seçilen Yıl İçin Aylık Kategori Verisi Bulunamadı.</Text>
+                ) : sortedMonthlyCategoryEntries.map(([category, amount]) => {
                   const categoryColor = CATEGORY_COLORS[category] || CATEGORY_COLORS.Diğer;
-                  const percentage = totalYearlyExpense > 0 ? ((amount / totalYearlyExpense) * 100).toFixed(1) : 0;
+                  const percentage = totalMonthlyCategoryExpense > 0 ? ((amount / totalMonthlyCategoryExpense) * 100).toFixed(1) : 0;
                   return (
                     <View key={category} style={[styles.distributionCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
                       <View style={styles.distributionHeader}>
@@ -1353,7 +1330,7 @@ export default function App() {
                           <View style={[styles.distributionColorDot, { backgroundColor: categoryColor }]} />
                           <Text style={[styles.distributionName, { color: theme.textPrimary }]}>{category}</Text>
                         </View>
-                        <Text style={[styles.distributionAmount, { color: theme.textPrimary }]}>{formatCurrency(amount, 'TRY')} (%{percentage})</Text>
+                        <Text style={[styles.distributionAmount, { color: theme.textPrimary }]}>{formatCurrency(amount, 'TRY')} / Ay · %{percentage}</Text>
                       </View>
                       <View style={[styles.progressTrack, { backgroundColor: theme.inputBg }]}>
                         <View style={[styles.progressFill, { width: `${percentage}%`, backgroundColor: categoryColor }]} />
@@ -1397,7 +1374,7 @@ export default function App() {
                 {[
                   { key: 'list', icon: '💳', label: 'Abonelikler' },
                   { key: 'calendar', icon: '📅', label: 'Takvim' },
-                  { key: 'analytics', icon: '📊', label: 'Analiz & Raporlar' }
+                  { key: 'analytics', icon: '📊', label: 'Analiz ve Raporlar' }
                 ].map(navItem => (
                   <TouchableOpacity key={navItem.key} style={[styles.sidebarNavButton, activeTab === navItem.key && styles.sidebarNavButtonActive]} onPress={() => handleTabChange(navItem.key)}>
                     <Text style={styles.sidebarNavIcon}>{navItem.icon}</Text>
@@ -1434,7 +1411,7 @@ export default function App() {
             <View style={styles.modalHeader}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>{dayDrawer.day} {dayDrawer.month !== null ? MONTH_NAMES[dayDrawer.month] : ''} {dayDrawer.year}</Text>
-                <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Bu güne ait ödemeler</Text>
+                <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Bu Güne Ait Ödemeler</Text>
               </View>
               <TouchableOpacity style={[styles.modalCloseButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={() => setDayDrawer(d => ({ ...d, visible: false }))}>
                 <Text style={[styles.modalCloseText, { color: theme.textSecondary }]}>✕</Text>
@@ -1445,7 +1422,7 @@ export default function App() {
               {(dayDrawer.items || []).length === 0 ? (
                 <View style={[styles.emptyCard, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder, marginTop: 6 }]}>
                   <Text style={styles.emptyIcon}>📭</Text>
-                  <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Bu gün için ödeme yok</Text>
+                  <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Bu Gün İçin Ödeme Yok</Text>
                 </View>
               ) : (dayDrawer.items || []).map(sub => (
                 <View key={sub.id} style={[styles.subscriptionCard, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder, marginBottom: 10 }]}>
@@ -1475,6 +1452,39 @@ export default function App() {
         </View>
       </Modal>
 
+      {/* TAKVİM YILI SEÇİCİ */}
+      <Modal visible={isCalendarYearPickerOpen} transparent animationType="fade" onRequestClose={() => setIsCalendarYearPickerOpen(false)}>
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity style={styles.yearPickerBackdrop} activeOpacity={1} onPress={() => setIsCalendarYearPickerOpen(false)} />
+          <View style={[styles.yearPickerCard, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.96) : theme.cardBg, borderColor: theme.cardBorder }]}>
+            <View style={styles.yearPickerHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Takvim Yılı</Text>
+                <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Ödeme Takviminde Görüntülenecek Yılı Seçin.</Text>
+              </View>
+              <TouchableOpacity style={[styles.modalCloseButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={() => setIsCalendarYearPickerOpen(false)}>
+                <Text style={[styles.modalCloseText, { color: theme.textSecondary }]}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.yearPickerGrid}>
+              {YEARS.map(year => {
+                const isSelected = calendarYear === year;
+                return (
+                  <TouchableOpacity
+                    key={`calendar-picker-${year}`}
+                    style={[styles.yearPickerOption, { backgroundColor: isSelected ? theme.activeButton : theme.inputBg, borderColor: isSelected ? theme.activeButtonBorder : theme.cardBorder }]}
+                    onPress={() => { setCalendarYear(year); setIsCalendarYearPickerOpen(false); }}
+                  >
+                    <Text style={[styles.yearPickerOptionText, { color: isSelected ? '#ffffff' : theme.textPrimary }]}>{year}</Text>
+                    {isSelected && <Text style={styles.yearPickerCheck}>✓</Text>}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* ANALİZ YILI SEÇİCİ */}
       <Modal visible={isAnalysisYearPickerOpen} transparent animationType="fade" onRequestClose={() => setIsAnalysisYearPickerOpen(false)}>
         <View style={styles.modalOverlay}>
@@ -1483,7 +1493,7 @@ export default function App() {
             <View style={styles.yearPickerHeader}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Raporlama Yılı</Text>
-                <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Finansal analizlerin gösterileceği yılı seçin.</Text>
+                <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Finansal Analizlerin Gösterileceği Yılı Seçin.</Text>
               </View>
               <TouchableOpacity style={[styles.modalCloseButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={() => setIsAnalysisYearPickerOpen(false)}>
                 <Text style={[styles.modalCloseText, { color: theme.textSecondary }]}>✕</Text>
@@ -1515,7 +1525,7 @@ export default function App() {
             <View style={styles.modalHeader}>
               <View style={{ flex: 1, paddingRight: 12 }}>
                 <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Görünüm Ayarları</Text>
-                <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Arka plan temasını ve yazı boyutunu kişiselleştirin.</Text>
+                <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Arka Plan Temasını ve Yazı Boyutunu Kişiselleştirin.</Text>
               </View>
               <TouchableOpacity style={[styles.modalCloseButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={() => setIsAppearanceModalOpen(false)}>
                 <Text style={[styles.modalCloseText, { color: theme.textSecondary }]}>✕</Text>
@@ -1563,7 +1573,7 @@ export default function App() {
             <View style={styles.modalHeader}>
               <View style={{ flex: 1, paddingRight: 12 }}>
                 <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>{editingId ? 'Abonelik Düzenle' : 'Yeni Abonelik Ekle'}</Text>
-                <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Abonelik veya sabit gider bilgilerini giriniz.</Text>
+                <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Abonelik veya Sabit Gider Bilgilerini Girin.</Text>
 
                 <View style={styles.stepIndicatorRow}>
                   {[1, 2].map(step => (
@@ -1586,7 +1596,7 @@ export default function App() {
                       <View style={styles.formSectionHeader}>
                         <View style={{ flex: 1, paddingRight: 10 }}>
                           <Text style={[styles.formSectionTitle, { color: theme.textPrimary }]}>Hızlı Şablon Seç</Text>
-                          <Text style={[styles.formSectionDescription, { color: theme.textMuted }]}>Hazır bir servis seçerek alanları otomatik doldurun.</Text>
+                          <Text style={[styles.formSectionDescription, { color: theme.textMuted }]}>Hazır Bir Servis Seçerek Alanları Otomatik Doldurun.</Text>
                         </View>
                         <TouchableOpacity onPress={() => setShowTemplateForm(!showTemplateForm)}>
                           <Text style={[styles.formSectionAction, { color: theme.accent }]}>{showTemplateForm ? 'Kapat' : '+ Şablon Ekle'}</Text>
@@ -1687,7 +1697,7 @@ export default function App() {
                     <View style={styles.formSectionHeader}>
                       <View style={{ flex: 1, paddingRight: 10 }}>
                         <Text style={[styles.formSectionTitle, { color: theme.textPrimary }]}>Ödeme Yapılan Kart / Hesap</Text>
-                        <Text style={[styles.formSectionDescription, { color: theme.textMuted }]}>Aboneliğin tahsil edildiği yöntemi seçiniz.</Text>
+                        <Text style={[styles.formSectionDescription, { color: theme.textMuted }]}>Aboneliğin Tahsil Edildiği Yöntemi Seçin.</Text>
                       </View>
                       <TouchableOpacity onPress={() => setShowPaymentMethodForm(!showPaymentMethodForm)}>
                         <Text style={[styles.formSectionAction, { color: theme.accent }]}>{showPaymentMethodForm ? 'Kapat' : '+ Yöntem Ekle'}</Text>
@@ -1951,6 +1961,11 @@ function createStyles(theme, isMobile, fontScale) {
     yearButtonText: { fontSize: font(11), fontWeight: '600' },
     yearButtonTextActive: { color: '#ffffff', fontWeight: 'bold' },
 
+    calendarYearSelectorRow: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 },
+    calendarYearSelectorLabel: { fontSize: font(10), fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.7 },
+    calendarYearSelectButton: { minWidth: isMobile ? 118 : 150, minHeight: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderRadius: 13, paddingHorizontal: 15, paddingVertical: 8 },
+    calendarYearSelectValue: { fontSize: font(15), fontWeight: '800' },
+
     calendarContainer: { width: '100%', marginTop: 14 },
     calendarWeekHeader: { width: '100%', flexDirection: 'row', marginBottom: 7 },
     calendarWeekDay: { width: '14.2857%', alignItems: 'center' },
@@ -1967,7 +1982,7 @@ function createStyles(theme, isMobile, fontScale) {
     calendarSubscriptionPrice: { color: '#ffffff', fontSize: font(7), marginTop: 1 },
 
     analyticsSection: { width: '100%', marginTop: 4, paddingBottom: isMobile ? 10 : 18 },
-    analysisToolbar: { width: '100%', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: 14, marginTop: 14, marginBottom: 24 },
+    analysisToolbar: { width: '100%', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: 14, marginTop: 14, marginBottom: 22 },
     analysisToolbarLabel: { fontSize: font(10), fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.7 },
     analysisToolbarHint: { fontSize: font(11), lineHeight: font(17), marginTop: 4 },
     yearSelectButton: { minWidth: isMobile ? '100%' : 176, minHeight: 58, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 10, shadowColor: '#000000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.16, shadowRadius: 14, elevation: 5 },
