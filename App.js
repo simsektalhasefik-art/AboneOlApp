@@ -133,9 +133,16 @@ const getCycleKey = (item, today) => {
   return `${next.getFullYear()}-${next.getMonth()}`;
 };
 
+const getAnnualIncreaseMultiplier = (item, targetYear) => {
+  const baseYear = Number(item?.billingYear) || targetYear;
+  const annualIncreaseRate = Math.max(0, Number(item?.annualIncreaseRate) || 0);
+  const elapsedYears = Math.max(0, targetYear - baseYear);
+  return Math.pow(1 + annualIncreaseRate / 100, elapsedYears);
+};
+
 const getSubscriptionCostForMonth = (item, year, monthIndex, rates) => {
   if (!item || item.status === 'cancelled') return 0;
-  const priceInTL = convertToTL(item.price, item.currency || 'TRY', rates);
+  const priceInTL = convertToTL(item.price, item.currency || 'TRY', rates) * getAnnualIncreaseMultiplier(item, year);
   const billingYear = Number(item.billingYear) || year;
   const billingMonth = Math.max(0, Math.min(11, (Number(item.billingMonth) || 1) - 1));
   const targetMonthKey = year * 12 + monthIndex;
@@ -245,6 +252,7 @@ export default function App() {
   const [formColor, setFormColor] = useState('#6366f1');
   const [formNotificationDays, setFormNotificationDays] = useState(2);
   const [formNotificationChannel, setFormNotificationChannel] = useState('email');
+  const [formAnnualIncreaseRate, setFormAnnualIncreaseRate] = useState('0');
 
   const [showTemplateForm, setShowTemplateForm] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState('');
@@ -413,14 +421,17 @@ export default function App() {
   /* ------------------------------------------------------------------ */
   /*                         ÖZET HESAPLAMALARI                           */
   /* ------------------------------------------------------------------ */
+  const currentProjectionYear = currentDate.getFullYear();
   const monthlyTotalTL = safeList.reduce((total, s) => {
     if (!s || s.status === 'cancelled') return total;
-    const priceInTL = convertToTL(s.price, s.currency || 'TRY', exchangeRates);
-    return total + (s.period === 'yearly' ? priceInTL / 12 : priceInTL);
+    const projectedPriceInTL = convertToTL(s.price, s.currency || 'TRY', exchangeRates) * getAnnualIncreaseMultiplier(s, currentProjectionYear);
+    return total + (s.period === 'yearly' ? projectedPriceInTL / 12 : projectedPriceInTL);
   }, 0);
 
   const dailyAverageTL = monthlyTotalTL / 30;
-  const yearlyProjectionTL = monthlyTotalTL * 12;
+  const yearlyProjectionTL = Array.from({ length: 12 }, (_, monthIndex) =>
+    safeList.reduce((total, subscription) => total + getSubscriptionCostForMonth(subscription, currentProjectionYear, monthIndex, exchangeRates), 0)
+  ).reduce((total, amount) => total + amount, 0);
 
   // Geçen aya kıyasla değişim rozeti için gerçek takvim ayı bazlı hesap.
   const realNow = new Date();
@@ -481,8 +492,8 @@ export default function App() {
     const method = s.paymentMethod || 'Nakit / Diğer';
     const startYear = Number(s.billingYear) || selectedAnalysisYear;
     if (startYear > selectedAnalysisYear) return acc;
-    const priceInTL = convertToTL(s.price, s.currency || 'TRY', exchangeRates);
-    const monthlyCommitment = s.period === 'yearly' ? priceInTL / 12 : priceInTL;
+    const projectedPriceInTL = convertToTL(s.price, s.currency || 'TRY', exchangeRates) * getAnnualIncreaseMultiplier(s, selectedAnalysisYear);
+    const monthlyCommitment = s.period === 'yearly' ? projectedPriceInTL / 12 : projectedPriceInTL;
     acc[method] = (acc[method] || 0) + monthlyCommitment;
     return acc;
   }, {});
@@ -506,7 +517,7 @@ export default function App() {
   }, null);
 
   const insightText = sortedMonthlyCategoryEntries.length === 0
-    ? 'Henüz analiz oluşturmak için yeterli abonelik verisi bulunmuyor.'
+    ? 'Henüz Analiz Oluşturmak İçin Yeterli Abonelik Verisi Bulunmuyor.'
     : `${selectedAnalysisYear} döneminde aylık bütçede en yüksek pay ${topCategoryLabel} kategorisinde: ${formatShortCurrency(topCategoryAmount, 'TRY')} (%${topCategoryPercent}).${mostExpensiveSubscription ? ` En yüksek aylık abonelik etkisi ${mostExpensiveSubscription.item.name} kaydından geliyor.` : ''}`;
 
   /* ------------------------------------------------------------------ */
@@ -528,6 +539,7 @@ export default function App() {
       setFormColor(item.color || getServiceColor(item.name, safeTemplates));
       setFormNotificationDays(item.notificationDays !== undefined ? item.notificationDays : 2);
       setFormNotificationChannel(item.notificationChannel || 'email');
+      setFormAnnualIncreaseRate(String(item.annualIncreaseRate ?? 0));
     } else {
       setEditingId(null);
       setFormName(''); setFormPrice(''); setFormCurrency('TRY');
@@ -535,7 +547,7 @@ export default function App() {
       setFormCategory('Eğlence');
       setFormPaymentMethod(safePaymentMethods[0] || DEFAULT_PAYMENT_METHODS[0]);
       setFormPeriod('monthly'); setFormCancelUrl(''); setFormColor('#6366f1');
-      setFormNotificationDays(2); setFormNotificationChannel('email');
+      setFormNotificationDays(2); setFormNotificationChannel('email'); setFormAnnualIncreaseRate('0');
     }
     setFormStep(1);
     setShowTemplateForm(false);
@@ -568,11 +580,13 @@ export default function App() {
     const numericDay = Number(formDay);
     const numericMonth = Number(formMonth);
     const numericYear = Number(formYear);
+    const numericAnnualIncreaseRate = Number(String(formAnnualIncreaseRate).replace(',', '.'));
 
     if (!formName.trim()) { alert('Lütfen abonelik veya gider adını giriniz.'); return; }
     if (!Number.isFinite(numericPrice) || numericPrice <= 0) { alert('Lütfen sıfırdan büyük geçerli bir tutar giriniz.'); return; }
     if (!Number.isInteger(numericMonth) || numericMonth < 1 || numericMonth > 12) { alert('Ay değeri 1 ile 12 arasında olmalıdır.'); return; }
-    if (!YEARS.includes(numericYear)) { alert('Lütfen geçerli bir yıl seçiniz.'); return; }
+    if (!YEARS.includes(numericYear)) { alert('Lütfen Geçerli Bir Yıl Seçiniz.'); return; }
+    if (!Number.isFinite(numericAnnualIncreaseRate) || numericAnnualIncreaseRate < 0 || numericAnnualIncreaseRate > 500) { alert('Yıllık Artış Oranı 0 ile 500 Arasında Olmalıdır.'); return; }
 
     const maximumDay = getDaysInMonth(numericMonth - 1, numericYear);
     if (!Number.isInteger(numericDay) || numericDay < 1 || numericDay > maximumDay) {
@@ -612,6 +626,7 @@ export default function App() {
       color: formColor,
       notificationDays: formNotificationDays,
       notificationChannel: formNotificationChannel,
+      annualIncreaseRate: numericAnnualIncreaseRate,
       status: existingSubscription?.status || 'active'
     };
 
@@ -684,9 +699,9 @@ export default function App() {
   /* ------------------------------------------------------------------ */
   const handleExportCSV = () => {
     if (safeList.length === 0) { alert('Dışa aktarılacak kayıt bulunmuyor.'); return; }
-    let csvContent = '\uFEFFServis Adi;Fiyat;Para Birimi;Kategori;Odeme Yontemi;Periyot;Odeme Gunu;Odeme Ayi;Odeme Yili\n';
+    let csvContent = '\uFEFFServis Adi;Fiyat;Para Birimi;Kategori;Odeme Yontemi;Periyot;Odeme Gunu;Odeme Ayi;Odeme Yili;Yillik Artis Orani\n';
     safeList.forEach(s => {
-      csvContent += `"${s.name}";${s.price};"${s.currency}";"${s.category}";"${s.paymentMethod}";"${s.period}";${s.billingDay};${s.billingMonth};${s.billingYear}\n`;
+      csvContent += `"${s.name}";${s.price};"${s.currency}";"${s.category}";"${s.paymentMethod}";"${s.period}";${s.billingDay};${s.billingMonth};${s.billingYear};${Number(s.annualIncreaseRate) || 0}\n`;
     });
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -917,7 +932,7 @@ export default function App() {
                     {hasMonthlyChangeData && (
                       <View style={[styles.changeBadge, { backgroundColor: monthlyChangePercent <= 0 ? 'rgba(52,211,153,0.22)' : 'rgba(248,113,113,0.22)' }]}>
                         <Text style={[styles.changeBadgeText, { color: monthlyChangePercent <= 0 ? '#34d399' : '#f87171' }]}>
-                          {monthlyChangePercent <= 0 ? '↓' : '↑'} %{Math.abs(monthlyChangePercent).toFixed(1)} geçen aya göre
+                          {monthlyChangePercent <= 0 ? '↓' : '↑'} %{Math.abs(monthlyChangePercent).toFixed(1)} Geçen Aya Göre
                         </Text>
                       </View>
                     )}
@@ -939,7 +954,7 @@ export default function App() {
 
                 <TextInput
                   style={[styles.searchInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]}
-                  placeholder="Abonelik, kategori veya ödeme yöntemi ara..."
+                  placeholder="Abonelik, Kategori veya Ödeme Yöntemi Ara..."
                   placeholderTextColor={theme.textMuted}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
@@ -964,7 +979,7 @@ export default function App() {
                 {filteredSubscriptions.length === 0 ? (
                   <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
                     <Text style={styles.emptyIcon}>💳</Text>
-                    <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Kayıt bulunamadı</Text>
+                    <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Kayıt Bulunamadı</Text>
                     <Text style={[styles.emptyDescription, { color: theme.textSecondary }]}>Arama metnini veya görünüm filtresini değiştiriniz.</Text>
                     <TouchableOpacity style={[styles.primaryButton, { marginTop: 14 }]} onPress={() => openSubscriptionForm()}>
                       <Text style={styles.primaryButtonText}>+ Abonelik Ekle</Text>
@@ -1008,6 +1023,12 @@ export default function App() {
                               {notificationOption.value !== -1 && (
                                 <View style={[styles.informationTag, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}>
                                   <Text style={[styles.informationTagText, { color: theme.accent }]}>{notificationOption.badgeLabel}</Text>
+                                </View>
+                              )}
+
+                              {(Number(subscription.annualIncreaseRate) || 0) > 0 && (
+                                <View style={[styles.informationTag, { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder }]}>
+                                  <Text style={[styles.informationTagText, { color: theme.accent }]}>↗ Yıllık Artış: %{Number(subscription.annualIncreaseRate).toFixed(1)}</Text>
                                 </View>
                               )}
                             </View>
@@ -1526,7 +1547,7 @@ export default function App() {
 
                       {showTemplateForm && (
                         <View style={[styles.inlineForm, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}>
-                          <TextInput style={[styles.textInput, { backgroundColor: theme.cardBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} placeholder="Şablon adı" placeholderTextColor={theme.textMuted} value={newTemplateName} onChangeText={setNewTemplateName} />
+                          <TextInput style={[styles.textInput, { backgroundColor: theme.cardBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} placeholder="Şablon Adı" placeholderTextColor={theme.textMuted} value={newTemplateName} onChangeText={setNewTemplateName} />
                           <View style={styles.inlineInputRow}>
                             <TextInput style={[styles.textInput, styles.flexInput, { backgroundColor: theme.cardBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} placeholder="Fiyat" placeholderTextColor={theme.textMuted} keyboardType="decimal-pad" value={newTemplatePrice} onChangeText={setNewTemplatePrice} />
                             <View style={styles.currencyOptionRow}>
@@ -1587,6 +1608,24 @@ export default function App() {
                             <Text style={[styles.periodOptionText, { color: theme.textSecondary }, formPeriod === 'yearly' && styles.periodOptionTextActive]}>Yıllık</Text>
                           </TouchableOpacity>
                         </View>
+                      </View>
+                    </View>
+
+                    <View style={[styles.projectionFieldCard, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}>
+                      <View style={styles.projectionFieldCopy}>
+                        <Text style={[styles.inputLabel, { color: theme.textPrimary, marginBottom: 3 }]}>Yıllık Tahmini Artış / Zam Oranı (%)</Text>
+                        <Text style={[styles.formSectionDescription, { color: theme.textMuted }]}>Seçilen Oran, Gelecek Yıllardaki Maliyet ve Bütçe Projeksiyonlarına Bileşik Olarak Yansıtılır.</Text>
+                      </View>
+                      <View style={styles.projectionRateInputWrap}>
+                        <TextInput
+                          style={[styles.textInput, styles.projectionRateInput, { backgroundColor: theme.cardBg, color: theme.textPrimary, borderColor: theme.cardBorder }]}
+                          placeholder="0"
+                          placeholderTextColor={theme.textMuted}
+                          keyboardType="decimal-pad"
+                          value={formAnnualIncreaseRate}
+                          onChangeText={setFormAnnualIncreaseRate}
+                        />
+                        <Text style={[styles.projectionPercent, { color: theme.textSecondary }]}>%</Text>
                       </View>
                     </View>
                   </View>
@@ -1658,7 +1697,7 @@ export default function App() {
                         <TextInput style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} placeholder="2026" placeholderTextColor={theme.textMuted} keyboardType="number-pad" value={formYear} onChangeText={setFormYear} />
                       </View>
                     </View>
-                    <Text style={[styles.helperText, { color: theme.textMuted }]}>Aylık ödemelerde başlangıç ayı, yıllık ödemelerde tahsilat ayı olarak kullanılır.</Text>
+                    <Text style={[styles.helperText, { color: theme.textMuted }]}>Aylık Ödemelerde Başlangıç Ayı, Yıllık Ödemelerde Tahsilat Ayı Olarak Kullanılır.</Text>
                   </View>
 
                   <View style={styles.formSection}>
@@ -1727,8 +1766,8 @@ export default function App() {
               <Text style={styles.warningIcon}>⚠️</Text>
             </View>
             <Text style={[styles.warningTitle, { color: theme.textPrimary }]}>Bu Abonelik Zaten Kayıtlı</Text>
-            <Text style={[styles.warningMessage, { color: theme.textSecondary }]}>"{duplicateWarning.name}" isimli abonelik zaten listenizde bulunuyor.</Text>
-            <Text style={[styles.warningHint, { color: theme.textMuted }]}>Mevcut kaydı düzenleyebilir veya aboneliği farklı bir adla ekleyebilirsiniz.</Text>
+            <Text style={[styles.warningMessage, { color: theme.textSecondary }]}>"{duplicateWarning.name}" İsimli Abonelik Zaten Listenizde Bulunuyor.</Text>
+            <Text style={[styles.warningHint, { color: theme.textMuted }]}>Mevcut Kaydı Düzenleyebilir veya Aboneliği Farklı Bir Adla Ekleyebilirsiniz.</Text>
             <TouchableOpacity style={styles.warningButton} onPress={() => setDuplicateWarning({ visible: false, name: '' })}>
               <Text style={styles.warningButtonText}>Tamam</Text>
             </TouchableOpacity>
@@ -1804,7 +1843,7 @@ function createStyles(theme, isMobile, fontScale) {
     changeBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
     changeBadgeText: { fontSize: font(9), fontWeight: 'bold' },
     summaryValue: { color: '#ffffff', fontSize: font(27), fontWeight: 'bold', marginVertical: 5 },
-    summaryStatsRow: { flexDirection: 'row', gap: 10, marginTop: 8 },
+    summaryStatsRow: { flexDirection: isMobile ? 'column' : 'row', gap: 10, marginTop: 8 },
     summaryStatBox: { flex: 1, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 8, padding: 9 },
     summaryStatLabel: { color: '#ffffff', fontSize: font(10), opacity: 0.9 },
     summaryStatValue: { color: '#ffffff', fontSize: font(12), fontWeight: 'bold', marginTop: 3 },
@@ -1819,7 +1858,7 @@ function createStyles(theme, isMobile, fontScale) {
     filterOptionText: { fontSize: font(11), fontWeight: '600' },
     filterOptionTextActive: { color: '#ffffff', fontWeight: 'bold' },
 
-    sectionTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 9 },
+    sectionTitleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between', alignItems: 'center', marginBottom: 9 },
     sectionTitle: { fontSize: font(14), fontWeight: 'bold' },
     resultCount: { fontSize: font(11) },
 
@@ -1978,7 +2017,7 @@ function createStyles(theme, isMobile, fontScale) {
     warningButtonText: { color: '#ffffff', fontSize: font(13), fontWeight: '800' },
 
     appearanceModal: { width: isMobile ? '96%' : 760, maxHeight: '92%', minHeight: 0, borderWidth: 1, borderRadius: 18, padding: 20 },
-    subscriptionModal: { width: isMobile ? '96%' : '94%', maxWidth: 980, height: isMobile ? '94%' : '92%', maxHeight: 850, minHeight: 0, borderWidth: 1, borderRadius: isMobile ? 16 : 22, overflow: 'hidden', shadowColor: '#000000', shadowOffset: { width: 0, height: 18 }, shadowOpacity: 0.4, shadowRadius: 32, elevation: 24 },
+    subscriptionModal: { width: isMobile ? '96%' : '94%', maxWidth: 920, height: isMobile ? '92%' : 'auto', maxHeight: isMobile ? '92%' : 760, minHeight: 0, borderWidth: 1, borderRadius: isMobile ? 16 : 22, overflow: 'hidden', shadowColor: '#000000', shadowOffset: { width: 0, height: 18 }, shadowOpacity: 0.4, shadowRadius: 32, elevation: 24 },
 
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', flexShrink: 0, paddingHorizontal: isMobile ? 15 : 22, paddingTop: isMobile ? 15 : 20, paddingBottom: 12 },
     modalTitle: { fontSize: isMobile ? font(18) : font(21), fontWeight: 'bold' },
@@ -2009,10 +2048,10 @@ function createStyles(theme, isMobile, fontScale) {
     fontScaleOptionTextActive: { color: '#ffffff', fontWeight: 'bold' },
 
     subscriptionModalScroll: { flex: 1, minHeight: 0 },
-    subscriptionModalContent: { width: '100%', paddingHorizontal: isMobile ? 14 : 22, paddingBottom: 20 },
+    subscriptionModalContent: { width: '100%', paddingHorizontal: isMobile ? 14 : 22, paddingTop: 2, paddingBottom: 12 },
 
-    formSection: { width: '100%', marginBottom: 17 },
-    formSectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 10 },
+    formSection: { width: '100%', marginBottom: isMobile ? 13 : 14 },
+    formSectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 8 },
     formSectionTitle: { fontSize: font(12), fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 0.35 },
     formSectionDescription: { fontSize: font(9), marginTop: 3 },
     formSectionAction: { fontSize: font(11), fontWeight: 'bold' },
@@ -2022,7 +2061,13 @@ function createStyles(theme, isMobile, fontScale) {
     formColumn: { flex: 1, minWidth: 0 },
 
     inputLabel: { fontSize: font(10), fontWeight: 'bold', marginBottom: 5 },
-    textInput: { width: '100%', minHeight: isMobile ? 44 : 42, borderWidth: 1, borderRadius: 11, paddingHorizontal: 13, paddingVertical: isMobile ? 10 : 9, fontSize: font(12), marginBottom: 10 },
+    textInput: { width: '100%', minHeight: isMobile ? 42 : 40, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: isMobile ? 9 : 8, fontSize: font(12), marginBottom: 8 },
+
+    projectionFieldCard: { width: '100%', borderWidth: 1, borderRadius: 12, padding: isMobile ? 11 : 12, marginTop: 2, flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: 10 },
+    projectionFieldCopy: { flex: 1, minWidth: 0 },
+    projectionRateInputWrap: { width: isMobile ? '100%' : 150, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8 },
+    projectionRateInput: { flex: 1, minWidth: 0, marginBottom: 0, textAlign: 'right' },
+    projectionPercent: { fontSize: font(13), fontWeight: '800' },
 
     removableOptionRow: { flexDirection: 'row', gap: 9, paddingTop: 3, paddingBottom: 5, paddingRight: 12 },
     removableOptionWrapper: { position: 'relative', paddingTop: 2, paddingRight: 2 },
@@ -2065,8 +2110,9 @@ function createStyles(theme, isMobile, fontScale) {
 
     modalFooter: { flexDirection: 'row', flexShrink: 0, gap: 10, borderTopWidth: 1, paddingHorizontal: isMobile ? 14 : 22, paddingVertical: 14 },
     modalCancelButton: { flex: 1, minHeight: 46, borderWidth: 1, borderRadius: 11, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
-    modalCancelButtonText: { fontSize: font(12), fontWeight: 'bold' },
+    modalCaelButtonText: { fontSize: font(12), fontWeight: 'bold' },
     modalSaveButton: { flex: 2, minHeight: 46, backgroundColor: theme.activeButton, borderRadius: 11, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
     modalSaveButtonText: { color: '#ffffff', fontSize: font(12), fontWeight: 'bold' }
   });
 }
+
