@@ -415,6 +415,14 @@ export default function App() {
     setIsLoggedIn(true);
   };
 
+  const handleForgotPassword = () => {
+    setAuthError('Şifre Sıfırlama Bağlantısı İçin Kurumsal E-posta Entegrasyonu Yapılandırılmalıdır.');
+  };
+
+  const handleGoogleLogin = () => {
+    setAuthError('Google İle Giriş İçin OAuth Entegrasyonu Yapılandırılmalıdır.');
+  };
+
   const handleLogout = () => {
     requestConfirmation({
       title: 'Oturumu Kapat',
@@ -857,52 +865,101 @@ export default function App() {
   };
 
   if (!isLoggedIn) {
+    const authBackgroundStyle = Platform.OS === 'web'
+      ? {
+          backgroundColor: '#171b2b',
+          backgroundImage: 'radial-gradient(circle at 20% 18%, rgba(105,101,232,0.20) 0%, transparent 34%), radial-gradient(circle at 82% 78%, rgba(59,130,246,0.14) 0%, transparent 32%), linear-gradient(145deg, #171b2b 0%, #22283a 52%, #171c2a 100%)'
+        }
+      : { backgroundColor: '#171b2b' };
+
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
-        <StatusBar barStyle={theme.dark ? 'light-content' : 'dark-content'} />
-        <View style={styles.authWrapper}>
-          <View style={[styles.authCard, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.82) : theme.cardBg, borderColor: theme.cardBorder }]}>
-            <View style={styles.authHeader}>
-              <Text style={[styles.authLogo, { color: theme.textPrimary }]}>Cebin <Text style={{ color: '#9b98ff' }}>PRO</Text></Text>
-              <Text style={[styles.authSubtitle, { color: theme.textSecondary }]}>Akıllı Abonelik ve Bütçe Asistanı</Text>
+      <SafeAreaView style={[styles.container, authBackgroundStyle]}>
+        <StatusBar barStyle="light-content" />
+        <View pointerEvents="none" style={[styles.authGlow, styles.authGlowTop]} />
+        <View pointerEvents="none" style={[styles.authGlow, styles.authGlowBottom]} />
+
+        <ScrollView
+          style={styles.authScroll}
+          contentContainerStyle={styles.authScrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.authWrapper}>
+            <View
+              style={[
+                styles.authCard,
+                styles.glassSurface,
+                {
+                  backgroundColor: Platform.OS === 'web' ? 'rgba(48,55,70,0.90)' : '#303746',
+                  borderColor: 'rgba(154,163,184,0.32)',
+                  ...(Platform.OS === 'web'
+                    ? { boxShadow: '0 28px 80px rgba(3,7,18,0.52), 0 8px 28px rgba(79,70,229,0.16)' }
+                    : {})
+                }
+              ]}
+            >
+              <View style={styles.authHeader}>
+                <Text style={[styles.authLogo, { color: '#f8fafc' }]}>Cebin <Text style={{ color: '#9b98ff' }}>PRO</Text></Text>
+                <Text style={[styles.authSubtitle, { color: '#c5cbd6' }]}>Akıllı Abonelik ve Bütçe Asistanı</Text>
+              </View>
+
+              <Text style={[styles.authTitle, { color: '#f8fafc' }]}>{authMode === 'login' ? 'Giriş Yap' : 'Kayıt Ol'}</Text>
+
+              <View style={styles.authFieldGroup}>
+                <Text style={[styles.inputLabel, styles.authFieldLabel, { color: '#d2d7e0' }]}>E-posta</Text>
+                <TextInput
+                  style={[styles.textInput, styles.authTextInput, { backgroundColor: '#252b38', color: '#f8fafc', borderColor: '#566071' }]}
+                  placeholder="ornek@eposta.com"
+                  placeholderTextColor="#8f98a8"
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  value={authEmail}
+                  onChangeText={setAuthEmail}
+                />
+              </View>
+
+              <View style={styles.authFieldGroup}>
+                <Text style={[styles.inputLabel, styles.authFieldLabel, { color: '#d2d7e0' }]}>Şifre</Text>
+                <TextInput
+                  style={[styles.textInput, styles.authTextInput, { backgroundColor: '#252b38', color: '#f8fafc', borderColor: '#566071' }]}
+                  placeholder="••••••••"
+                  placeholderTextColor="#8f98a8"
+                  secureTextEntry
+                  value={authPassword}
+                  onChangeText={setAuthPassword}
+                />
+                {authMode === 'login' && (
+                  <TouchableOpacity style={styles.forgotPasswordButton} onPress={handleForgotPassword}>
+                    <Text style={styles.forgotPasswordText}>Şifremi Unuttum?</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {!!authError && <Text style={styles.authErrorText}>{authError}</Text>}
+
+              <TouchableOpacity style={[styles.primaryButton, styles.authPrimaryButton]} onPress={handleLogin}>
+                <Text style={styles.primaryButtonText}>{authMode === 'login' ? 'Giriş Yap' : 'Kayıt Ol'}</Text>
+              </TouchableOpacity>
+
+              <View style={styles.authDividerRow}>
+                <View style={styles.authDividerLine} />
+                <Text style={styles.authDividerText}>veya</Text>
+                <View style={styles.authDividerLine} />
+              </View>
+
+              <TouchableOpacity style={styles.googleButton} onPress={handleGoogleLogin}>
+                <View style={styles.googleIconBox}><Text style={styles.googleIconText}>G</Text></View>
+                <Text style={styles.googleButtonText}>Google İle Devam Et</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.authSwitchButton} onPress={() => { setAuthMode(authMode === 'login' ? 'register' : 'login'); setAuthError(''); }}>
+                <Text style={[styles.authSwitchText, { color: '#63b3ff' }]}>
+                  {authMode === 'login' ? 'Hesabın Yok Mu? Kayıt Ol' : 'Zaten Hesabın Var Mı? Giriş Yap'}
+                </Text>
+              </TouchableOpacity>
             </View>
-
-            <Text style={[styles.authTitle, { color: theme.textPrimary }]}>{authMode === 'login' ? 'Giriş Yap' : 'Kayıt Ol'}</Text>
-
-            <Text style={[styles.inputLabel, styles.authFieldLabel, { color: theme.textSecondary, marginTop: 16 }]}>E-posta</Text>
-            <TextInput
-              style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]}
-              placeholder="ornek@eposta.com"
-              placeholderTextColor={theme.textMuted}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              value={authEmail}
-              onChangeText={setAuthEmail}
-            />
-
-            <Text style={[styles.inputLabel, styles.authFieldLabel, { color: theme.textSecondary, marginTop: 14 }]}>Şifre</Text>
-            <TextInput
-              style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]}
-              placeholder="••••••••"
-              placeholderTextColor={theme.textMuted}
-              secureTextEntry
-              value={authPassword}
-              onChangeText={setAuthPassword}
-            />
-
-            {!!authError && <Text style={styles.authErrorText}>{authError}</Text>}
-
-            <TouchableOpacity style={[styles.primaryButton, { marginTop: 8, paddingVertical: 13 }]} onPress={handleLogin}>
-              <Text style={styles.primaryButtonText}>{authMode === 'login' ? 'Giriş Yap' : 'Kayıt Ol'}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.authSwitchButton} onPress={() => { setAuthMode(authMode === 'login' ? 'register' : 'login'); setAuthError(''); }}>
-              <Text style={[styles.authSwitchText, { color: theme.accent }]}>
-                {authMode === 'login' ? 'Hesabın yok mu? Kayıt Ol' : 'Zaten hesabın var mı? Giriş Yap'}
-              </Text>
-            </TouchableOpacity>
           </View>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -2027,16 +2084,33 @@ function createStyles(theme, isMobile, fontScale) {
 
     glassSurface,
 
-    authWrapper: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 },
-    authCard: { width: '100%', maxWidth: 420, borderWidth: 1, borderRadius: 22, padding: 28 },
-    authHeader: { alignItems: 'center', marginBottom: 16 },
-    authLogo: { fontSize: font(26), fontWeight: 'bold' },
-    authSubtitle: { fontSize: font(11), marginTop: 4 },
-    authTitle: { fontSize: font(18), fontWeight: 'bold', textAlign: 'center', marginTop: 6, marginBottom: 10 },
-    authFieldLabel: { marginBottom: 12 },
-    authErrorText: { color: '#f87171', fontSize: font(11), fontWeight: '600', marginBottom: 8 },
-    authSwitchButton: { marginTop: 16, alignItems: 'center' },
-    authSwitchText: { fontSize: font(12), fontWeight: '600' },
+    authScroll: { flex: 1, width: '100%' },
+    authScrollContent: { flexGrow: 1, minHeight: '100%', justifyContent: 'center' },
+    authWrapper: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: isMobile ? 16 : 28, paddingVertical: isMobile ? 24 : 42 },
+    authGlow: { position: 'absolute', width: isMobile ? 230 : 420, height: isMobile ? 230 : 420, borderRadius: 999, opacity: 0.16, backgroundColor: '#6965e8' },
+    authGlowTop: { top: isMobile ? -110 : -180, left: isMobile ? -90 : -140 },
+    authGlowBottom: { bottom: isMobile ? -120 : -210, right: isMobile ? -90 : -150, backgroundColor: '#3b82f6', opacity: 0.12 },
+    authCard: { width: '100%', maxWidth: 470, borderWidth: 1, borderRadius: isMobile ? 22 : 26, paddingHorizontal: isMobile ? 22 : 38, paddingVertical: isMobile ? 26 : 36 },
+    authHeader: { alignItems: 'center', marginBottom: 20 },
+    authLogo: { fontSize: font(isMobile ? 27 : 30), fontWeight: '800', letterSpacing: -0.5 },
+    authSubtitle: { fontSize: font(11), marginTop: 6 },
+    authTitle: { fontSize: font(19), fontWeight: '800', textAlign: 'center', marginTop: 4, marginBottom: 20 },
+    authFieldGroup: { width: '100%', marginBottom: 16 },
+    authFieldLabel: { marginBottom: 8 },
+    authTextInput: { minHeight: isMobile ? 50 : 52, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 12 },
+    forgotPasswordButton: { alignSelf: 'flex-end', paddingVertical: 8, paddingLeft: 12 },
+    forgotPasswordText: { color: '#aeb7c2', fontSize: font(11), fontWeight: '600' },
+    authErrorText: { color: '#fda4af', fontSize: font(11), fontWeight: '600', lineHeight: font(17), marginBottom: 10 },
+    authPrimaryButton: { marginTop: 2, minHeight: 52, justifyContent: 'center', borderRadius: 12 },
+    authDividerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 18 },
+    authDividerLine: { flex: 1, height: 1, backgroundColor: 'rgba(174,183,194,0.24)' },
+    authDividerText: { color: '#9aa3b2', fontSize: font(10), fontWeight: '600' },
+    googleButton: { minHeight: 52, borderWidth: 1, borderColor: '#596375', backgroundColor: 'rgba(37,43,56,0.86)', borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 16 },
+    googleIconBox: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
+    googleIconText: { color: '#4285f4', fontSize: font(14), fontWeight: '900' },
+    googleButtonText: { color: '#eef2f7', fontSize: font(12), fontWeight: '700' },
+    authSwitchButton: { marginTop: 18, alignItems: 'center', paddingVertical: 6 },
+    authSwitchText: { fontSize: font(12), fontWeight: '700' },
 
     sidebarContainer: { width: 250, minWidth: 250, flexShrink: 0, padding: 20, borderRightWidth: 1 },
     sidebarHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
