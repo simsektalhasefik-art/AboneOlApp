@@ -96,6 +96,16 @@ const convertToTL = (price, currency, rates = DEFAULT_RATES) => {
 
 const normalizeText = (value = '') => String(value).toLocaleLowerCase('tr-TR').replace(/\s+/g, ' ').trim();
 
+// Uyarı, bilgi ve açıklama metinlerinde bağlaçları küçük bırakan kurumsal başlık düzeni.
+const toTitleCaseTr = value => {
+  const conjunctions = new Set(['ve', 'veya']);
+  return String(value ?? '').replace(/(^|\s|["“‘(])([A-Za-zÇĞİÖŞÜçğıöşü]+)/g, (match, prefix, word) => {
+    const lower = word.toLocaleLowerCase('tr-TR');
+    if (conjunctions.has(lower)) return `${prefix}${lower}`;
+    return `${prefix}${lower.charAt(0).toLocaleUpperCase('tr-TR')}${lower.slice(1)}`;
+  });
+};
+
 const sanitizeDecimalInput = value => {
   const cleaned = String(value ?? '').replace(/[^0-9.,]/g, '');
   const firstSeparatorIndex = cleaned.search(/[.,]/);
@@ -248,7 +258,7 @@ export default function App() {
 
   // Form doğrulama hatalarını artık çirkin tarayıcı alert()'i yerine bu modal ile gösteriyoruz.
   const [alertModal, setAlertModal] = useState({ visible: false, message: '' });
-  const showAlert = message => setAlertModal({ visible: true, message });
+  const showAlert = message => setAlertModal({ visible: true, message: toTitleCaseTr(message) });
 
   // Tarayıcı confirm() yerine tüm kritik işlemler için uygulama temasıyla uyumlu özel onay modalı.
   const confirmCallbackRef = useRef(null);
@@ -262,7 +272,7 @@ export default function App() {
   });
   const requestConfirmation = ({ title, message, confirmLabel = 'Tamam', cancelLabel = 'İptal', tone = 'warning', onConfirm }) => {
     confirmCallbackRef.current = onConfirm;
-    setConfirmModal({ visible: true, title, message, confirmLabel, cancelLabel, tone });
+    setConfirmModal({ visible: true, title: toTitleCaseTr(title), message: toTitleCaseTr(message), confirmLabel, cancelLabel, tone });
   };
   const closeConfirmModal = () => {
     confirmCallbackRef.current = null;
@@ -394,9 +404,9 @@ export default function App() {
 
   const handleLogin = () => {
     const trimmedEmail = authEmail.trim();
-    if (!trimmedEmail || !authPassword) { setAuthError('Lütfen e-posta ve şifrenizi giriniz.'); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) { setAuthError('Lütfen geçerli bir e-posta adresi giriniz.'); return; }
-    if (authPassword.length < 4) { setAuthError('Şifre en az 4 karakter olmalıdır.'); return; }
+    if (!trimmedEmail || !authPassword) { setAuthError('Lütfen E-posta ve Şifrenizi Giriniz.'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) { setAuthError('Lütfen Geçerli Bir E-posta Adresi Giriniz.'); return; }
+    if (authPassword.length < 4) { setAuthError('Şifre En Az 4 Karakter Olmalıdır.'); return; }
     setAuthError('');
     try {
       localStorage.setItem('cebin_auth_v1', 'true');
@@ -408,7 +418,7 @@ export default function App() {
   const handleLogout = () => {
     requestConfirmation({
       title: 'Oturumu Kapat',
-      message: 'Oturumu kapatmak istediğinize emin misiniz?',
+      message: 'Oturumu Kapatmak İstediğinize Emin Misiniz?',
       confirmLabel: 'Çıkış Yap',
       onConfirm: () => {
         try { localStorage.setItem('cebin_auth_v1', 'false'); } catch (e) { console.log(e); }
@@ -697,7 +707,7 @@ export default function App() {
     const target = safeList.find(s => s.id === id);
     requestConfirmation({
       title: 'Aboneliği Sil',
-      message: `"${target?.name || 'Bu kayıt'}" aboneliği kalıcı olarak silinecek. Bu işlem geri alınamaz.`,
+      message: `"${target?.name || 'Bu Kayıt'}" Aboneliği Kalıcı Olarak Silinecek. Bu İşlem Geri Alınamaz.`,
       confirmLabel: 'Tamam',
       onConfirm: () => {
         setSubscriptions(current => current.filter(s => s.id !== id));
@@ -727,7 +737,7 @@ export default function App() {
     const target = safeTemplates[index];
     requestConfirmation({
       title: 'Şablonu Sil',
-      message: `"${target?.name || 'Bu şablon'}" hızlı seçim şablonlarından kaldırılacak.`,
+      message: `"${target?.name || 'Bu Şablon'}" Hızlı Seçim Şablonlarından Kaldırılacak.`,
       confirmLabel: 'Tamam',
       onConfirm: () => setTemplatesList(current => current.filter((_, i) => i !== index))
     });
@@ -748,7 +758,7 @@ export default function App() {
     if (usageCount > 0) { showAlert(`Bu ödeme yöntemi ${usageCount} kayıtta kullanılıyor. Önce ilgili kayıtların ödeme yöntemini değiştiriniz.`); return; }
     requestConfirmation({
       title: 'Ödeme Yöntemini Sil',
-      message: `"${paymentMethod}" ödeme yöntemi listenizden kaldırılacak.`,
+      message: `"${paymentMethod}" Ödeme Yöntemi Listenizden Kaldırılacak.`,
       confirmLabel: 'Tamam',
       onConfirm: () => {
         setPaymentMethodsList(current => {
@@ -814,7 +824,7 @@ export default function App() {
 
         requestConfirmation({
           title: 'Yedeği Geri Yükle',
-          message: `${importedSubscriptions.length} kayıt içe aktarılacak ve mevcut abonelik listeniz değiştirilecek.`,
+          message: `${importedSubscriptions.length} Kayıt İçe Aktarılacak ve Mevcut Abonelik Listeniz Değiştirilecek.`,
           confirmLabel: 'Geri Yükle',
           onConfirm: () => {
             setSubscriptions(importedSubscriptions);
@@ -859,7 +869,7 @@ export default function App() {
 
             <Text style={[styles.authTitle, { color: theme.textPrimary }]}>{authMode === 'login' ? 'Giriş Yap' : 'Kayıt Ol'}</Text>
 
-            <Text style={[styles.inputLabel, { color: theme.textSecondary, marginTop: 16 }]}>E-posta</Text>
+            <Text style={[styles.inputLabel, styles.authFieldLabel, { color: theme.textSecondary, marginTop: 16 }]}>E-posta</Text>
             <TextInput
               style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]}
               placeholder="ornek@eposta.com"
@@ -870,7 +880,7 @@ export default function App() {
               onChangeText={setAuthEmail}
             />
 
-            <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Şifre</Text>
+            <Text style={[styles.inputLabel, styles.authFieldLabel, { color: theme.textSecondary, marginTop: 14 }]}>Şifre</Text>
             <TextInput
               style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]}
               placeholder="••••••••"
@@ -1948,8 +1958,8 @@ export default function App() {
         <View style={styles.warningOverlay}>
           <Pressable style={styles.confirmBackdrop} onPress={closeConfirmModal} />
           <View style={[styles.warningCard, styles.confirmationCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-            <View style={[styles.warningIconBox, { backgroundColor: 'rgba(251,191,36,0.14)', borderColor: theme.warning }]}>
-              <Text style={styles.warningIcon}>⚠</Text>
+            <View style={[styles.warningIconBox, { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder }]}>
+              <Text style={[styles.warningIcon, { color: theme.warning }]}>▲</Text>
             </View>
             <Text style={[styles.warningTitle, { color: theme.textPrimary }]}>{confirmModal.title}</Text>
             <Text style={[styles.warningMessage, styles.confirmationMessage, { color: theme.textSecondary }]}>{confirmModal.message}</Text>
@@ -1969,7 +1979,7 @@ export default function App() {
         <View style={styles.warningOverlay}>
           <View style={[styles.warningCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
             <View style={[styles.warningIconBox, { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder }]}>
-              <Text style={styles.warningIcon}>⚠️</Text>
+              <Text style={[styles.warningIcon, { color: theme.warning }]}>▲</Text>
             </View>
             <Text style={[styles.warningTitle, { color: theme.textPrimary }]}>Bu Abonelik Zaten Kayıtlı</Text>
             <Text style={[styles.warningMessage, { color: theme.textSecondary }]}>"{duplicateWarning.name}" İsimli Abonelik Zaten Listenizde Bulunuyor.</Text>
@@ -1985,8 +1995,8 @@ export default function App() {
       <Modal visible={alertModal.visible} transparent animationType="fade" onRequestClose={() => setAlertModal({ visible: false, message: '' })}>
         <View style={styles.warningOverlay}>
           <View style={[styles.warningCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-            <View style={[styles.warningIconBox, { backgroundColor: 'rgba(251,191,36,0.14)', borderColor: theme.warning }]}>
-              <Text style={styles.warningIcon}>⚠️</Text>
+            <View style={[styles.warningIconBox, { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder }]}>
+              <Text style={[styles.warningIcon, { color: theme.warning }]}>▲</Text>
             </View>
             <Text style={[styles.warningTitle, { color: theme.textPrimary }]}>Eksik Bilgi</Text>
             <Text style={[styles.warningMessage, { color: theme.textSecondary }]}>{alertModal.message}</Text>
@@ -2016,7 +2026,8 @@ function createStyles(theme, isMobile, fontScale) {
     authHeader: { alignItems: 'center', marginBottom: 16 },
     authLogo: { fontSize: font(26), fontWeight: 'bold' },
     authSubtitle: { fontSize: font(11), marginTop: 4 },
-    authTitle: { fontSize: font(18), fontWeight: 'bold', textAlign: 'center', marginTop: 6, marginBottom: 4 },
+    authTitle: { fontSize: font(18), fontWeight: 'bold', textAlign: 'center', marginTop: 6, marginBottom: 10 },
+    authFieldLabel: { marginBottom: 7 },
     authErrorText: { color: '#f87171', fontSize: font(11), fontWeight: '600', marginBottom: 8 },
     authSwitchButton: { marginTop: 16, alignItems: 'center' },
     authSwitchText: { fontSize: font(12), fontWeight: '600' },
@@ -2344,15 +2355,15 @@ function createStyles(theme, isMobile, fontScale) {
 
     warningOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.68)', alignItems: 'center', justifyContent: 'center', padding: 20 },
     confirmBackdrop: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
-    warningCard: { width: '100%', maxWidth: 360, borderWidth: 1, borderRadius: 22, padding: 24, alignItems: 'center' },
-    warningIconBox: { width: 48, height: 48, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
-    warningIcon: { fontSize: font(20) },
-    warningTitle: { fontSize: font(16), fontWeight: 'bold', marginBottom: 6, textAlign: 'center' },
-    warningMessage: { fontSize: font(12), textAlign: 'center', marginBottom: 6 },
-    warningHint: { fontSize: font(11), textAlign: 'center', marginBottom: 20 },
+    warningCard: { width: '100%', maxWidth: isMobile ? 390 : 420, borderWidth: 1, borderRadius: 24, padding: isMobile ? 22 : 28, alignItems: 'center', ...(Platform.OS === 'web' ? { boxShadow: '0 24px 80px rgba(0,0,0,0.40)' } : {}) },
+    warningIconBox: { width: 58, height: 58, borderRadius: 17, borderWidth: 1.25, alignItems: 'center', justifyContent: 'center', marginBottom: 18 },
+    warningIcon: { fontSize: font(22), fontWeight: '800', lineHeight: font(24) },
+    warningTitle: { fontSize: font(17), fontWeight: '800', marginBottom: 8, textAlign: 'center' },
+    warningMessage: { fontSize: font(12), lineHeight: font(18), textAlign: 'center', marginBottom: 8 },
+    warningHint: { fontSize: font(11), lineHeight: font(16), textAlign: 'center', marginBottom: 22 },
     warningButton: { width: '100%', backgroundColor: theme.activeButton, borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
     warningButtonText: { color: '#ffffff', fontSize: font(13), fontWeight: 'bold' },
-    confirmationCard: { maxWidth: 420, padding: 28, ...(Platform.OS === 'web' ? { boxShadow: '0 24px 80px rgba(0,0,0,0.38)' } : {}) },
+    confirmationCard: { maxWidth: 420 },
     confirmationMessage: { lineHeight: font(18), marginBottom: 22 },
     confirmationActions: { width: '100%', flexDirection: isMobile ? 'column-reverse' : 'row', gap: 10 },
     confirmationSecondaryButton: { flex: 1, borderWidth: 1, borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
