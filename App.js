@@ -1959,7 +1959,7 @@ export default function App() {
           <Pressable style={styles.confirmBackdrop} onPress={closeConfirmModal} />
           <View style={[styles.warningCard, styles.confirmationCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
             <View style={[styles.warningIconBox, { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder }]}>
-              <Text style={[styles.warningIcon, { color: theme.warning }]}>▲</Text>
+              <Text style={styles.warningIcon}>⚠</Text>
             </View>
             <Text style={[styles.warningTitle, { color: theme.textPrimary }]}>{confirmModal.title}</Text>
             <Text style={[styles.warningMessage, styles.confirmationMessage, { color: theme.textSecondary }]}>{confirmModal.message}</Text>
@@ -1979,7 +1979,7 @@ export default function App() {
         <View style={styles.warningOverlay}>
           <View style={[styles.warningCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
             <View style={[styles.warningIconBox, { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder }]}>
-              <Text style={[styles.warningIcon, { color: theme.warning }]}>▲</Text>
+              <Text style={styles.warningIcon}>⚠</Text>
             </View>
             <Text style={[styles.warningTitle, { color: theme.textPrimary }]}>Bu Abonelik Zaten Kayıtlı</Text>
             <Text style={[styles.warningMessage, { color: theme.textSecondary }]}>"{duplicateWarning.name}" İsimli Abonelik Zaten Listenizde Bulunuyor.</Text>
@@ -1996,7 +1996,7 @@ export default function App() {
         <View style={styles.warningOverlay}>
           <View style={[styles.warningCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
             <View style={[styles.warningIconBox, { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder }]}>
-              <Text style={[styles.warningIcon, { color: theme.warning }]}>▲</Text>
+              <Text style={styles.warningIcon}>⚠</Text>
             </View>
             <Text style={[styles.warningTitle, { color: theme.textPrimary }]}>Eksik Bilgi</Text>
             <Text style={[styles.warningMessage, { color: theme.textSecondary }]}>{alertModal.message}</Text>
@@ -2027,7 +2027,7 @@ function createStyles(theme, isMobile, fontScale) {
     authLogo: { fontSize: font(26), fontWeight: 'bold' },
     authSubtitle: { fontSize: font(11), marginTop: 4 },
     authTitle: { fontSize: font(18), fontWeight: 'bold', textAlign: 'center', marginTop: 6, marginBottom: 10 },
-    authFieldLabel: { marginBottom: 7 },
+    authFieldLabel: { marginBottom: 10 },
     authErrorText: { color: '#f87171', fontSize: font(11), fontWeight: '600', marginBottom: 8 },
     authSwitchButton: { marginTop: 16, alignItems: 'center' },
     authSwitchText: { fontSize: font(12), fontWeight: '600' },
@@ -2357,7 +2357,7 @@ function createStyles(theme, isMobile, fontScale) {
     confirmBackdrop: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
     warningCard: { width: '100%', maxWidth: isMobile ? 390 : 420, borderWidth: 1, borderRadius: 24, padding: isMobile ? 22 : 28, alignItems: 'center', ...(Platform.OS === 'web' ? { boxShadow: '0 24px 80px rgba(0,0,0,0.40)' } : {}) },
     warningIconBox: { width: 58, height: 58, borderRadius: 17, borderWidth: 1.25, alignItems: 'center', justifyContent: 'center', marginBottom: 18 },
-    warningIcon: { fontSize: font(22), fontWeight: '800', lineHeight: font(24) },
+    warningIcon: { fontSize: font(27), fontWeight: '900', lineHeight: font(30), color: '#fbbf24', textAlign: 'center' },
     warningTitle: { fontSize: font(17), fontWeight: '800', marginBottom: 8, textAlign: 'center' },
     warningMessage: { fontSize: font(12), lineHeight: font(18), textAlign: 'center', marginBottom: 8 },
     warningHint: { fontSize: font(11), lineHeight: font(16), textAlign: 'center', marginBottom: 22 },
