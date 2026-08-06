@@ -1038,9 +1038,18 @@ export default function App() {
     );
   }
 
+  const appBackgroundStyle = Platform.OS === 'web'
+    ? {
+        backgroundColor: theme.bg,
+        backgroundImage: `radial-gradient(circle at 14% 10%, ${hexToRgba(theme.activeButton, 0.16)} 0%, transparent 32%), radial-gradient(circle at 88% 84%, ${hexToRgba(theme.accent, 0.10)} 0%, transparent 30%), linear-gradient(145deg, ${theme.bg} 0%, ${lightenHex(theme.bg, 3)} 48%, ${theme.bg} 100%)`
+      }
+    : { backgroundColor: theme.bg };
+
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
+    <SafeAreaView style={[styles.container, appBackgroundStyle]}>
       <StatusBar barStyle={theme.dark ? 'light-content' : 'dark-content'} />
+      <View pointerEvents="none" style={[styles.appGlow, styles.appGlowTop, { backgroundColor: theme.activeButton }]} />
+      <View pointerEvents="none" style={[styles.appGlow, styles.appGlowBottom, { backgroundColor: theme.accent }]} />
 
       <View style={[styles.appWrapper, isDesktop && styles.appWrapperDesktop]}>
         {isDesktop && (
@@ -1134,7 +1143,7 @@ export default function App() {
           >
             {activeTab === 'list' && (
               <>
-                <View style={[styles.summaryCard, { backgroundColor: theme.summaryBg, borderColor: theme.summaryBorder }]}>
+                <View style={[styles.summaryCard, styles.elevatedSurface, { backgroundColor: theme.summaryBg, borderColor: theme.summaryBorder }] }>
                   <View style={styles.summaryTopRow}>
                     <View style={{ flex: 1, minWidth: 0 }}>
                       <View style={styles.summaryLabelRow}>
@@ -1183,11 +1192,11 @@ export default function App() {
                   onChangeText={setSearchQuery}
                 />
 
-                <View style={[styles.singleFilterSection, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                <View style={[styles.singleFilterSection, styles.elevatedSurface, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.86) : theme.cardBg, borderColor: theme.cardBorder }] }>
                   <View style={styles.filterSectionHeader}>
                     <View>
                       <Text style={[styles.sectionLabel, { color: theme.textPrimary }]}>Görünüm Filtresi</Text>
-                      <Text style={[styles.filterSectionHint, { color: theme.textMuted }]}>Abonelik listenizi tek dokunuşla daraltın.</Text>
+                      <Text style={[styles.filterSectionHint, { color: theme.textMuted }]}>Abonelik Listenizi Tek Dokunuşla Daraltın.</Text>
                     </View>
                     <View style={[styles.activeFilterBadge, { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder }]}>
                       <Text style={[styles.activeFilterBadgeText, { color: theme.accent }]}>{selectedViewFilterLabel}</Text>
@@ -1220,10 +1229,10 @@ export default function App() {
                 </View>
 
                 {filteredSubscriptions.length === 0 ? (
-                  <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                  <View style={[styles.emptyCard, styles.elevatedSurface, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.88) : theme.cardBg, borderColor: theme.cardBorder }] }>
                     <Text style={styles.emptyIcon}>💳</Text>
                     <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Kayıt Bulunamadı</Text>
-                    <Text style={[styles.emptyDescription, { color: theme.textSecondary }]}>Arama metnini veya görünüm filtresini değiştiriniz.</Text>
+                    <Text style={[styles.emptyDescription, { color: theme.textSecondary }]}>Arama Metnini veya Görünüm Filtresini Değiştiriniz.</Text>
                     <TouchableOpacity style={[styles.primaryButton, { marginTop: 14 }]} onPress={() => openSubscriptionForm()}>
                       <Text style={styles.primaryButtonText}>+ Abonelik Ekle</Text>
                     </TouchableOpacity>
@@ -1245,7 +1254,7 @@ export default function App() {
                     const isPaid = subscription.paidCycleKey === cycleKey;
 
                     return (
-                      <View key={subscription.id} style={[styles.subscriptionCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                      <View key={subscription.id} style={[styles.subscriptionCard, styles.elevatedSurface, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.88) : theme.cardBg, borderColor: theme.cardBorder }] }>
                         <View style={styles.subscriptionMain}>
                           <View style={[styles.serviceIcon, { backgroundColor: serviceColor }]}>
                             <Text style={styles.serviceIconText}>{subscription.name?.charAt(0)?.toUpperCase() || 'C'}</Text>
@@ -1343,7 +1352,7 @@ export default function App() {
                   </TouchableOpacity>
                 </View>
 
-                <View style={styles.calendarContainer}>
+                <View style={[styles.calendarContainer, styles.elevatedSurface, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.88) : theme.cardBg }]}>
                   <View style={styles.calendarWeekHeader}>
                     {['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].map(dayName => (
                       <View key={dayName} style={styles.calendarWeekDay}>
@@ -1426,7 +1435,7 @@ export default function App() {
                   </View>
                 </View>
 
-                <View style={[styles.panel, styles.analysisPrimaryPanel, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                <View style={[styles.panel, styles.analysisPrimaryPanel, styles.elevatedSurface, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.88) : theme.cardBg, borderColor: theme.cardBorder }] }>
                   <Text style={[styles.panelTitle, { color: theme.textPrimary }]}>{selectedAnalysisYear} Aylık Harcama Grafiği</Text>
                   <Text style={[styles.panelDescription, { color: theme.textMuted }]}>Aylık Harcama Eğilimi ve Kategori Kırılımı.</Text>
 
@@ -1483,7 +1492,7 @@ export default function App() {
                   </View>
                 </View>
 
-                <View style={[styles.analysisSectionCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                <View style={[styles.analysisSectionCard, styles.elevatedSurface, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.88) : theme.cardBg, borderColor: theme.cardBorder }] }>
                   <View style={styles.distributionSectionHeader}>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.distributionTitle, styles.distributionTitleNoTop, { color: theme.textPrimary }]}>Ödeme Yöntemine Göre Aylık Dağılım</Text>
@@ -1496,7 +1505,7 @@ export default function App() {
                   </View>
 
                   {sortedMonthlyPaymentMethodEntries.length === 0 ? (
-                    <View style={[styles.emptyCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                    <View style={[styles.emptyCard, styles.elevatedSurface, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.88) : theme.cardBg, borderColor: theme.cardBorder }] }>
                       <Text style={styles.emptyIcon}>💳</Text>
                       <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Aylık Ödeme Yükü Bulunamadı</Text>
                       <Text style={[styles.emptyDescription, { color: theme.textSecondary }]}>Aktif Bir Abonelik Eklediğinizde Aylık Dağılım Burada Görünür.</Text>
@@ -1525,7 +1534,7 @@ export default function App() {
                   )}
                 </View>
 
-                <View style={[styles.analysisSectionCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                <View style={[styles.analysisSectionCard, styles.elevatedSurface, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.88) : theme.cardBg, borderColor: theme.cardBorder }] }>
                   <Text style={[styles.distributionTitle, styles.distributionTitleNoTop, { color: theme.textPrimary }]}>Kategori Bazlı Aylık Dağılım</Text>
                   {sortedMonthlyCategoryEntries.length === 0 ? (
                     <Text style={[styles.noDataText, { color: theme.textSecondary }]}>Seçilen Yıl İçin Kategori Verisi Bulunamadı.</Text>
@@ -1624,7 +1633,7 @@ export default function App() {
             <View style={styles.yearPickerHeader}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Ana Panel Bütçe Yılı</Text>
-                <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Özet maliyetlerin hesaplanacağı projeksiyon yılını seçin.</Text>
+                <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Özet Maliyetlerin Hesaplanacağı Projeksiyon Yılını Seçin.</Text>
               </View>
               <TouchableOpacity style={[styles.modalCloseButton, { backgroundColor: theme.inputBg }]} onPress={() => setIsDashboardYearPickerOpen(false)}>
                 <Text style={[styles.modalCloseText, { color: theme.textSecondary }]}>×</Text>
@@ -1923,14 +1932,14 @@ export default function App() {
                           onPress={() => setFormIncreaseApplicationPeriod('anniversary')}
                         >
                           <Text style={[styles.increasePeriodOptionTitle, { color: formIncreaseApplicationPeriod === 'anniversary' ? theme.accent : theme.textPrimary }]}>Abonelik Yıl Dönümünde</Text>
-                          <Text style={[styles.increasePeriodOptionHint, { color: theme.textMuted }]}>Başlangıç ayı geldiğinde zam uygulanır.</Text>
+                          <Text style={[styles.increasePeriodOptionHint, { color: theme.textMuted }]}>Başlangıç Ayı Geldiğinde Zam Uygulanır.</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={[styles.increasePeriodOption, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }, formIncreaseApplicationPeriod === 'calendarYear' && styles.increasePeriodOptionActive]}
                           onPress={() => setFormIncreaseApplicationPeriod('calendarYear')}
                         >
                           <Text style={[styles.increasePeriodOptionTitle, { color: formIncreaseApplicationPeriod === 'calendarYear' ? theme.accent : theme.textPrimary }]}>Takvim Yılı Başında (Ocak)</Text>
-                          <Text style={[styles.increasePeriodOptionHint, { color: theme.textMuted }]}>Her 1 Ocak tarihinde zam uygulanır.</Text>
+                          <Text style={[styles.increasePeriodOptionHint, { color: theme.textMuted }]}>Her 1 Ocak Tarihinde Zam Uygulanır.</Text>
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -2157,6 +2166,14 @@ function createStyles(theme, isMobile, fontScale) {
     appWrapperDesktop: { flexDirection: 'row', width: '100%', height: '100%', minHeight: 0, overflow: 'hidden' },
 
     glassSurface,
+    elevatedSurface: {
+      ...(Platform.OS === 'web'
+        ? { boxShadow: '0 18px 46px rgba(3,7,18,0.28), 0 3px 12px rgba(79,70,229,0.10)' }
+        : { shadowColor: '#020617', shadowOpacity: 0.28, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 8 })
+    },
+    appGlow: { position: 'absolute', width: isMobile ? 220 : 460, height: isMobile ? 220 : 460, borderRadius: 999, opacity: 0.10 },
+    appGlowTop: { top: isMobile ? -120 : -230, left: isMobile ? -100 : 120 },
+    appGlowBottom: { bottom: isMobile ? -130 : -240, right: isMobile ? -110 : -150, opacity: 0.07 },
 
     authScroll: { flex: 1, width: '100%' },
     authScrollContent: { flexGrow: 1, minHeight: '100%', justifyContent: 'center' },
@@ -2186,7 +2203,7 @@ function createStyles(theme, isMobile, fontScale) {
     authSwitchButton: { marginTop: 18, alignItems: 'center', paddingVertical: 6 },
     authSwitchText: { fontSize: font(12), fontWeight: '700' },
 
-    sidebarContainer: { width: 250, minWidth: 250, flexShrink: 0, padding: 20, borderRightWidth: 1 },
+    sidebarContainer: { width: 250, minWidth: 250, flexShrink: 0, padding: 20, borderRightWidth: 1, ...(Platform.OS === 'web' ? { boxShadow: '14px 0 42px rgba(3,7,18,0.20)' } : { elevation: 8 }) },
     sidebarHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     headerTitle: { fontSize: font(22), fontWeight: 'bold' },
     proBadge: { backgroundColor: '#6366f1', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginLeft: 6 },
@@ -2203,7 +2220,7 @@ function createStyles(theme, isMobile, fontScale) {
 
     contentWrapper: { flex: 1, height: '100%', minHeight: 0, overflow: 'hidden' },
 
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, zIndex: 10 },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, zIndex: 10, ...(Platform.OS === 'web' ? { boxShadow: '0 10px 34px rgba(3,7,18,0.18)' } : { elevation: 5 }) },
     pageHeaderInfo: { flex: 1, marginRight: 12 },
     pageHeaderTitle: { fontSize: font(18), fontWeight: 'bold' },
     pageHeaderDescription: { fontSize: font(11), marginTop: 2 },
@@ -2217,9 +2234,9 @@ function createStyles(theme, isMobile, fontScale) {
     iconButtonText: { fontSize: font(14) },
 
     mainScroll: { flex: 1, width: '100%' },
-    scrollContent: { padding: isMobile ? 14 : 24, paddingBottom: 60, gap: 16 },
+    scrollContent: { padding: isMobile ? 14 : 24, paddingBottom: 60, gap: 18, position: 'relative' },
 
-    summaryCard: { borderRadius: 18, padding: 20, borderWidth: 1 },
+    summaryCard: { borderRadius: 20, padding: isMobile ? 18 : 22, borderWidth: 1, overflow: 'hidden', ...(Platform.OS === 'web' ? { boxShadow: '0 24px 56px rgba(49,46,129,0.30)' } : { elevation: 10 }) },
     summaryTopRow: { flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'flex-start', justifyContent: 'space-between', gap: 12 },
     summaryLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
     summaryLabel: { color: 'rgba(255,255,255,0.82)', fontSize: font(12), fontWeight: '600' },
@@ -2235,9 +2252,9 @@ function createStyles(theme, isMobile, fontScale) {
     dashboardYearValue: { color: '#ffffff', fontSize: font(15), fontWeight: '800', marginTop: 1 },
     dashboardYearChevron: { color: '#ffffff', fontSize: font(17), fontWeight: '700' },
 
-    searchInput: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, fontSize: font(13) },
+    searchInput: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 13, minHeight: 48, fontSize: font(13), ...(Platform.OS === 'web' ? { boxShadow: '0 10px 24px rgba(3,7,18,0.14)' } : {}) },
 
-    singleFilterSection: { gap: 12, width: '100%', borderWidth: 1, borderRadius: 14, padding: 14, overflow: 'hidden' },
+    singleFilterSection: { gap: 14, width: '100%', borderWidth: 1, borderRadius: 18, padding: isMobile ? 14 : 16, overflow: 'hidden' },
     filterSectionHeader: { flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'space-between', gap: 10 },
     sectionLabel: { fontSize: font(13), fontWeight: 'bold' },
     filterSectionHint: { fontSize: font(10), marginTop: 2 },
@@ -2254,12 +2271,12 @@ function createStyles(theme, isMobile, fontScale) {
     sectionTitle: { fontSize: font(15), fontWeight: 'bold' },
     resultCount: { fontSize: font(11) },
 
-    emptyCard: { borderWidth: 1, borderRadius: 14, padding: 24, alignItems: 'center', justifyContent: 'center' },
+    emptyCard: { borderWidth: 1, borderRadius: 18, padding: isMobile ? 22 : 28, alignItems: 'center', justifyContent: 'center' },
     emptyIcon: { fontSize: font(28), marginBottom: 8 },
     emptyTitle: { fontSize: font(14), fontWeight: 'bold', marginBottom: 4 },
     emptyDescription: { fontSize: font(12), textAlign: 'center' },
 
-    subscriptionCard: { borderWidth: 1, borderRadius: 14, padding: 14, flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: 12 },
+    subscriptionCard: { borderWidth: 1, borderRadius: 18, padding: isMobile ? 14 : 16, flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: 14, overflow: 'hidden' },
     subscriptionMain: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
     serviceIcon: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     serviceIconText: { color: '#ffffff', fontSize: font(16), fontWeight: 'bold' },
@@ -2292,7 +2309,7 @@ function createStyles(theme, isMobile, fontScale) {
     calendarYearSelectValue: { fontSize: font(12), fontWeight: 'bold' },
     yearSelectChevron: { fontSize: font(12), fontWeight: 'bold' },
 
-    calendarContainer: { borderWidth: 1, borderColor: theme.cardBorder, borderRadius: 14, overflow: 'hidden', backgroundColor: theme.cardBg },
+    calendarContainer: { borderWidth: 1, borderColor: theme.cardBorder, borderRadius: 18, overflow: 'hidden', backgroundColor: theme.cardBg },
     calendarWeekHeader: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: theme.cardBorder },
     calendarWeekDay: { flex: 1, paddingVertical: 10, alignItems: 'center' },
     calendarWeekDayText: { fontSize: font(11), fontWeight: 'bold' },
@@ -2320,7 +2337,7 @@ function createStyles(theme, isMobile, fontScale) {
     insightTitle: { color: '#ffffff', fontSize: font(12), fontWeight: 'bold', marginBottom: 2 },
     insightText: { color: 'rgba(255,255,255,0.9)', fontSize: font(11), lineHeight: 16 },
 
-    panel: { borderWidth: 1, borderRadius: 16, padding: 16 },
+    panel: { borderWidth: 1, borderRadius: 20, padding: isMobile ? 14 : 18, overflow: 'hidden' },
     analysisPrimaryPanel: {},
     panelTitle: { fontSize: font(15), fontWeight: 'bold', marginBottom: 2 },
     panelDescription: { fontSize: font(11), marginBottom: 14 },
@@ -2341,7 +2358,7 @@ function createStyles(theme, isMobile, fontScale) {
     chartFooterLabel: { fontSize: font(12), fontWeight: 'bold' },
     chartFooterValue: { fontSize: font(14), fontWeight: 'bold' },
 
-    analysisSectionCard: { borderWidth: 1, borderRadius: 16, padding: 16, gap: 12 },
+    analysisSectionCard: { borderWidth: 1, borderRadius: 20, padding: isMobile ? 14 : 18, gap: 14, overflow: 'hidden' },
     distributionSectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 },
     distributionTitle: { fontSize: font(14), fontWeight: 'bold' },
     distributionTitleNoTop: { marginTop: 0 },
