@@ -96,6 +96,15 @@ const convertToTL = (price, currency, rates = DEFAULT_RATES) => {
 
 const normalizeText = (value = '') => String(value).toLocaleLowerCase('tr-TR').replace(/\s+/g, ' ').trim();
 
+const sanitizeDecimalInput = value => {
+  const cleaned = String(value ?? '').replace(/[^0-9.,]/g, '');
+  const firstSeparatorIndex = cleaned.search(/[.,]/);
+  if (firstSeparatorIndex === -1) return cleaned;
+  const integerPart = cleaned.slice(0, firstSeparatorIndex);
+  const decimalPart = cleaned.slice(firstSeparatorIndex + 1).replace(/[.,]/g, '');
+  return `${integerPart}${cleaned[firstSeparatorIndex]}${decimalPart}`;
+};
+
 const isValidUrl = value => {
   if (!value) return true;
   try {
@@ -128,21 +137,39 @@ const getCycleKey = (item, today) => {
   return `${next.getFullYear()}-${next.getMonth()}`;
 };
 
-const getAnnualIncreaseMultiplier = (item, targetYear) => {
+const getAnnualIncreaseMultiplier = (item, targetYear, targetMonthIndex = 0) => {
   const baseYear = Number(item?.billingYear) || targetYear;
+  const baseMonthIndex = Math.max(0, Math.min(11, (Number(item?.billingMonth) || 1) - 1));
   const annualIncreaseRate = Math.max(0, Number(item?.annualIncreaseRate) || 0);
-  const elapsedYears = Math.max(0, targetYear - baseYear);
+  const applicationPeriod = item?.increaseApplicationPeriod || 'calendarYear';
+
+  let elapsedYears = 0;
+  if (applicationPeriod === 'anniversary') {
+    const elapsedMonths = (targetYear * 12 + targetMonthIndex) - (baseYear * 12 + baseMonthIndex);
+    elapsedYears = Math.max(0, Math.floor(elapsedMonths / 12));
+  } else {
+    elapsedYears = Math.max(0, targetYear - baseYear);
+  }
+
   return Math.pow(1 + annualIncreaseRate / 100, elapsedYears);
+};
+
+const getProjectedSubscriptionPrice = (item, year, monthIndex, rates) => {
+  if (!item || item.status === 'cancelled') return 0;
+  return convertToTL(item.price, item.currency || 'TRY', rates)
+    * getAnnualIncreaseMultiplier(item, year, monthIndex);
 };
 
 const getSubscriptionCostForMonth = (item, year, monthIndex, rates) => {
   if (!item || item.status === 'cancelled') return 0;
-  const priceInTL = convertToTL(item.price, item.currency || 'TRY', rates) * getAnnualIncreaseMultiplier(item, year);
   const billingYear = Number(item.billingYear) || year;
   const billingMonth = Math.max(0, Math.min(11, (Number(item.billingMonth) || 1) - 1));
   const targetMonthKey = year * 12 + monthIndex;
   const billingMonthKey = billingYear * 12 + billingMonth;
   if (targetMonthKey < billingMonthKey) return 0;
+
+  const priceInTL = getProjectedSubscriptionPrice(item, year, monthIndex, rates);
+
   if (item.period === 'monthly') return priceInTL;
   return monthIndex === billingMonth ? priceInTL : 0;
 };
@@ -274,6 +301,7 @@ export default function App() {
   const [formNotificationDays, setFormNotificationDays] = useState(2);
   const [formNotificationChannel, setFormNotificationChannel] = useState('email');
   const [formAnnualIncreaseRate, setFormAnnualIncreaseRate] = useState('0');
+  const [formIncreaseApplicationPeriod, setFormIncreaseApplicationPeriod] = useState('anniversary');
 
   const [showTemplateForm, setShowTemplateForm] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState('');
@@ -407,6 +435,25 @@ export default function App() {
 
   const styles = createStyles(theme, isMobile, fontScale);
 
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return undefined;
+    const styleId = 'cebin-subscription-scrollbar-style';
+    let styleElement = document.getElementById(styleId);
+    if (!styleElement) {
+      styleElement = document.createElement('style');
+      styleElement.id = styleId;
+      document.head.appendChild(styleElement);
+    }
+    styleElement.textContent = `
+      .cebin-subscription-scroll { scrollbar-width: thin; scrollbar-color: rgba(174,183,194,.48) transparent; }
+      .cebin-subscription-scroll::-webkit-scrollbar { width: 8px; }
+      .cebin-subscription-scroll::-webkit-scrollbar-track { background: transparent; margin: 8px 0; }
+      .cebin-subscription-scroll::-webkit-scrollbar-thumb { background: rgba(174,183,194,.34); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
+      .cebin-subscription-scroll::-webkit-scrollbar-thumb:hover { background: rgba(174,183,194,.58); border: 2px solid transparent; background-clip: padding-box; }
+    `;
+    return undefined;
+  }, [theme.cardBorder, theme.textMuted]);
+
   const todayForFiltering = new Date();
 
   const filteredSubscriptions = safeList
@@ -440,7 +487,7 @@ export default function App() {
   const currentProjectionYear = currentDate.getFullYear();
   const monthlyTotalTL = safeList.reduce((total, s) => {
     if (!s || s.status === 'cancelled') return total;
-    const projectedPriceInTL = convertToTL(s.price, s.currency || 'TRY', exchangeRates) * getAnnualIncreaseMultiplier(s, currentProjectionYear);
+    const projectedPriceInTL = getProjectedSubscriptionPrice(s, currentDate.getFullYear(), currentDate.getMonth(), exchangeRates);
     return total + (s.period === 'yearly' ? projectedPriceInTL / 12 : projectedPriceInTL);
   }, 0);
 
@@ -502,8 +549,10 @@ export default function App() {
     const method = s.paymentMethod || 'Nakit / Diğer';
     const startYear = Number(s.billingYear) || selectedAnalysisYear;
     if (startYear > selectedAnalysisYear) return acc;
-    const projectedPriceInTL = convertToTL(s.price, s.currency || 'TRY', exchangeRates) * getAnnualIncreaseMultiplier(s, selectedAnalysisYear);
-    const monthlyCommitment = s.period === 'yearly' ? projectedPriceInTL / 12 : projectedPriceInTL;
+    const yearlyCommitment = Array.from({ length: 12 }, (_, monthIndex) =>
+      getSubscriptionCostForMonth(s, selectedAnalysisYear, monthIndex, exchangeRates)
+    ).reduce((total, amount) => total + amount, 0);
+    const monthlyCommitment = yearlyCommitment / 12;
     acc[method] = (acc[method] || 0) + monthlyCommitment;
     return acc;
   }, {});
@@ -547,6 +596,7 @@ export default function App() {
       setFormNotificationDays(item.notificationDays !== undefined ? item.notificationDays : 2);
       setFormNotificationChannel(item.notificationChannel || 'email');
       setFormAnnualIncreaseRate(String(item.annualIncreaseRate ?? 0));
+      setFormIncreaseApplicationPeriod(item.increaseApplicationPeriod || 'calendarYear');
     } else {
       setEditingId(null);
       setFormName(''); setFormPrice(''); setFormCurrency('TRY');
@@ -554,7 +604,7 @@ export default function App() {
       setFormCategory('Eğlence');
       setFormPaymentMethod(safePaymentMethods[0] || DEFAULT_PAYMENT_METHODS[0]);
       setFormPeriod('monthly'); setFormCancelUrl(''); setFormColor('#6366f1');
-      setFormNotificationDays(2); setFormNotificationChannel('email'); setFormAnnualIncreaseRate('0');
+      setFormNotificationDays(2); setFormNotificationChannel('email'); setFormAnnualIncreaseRate('0'); setFormIncreaseApplicationPeriod('anniversary');
     }
     setFormStep(1);
     setShowTemplateForm(false);
@@ -571,7 +621,7 @@ export default function App() {
   };
 
   const goToStepTwo = () => {
-    if (!formName.trim()) { showAlert('Lütfen abonelik veya gider adını giriniz.'); return; }
+    if (!formName.trim()) { showAlert('Lütfen Abonelik veya Gider Adını Giriniz.'); return; }
     const numericPrice = Number(String(formPrice).replace(',', '.'));
     if (!Number.isFinite(numericPrice) || numericPrice <= 0) { showAlert('Lütfen sıfırdan büyük geçerli bir tutar giriniz.'); return; }
     setFormStep(2);
@@ -586,7 +636,7 @@ export default function App() {
     const numericYear = Number(formYear);
     const numericAnnualIncreaseRate = Number(String(formAnnualIncreaseRate).replace(',', '.'));
 
-    if (!formName.trim()) { showAlert('Lütfen abonelik veya gider adını giriniz.'); return; }
+    if (!formName.trim()) { showAlert('Lütfen Abonelik veya Gider Adını Giriniz.'); return; }
     if (!Number.isFinite(numericPrice) || numericPrice <= 0) { showAlert('Lütfen sıfırdan büyük geçerli bir tutar giriniz.'); return; }
     if (!Number.isInteger(numericMonth) || numericMonth < 1 || numericMonth > 12) { showAlert('Ay değeri 1 ile 12 arasında olmalıdır.'); return; }
     if (!YEARS.includes(numericYear)) { showAlert('Lütfen geçerli bir yıl seçiniz.'); return; }
@@ -631,6 +681,7 @@ export default function App() {
       notificationDays: formNotificationDays,
       notificationChannel: formNotificationChannel,
       annualIncreaseRate: numericAnnualIncreaseRate,
+      increaseApplicationPeriod: formIncreaseApplicationPeriod,
       status: existingSubscription?.status || 'active'
     };
 
@@ -1520,7 +1571,7 @@ export default function App() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.subscriptionModalScroll} contentContainerStyle={styles.subscriptionModalContent} showsVerticalScrollIndicator>
+            <ScrollView className="cebin-subscription-scroll" style={styles.subscriptionModalScroll} contentContainerStyle={styles.subscriptionModalContent} showsVerticalScrollIndicator>
               {formStep === 1 && (
                 <>
                   {!editingId && (
@@ -1571,7 +1622,7 @@ export default function App() {
                         <View style={[styles.inlineForm, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}>
                           <TextInput style={[styles.textInput, { backgroundColor: theme.cardBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} placeholder="Şablon Adı" placeholderTextColor={theme.textMuted} value={newTemplateName} onChangeText={setNewTemplateName} />
                           <View style={styles.inlineInputRow}>
-                            <TextInput style={[styles.textInput, styles.flexInput, { backgroundColor: theme.cardBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} placeholder="Fiyat" placeholderTextColor={theme.textMuted} keyboardType="decimal-pad" value={newTemplatePrice} onChangeText={setNewTemplatePrice} />
+                            <TextInput style={[styles.textInput, styles.flexInput, { backgroundColor: theme.cardBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} placeholder="Fiyat" placeholderTextColor={theme.textMuted} keyboardType="decimal-pad" value={newTemplatePrice} onChangeText={value => setNewTemplatePrice(sanitizeDecimalInput(value))} />
                             <View style={styles.currencyOptionRow}>
                               {['TRY', 'USD', 'EUR'].map(currency => (
                                 <TouchableOpacity key={currency} style={[styles.compactOptionButton, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }, newTemplateCurrency === currency && styles.compactOptionButtonActive]} onPress={() => setNewTemplateCurrency(currency)}>
@@ -1605,7 +1656,7 @@ export default function App() {
                       </View>
                       <View style={styles.formColumn}>
                         <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Tutar / Fiyat</Text>
-                        <TextInput style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} placeholder="0,00" placeholderTextColor={theme.textMuted} keyboardType="decimal-pad" value={formPrice} onChangeText={setFormPrice} />
+                        <TextInput style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} placeholder="0,00" placeholderTextColor={theme.textMuted} keyboardType="decimal-pad" value={formPrice} onChangeText={value => setFormPrice(sanitizeDecimalInput(value))} />
                       </View>
                     </View>
 
@@ -1645,9 +1696,32 @@ export default function App() {
                           placeholderTextColor={theme.textMuted}
                           keyboardType="decimal-pad"
                           value={formAnnualIncreaseRate}
-                          onChangeText={setFormAnnualIncreaseRate}
+                          onChangeText={value => setFormAnnualIncreaseRate(sanitizeDecimalInput(value))}
                         />
                         <Text style={[styles.projectionPercent, { color: theme.textSecondary }]}>%</Text>
+                      </View>
+                    </View>
+
+                    <View style={[styles.increasePeriodCard, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}>
+                      <View style={styles.increasePeriodCopy}>
+                        <Text style={[styles.inputLabel, { color: theme.textPrimary, marginBottom: 3 }]}>Zam Uygulama Periyodu</Text>
+                        <Text style={[styles.formSectionDescription, { color: theme.textMuted }]}>Artışın Abonelik Yıl Dönümünde veya Her Takvim Yılı Başında Devreye Girmesini Seçin.</Text>
+                      </View>
+                      <View style={styles.increasePeriodOptions}>
+                        <TouchableOpacity
+                          style={[styles.increasePeriodOption, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }, formIncreaseApplicationPeriod === 'anniversary' && styles.increasePeriodOptionActive]}
+                          onPress={() => setFormIncreaseApplicationPeriod('anniversary')}
+                        >
+                          <Text style={[styles.increasePeriodOptionTitle, { color: formIncreaseApplicationPeriod === 'anniversary' ? theme.accent : theme.textPrimary }]}>Abonelik Yıl Dönümünde</Text>
+                          <Text style={[styles.increasePeriodOptionHint, { color: theme.textMuted }]}>Başlangıç ayı geldiğinde zam uygulanır.</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.increasePeriodOption, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }, formIncreaseApplicationPeriod === 'calendarYear' && styles.increasePeriodOptionActive]}
+                          onPress={() => setFormIncreaseApplicationPeriod('calendarYear')}
+                        >
+                          <Text style={[styles.increasePeriodOptionTitle, { color: formIncreaseApplicationPeriod === 'calendarYear' ? theme.accent : theme.textPrimary }]}>Takvim Yılı Başında (Ocak)</Text>
+                          <Text style={[styles.increasePeriodOptionHint, { color: theme.textMuted }]}>Her 1 Ocak tarihinde zam uygulanır.</Text>
+                        </TouchableOpacity>
                       </View>
                     </View>
                   </View>
@@ -2102,7 +2176,7 @@ function createStyles(theme, isMobile, fontScale) {
     fontScaleOptionTextActive: { color: '#ffffff', fontWeight: 'bold' },
 
     subscriptionModal: { width: '100%', maxWidth: 540, maxHeight: '90%', borderWidth: 1, borderRadius: 22, overflow: 'hidden' },
-    subscriptionModalScroll: { maxHeight: 460 },
+    subscriptionModalScroll: { maxHeight: 460, width: '100%', ...(Platform.OS === 'web' ? { scrollbarWidth: 'thin', scrollbarColor: 'rgba(174,183,194,0.48) transparent' } : {}) },
     subscriptionModalContent: { padding: 20, paddingTop: 4, gap: 16 },
 
     formSection: { gap: 10 },
@@ -2111,17 +2185,17 @@ function createStyles(theme, isMobile, fontScale) {
     formSectionDescription: { fontSize: font(10) },
     formSectionAction: { fontSize: font(11), fontWeight: 'bold' },
 
-    removableOptionWrapper: { position: 'relative', minWidth: 0, maxWidth: '100%' },
-    removableOptionGrid: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 10, paddingTop: 4, paddingBottom: 4, paddingRight: 2 },
+    removableOptionWrapper: { position: 'relative', minWidth: 0, maxWidth: '100%', flexShrink: 1 },
+    removableOptionGrid: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 10, paddingTop: 4, paddingBottom: 4, paddingRight: 2, overflow: 'hidden' },
 
     // Şablon çipleri: artık düz/nötr taban, sol tarafta küçük renk noktası ile marka rengi korunur
-    templateOption: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, minWidth: 104, maxWidth: isMobile ? 156 : 180 },
+    templateOption: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, minWidth: 104, maxWidth: isMobile ? '100%' : 180, flexShrink: 1 },
     templateOptionText: { fontSize: font(12), fontWeight: '600' },
     templateDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
 
-    removeOptionButton: { position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: 7, backgroundColor: 'rgba(31,41,55,0.72)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center', zIndex: 5, opacity: Platform.OS === 'web' ? 0 : 0.72 },
-    removeOptionButtonVisible: { opacity: 0.9 },
-    removeOptionText: { color: 'rgba(255,255,255,0.9)', fontSize: font(14), fontWeight: '500', lineHeight: font(15) },
+    removeOptionButton: { position: 'absolute', top: 5, right: 5, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(75,85,99,0.72)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', zIndex: 5, opacity: Platform.OS === 'web' ? 0 : 0.72 },
+    removeOptionButtonVisible: { opacity: 0.86 },
+    removeOptionText: { color: 'rgba(255,255,255,0.78)', fontSize: font(14), fontWeight: '400', lineHeight: font(15) },
 
     inlineForm: { borderWidth: 1, borderRadius: 12, padding: 12, gap: 10, marginTop: 4 },
     inlineInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -2152,11 +2226,19 @@ function createStyles(theme, isMobile, fontScale) {
 
     projectionFieldCard: { borderWidth: 1, borderRadius: 12, padding: 12, flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: 12, width: '100%', minWidth: 0, overflow: 'hidden' },
     projectionFieldCopy: { flex: 1, minWidth: 0 },
-    projectionRateInputWrap: { width: isMobile ? '100%' : 112, maxWidth: '100%', flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 0 },
-    projectionRateInput: { flex: 1, textAlign: 'center' },
+    projectionRateInputWrap: { width: isMobile ? '100%' : 128, maxWidth: '100%', flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 0, alignSelf: isMobile ? 'stretch' : 'center' },
+    projectionRateInput: { flex: 1, minWidth: 0, width: '100%', textAlign: 'center' },
     projectionPercent: { fontSize: font(13), fontWeight: 'bold' },
 
-    paymentMethodOption: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, minWidth: 120, maxWidth: isMobile ? 180 : 210 },
+    increasePeriodCard: { borderWidth: 1, borderRadius: 12, padding: 12, gap: 10, width: '100%', minWidth: 0 },
+    increasePeriodCopy: { minWidth: 0 },
+    increasePeriodOptions: { flexDirection: isMobile ? 'column' : 'row', gap: 8, width: '100%' },
+    increasePeriodOption: { flex: 1, minWidth: 0, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 },
+    increasePeriodOptionActive: { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder },
+    increasePeriodOptionTitle: { fontSize: font(11), fontWeight: '700', marginBottom: 3 },
+    increasePeriodOptionHint: { fontSize: font(9), lineHeight: font(13) },
+
+    paymentMethodOption: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, minWidth: 120, maxWidth: isMobile ? '100%' : 210, flexShrink: 1 },
     paymentMethodOptionActive: { backgroundColor: theme.activeButton, borderColor: theme.activeButtonBorder },
     paymentMethodOptionText: { fontSize: font(12), fontWeight: '600' },
 
