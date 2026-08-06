@@ -241,6 +241,7 @@ export default function App() {
   const [isAppearanceModalOpen, setIsAppearanceModalOpen] = useState(false);
   const [isAnalysisYearPickerOpen, setIsAnalysisYearPickerOpen] = useState(false);
   const [isCalendarYearPickerOpen, setIsCalendarYearPickerOpen] = useState(false);
+  const [isDashboardYearPickerOpen, setIsDashboardYearPickerOpen] = useState(false);
 
   // Bildirim tercihi: sağ üstteki zil butonuyla açılıp kapatılır, tercih localStorage'da tutulur.
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -286,6 +287,7 @@ export default function App() {
   const [calendarMonth, setCalendarMonth] = useState(clampedYear === currentDate.getFullYear() ? currentDate.getMonth() : 0);
   const [calendarYear, setCalendarYear] = useState(clampedYear);
   const [selectedAnalysisYear, setSelectedAnalysisYear] = useState(clampedYear);
+  const [selectedDashboardYear, setSelectedDashboardYear] = useState(clampedYear);
 
   const [formName, setFormName] = useState('');
   const [formPrice, setFormPrice] = useState('');
@@ -484,17 +486,15 @@ export default function App() {
 
   const selectedViewFilterLabel = VIEW_FILTER_OPTIONS.find(o => o.key === viewFilter)?.label || 'Tüm Abonelikler';
 
-  const currentProjectionYear = currentDate.getFullYear();
-  const monthlyTotalTL = safeList.reduce((total, s) => {
-    if (!s || s.status === 'cancelled') return total;
-    const projectedPriceInTL = getProjectedSubscriptionPrice(s, currentDate.getFullYear(), currentDate.getMonth(), exchangeRates);
-    return total + (s.period === 'yearly' ? projectedPriceInTL / 12 : projectedPriceInTL);
-  }, 0);
-
-  const dailyAverageTL = monthlyTotalTL / 30;
-  const yearlyProjectionTL = Array.from({ length: 12 }, (_, monthIndex) =>
-    safeList.reduce((total, subscription) => total + getSubscriptionCostForMonth(subscription, currentProjectionYear, monthIndex, exchangeRates), 0)
-  ).reduce((total, amount) => total + amount, 0);
+  const dashboardMonthlyTotals = Array.from({ length: 12 }, (_, monthIndex) =>
+    safeList.reduce(
+      (total, subscription) => total + getSubscriptionCostForMonth(subscription, selectedDashboardYear, monthIndex, exchangeRates),
+      0
+    )
+  );
+  const yearlyProjectionTL = dashboardMonthlyTotals.reduce((total, amount) => total + amount, 0);
+  const monthlyTotalTL = yearlyProjectionTL / 12;
+  const dailyAverageTL = yearlyProjectionTL / 365;
 
   const realNow = new Date();
   const prevMonthDate = new Date(realNow.getFullYear(), realNow.getMonth() - 1, 1);
@@ -992,15 +992,30 @@ export default function App() {
             {activeTab === 'list' && (
               <>
                 <View style={[styles.summaryCard, { backgroundColor: theme.summaryBg, borderColor: theme.summaryBorder }]}>
-                  <View style={styles.summaryLabelRow}>
-                    <Text style={styles.summaryLabel}>Aylık Maliyet</Text>
-                    {hasMonthlyChangeData && (
-                      <View style={[styles.changeBadge, { backgroundColor: monthlyChangePercent <= 0 ? 'rgba(52,211,153,0.22)' : 'rgba(248,113,113,0.22)' }]}>
-                        <Text style={[styles.changeBadgeText, { color: monthlyChangePercent <= 0 ? '#34d399' : '#f87171' }]}>
-                          {monthlyChangePercent <= 0 ? '↓' : '↑'} %{Math.abs(monthlyChangePercent).toFixed(1)} Geçen Aya Göre
-                        </Text>
+                  <View style={styles.summaryTopRow}>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <View style={styles.summaryLabelRow}>
+                        <Text style={styles.summaryLabel}>{selectedDashboardYear} Aylık Ortalama Maliyet</Text>
+                        {selectedDashboardYear === currentDate.getFullYear() && hasMonthlyChangeData && (
+                          <View style={[styles.changeBadge, { backgroundColor: monthlyChangePercent <= 0 ? 'rgba(52,211,153,0.22)' : 'rgba(248,113,113,0.22)' }]}>
+                            <Text style={[styles.changeBadgeText, { color: monthlyChangePercent <= 0 ? '#34d399' : '#f87171' }]}>
+                              {monthlyChangePercent <= 0 ? '↓' : '↑'} %{Math.abs(monthlyChangePercent).toFixed(1)} Geçen Aya Göre
+                            </Text>
+                          </View>
+                        )}
                       </View>
-                    )}
+                    </View>
+                    <TouchableOpacity
+                      activeOpacity={0.82}
+                      style={styles.dashboardYearButton}
+                      onPress={() => setIsDashboardYearPickerOpen(true)}
+                    >
+                      <View>
+                        <Text style={styles.dashboardYearCaption}>Bütçe Yılı</Text>
+                        <Text style={styles.dashboardYearValue}>{selectedDashboardYear}</Text>
+                      </View>
+                      <Text style={styles.dashboardYearChevron}>⌄</Text>
+                    </TouchableOpacity>
                   </View>
 
                   <Text style={styles.summaryValue}>{formatCurrency(monthlyTotalTL, 'TRY')}</Text>
@@ -1011,7 +1026,7 @@ export default function App() {
                       <Text style={styles.summaryStatValue}>{formatCurrency(dailyAverageTL, 'TRY')}</Text>
                     </View>
                     <View style={styles.summaryStatBox}>
-                      <Text style={styles.summaryStatLabel}>Yıllık Toplam Maliyet</Text>
+                      <Text style={styles.summaryStatLabel}>{selectedDashboardYear} Yıllık Toplam Maliyet</Text>
                       <Text style={styles.summaryStatValue}>{formatCurrency(yearlyProjectionTL, 'TRY')}</Text>
                     </View>
                   </View>
@@ -1025,15 +1040,35 @@ export default function App() {
                   onChangeText={setSearchQuery}
                 />
 
-                <View style={styles.singleFilterSection}>
-                  <Text style={[styles.sectionLabel, { color: theme.textPrimary }]}>Görünüm Filtresi</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalOptionRow}>
-                    {VIEW_FILTER_OPTIONS.map(option => (
-                      <TouchableOpacity key={option.key} style={[styles.filterOption, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }, viewFilter === option.key && styles.filterOptionActive]} onPress={() => setViewFilter(option.key)}>
-                        <Text style={[styles.filterOptionText, { color: theme.textSecondary }, viewFilter === option.key && styles.filterOptionTextActive]}>{option.label}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
+                <View style={[styles.singleFilterSection, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+                  <View style={styles.filterSectionHeader}>
+                    <View>
+                      <Text style={[styles.sectionLabel, { color: theme.textPrimary }]}>Görünüm Filtresi</Text>
+                      <Text style={[styles.filterSectionHint, { color: theme.textMuted }]}>Abonelik listenizi tek dokunuşla daraltın.</Text>
+                    </View>
+                    <View style={[styles.activeFilterBadge, { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder }]}>
+                      <Text style={[styles.activeFilterBadgeText, { color: theme.accent }]}>{selectedViewFilterLabel}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.filterOptionGrid}>
+                    {VIEW_FILTER_OPTIONS.map(option => {
+                      const isSelected = viewFilter === option.key;
+                      return (
+                        <TouchableOpacity
+                          key={option.key}
+                          activeOpacity={0.82}
+                          style={[
+                            styles.filterOption,
+                            { backgroundColor: theme.inputBg, borderColor: theme.cardBorder },
+                            isSelected && styles.filterOptionActive
+                          ]}
+                          onPress={() => setViewFilter(option.key)}
+                        >
+                          <Text style={[styles.filterOptionText, { color: theme.textSecondary }, isSelected && styles.filterOptionTextActive]}>{option.label}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
                 </View>
 
                 <View style={styles.sectionTitleRow}>
@@ -1435,6 +1470,38 @@ export default function App() {
                 </Text>
               </View>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={isDashboardYearPickerOpen} transparent animationType="fade" onRequestClose={() => setIsDashboardYearPickerOpen(false)}>
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity style={styles.yearPickerBackdrop} activeOpacity={1} onPress={() => setIsDashboardYearPickerOpen(false)} />
+          <View style={[styles.yearPickerCard, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.96) : theme.cardBg, borderColor: theme.cardBorder }]}>
+            <View style={styles.yearPickerHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Ana Panel Bütçe Yılı</Text>
+                <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Özet maliyetlerin hesaplanacağı projeksiyon yılını seçin.</Text>
+              </View>
+              <TouchableOpacity style={[styles.modalCloseButton, { backgroundColor: theme.inputBg }]} onPress={() => setIsDashboardYearPickerOpen(false)}>
+                <Text style={[styles.modalCloseText, { color: theme.textSecondary }]}>×</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.yearPickerGrid}>
+              {YEARS.map(year => {
+                const isSelected = selectedDashboardYear === year;
+                return (
+                  <TouchableOpacity
+                    key={`dashboard-picker-${year}`}
+                    style={[styles.yearPickerOption, { backgroundColor: isSelected ? theme.activeButton : theme.inputBg, borderColor: isSelected ? theme.activeButtonBorder : theme.cardBorder }]}
+                    onPress={() => { setSelectedDashboardYear(year); setIsDashboardYearPickerOpen(false); }}
+                  >
+                    <Text style={[styles.yearPickerOptionText, { color: isSelected ? '#ffffff' : theme.textPrimary }]}>{year}</Text>
+                    {isSelected && <Text style={styles.yearPickerCheck}>✓</Text>}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
         </View>
       </Modal>
@@ -1986,6 +2053,7 @@ function createStyles(theme, isMobile, fontScale) {
     scrollContent: { padding: isMobile ? 14 : 24, paddingBottom: 60, gap: 16 },
 
     summaryCard: { borderRadius: 18, padding: 20, borderWidth: 1 },
+    summaryTopRow: { flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'flex-start', justifyContent: 'space-between', gap: 12 },
     summaryLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
     summaryLabel: { color: 'rgba(255,255,255,0.82)', fontSize: font(12), fontWeight: '600' },
     changeBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
@@ -1995,16 +2063,25 @@ function createStyles(theme, isMobile, fontScale) {
     summaryStatBox: { flex: 1 },
     summaryStatLabel: { color: 'rgba(255,255,255,0.7)', fontSize: font(10), marginBottom: 2 },
     summaryStatValue: { color: '#ffffff', fontSize: font(13), fontWeight: 'bold' },
+    dashboardYearButton: { minWidth: 118, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)', backgroundColor: 'rgba(17,24,39,0.18)' },
+    dashboardYearCaption: { color: 'rgba(255,255,255,0.66)', fontSize: font(9), fontWeight: '600' },
+    dashboardYearValue: { color: '#ffffff', fontSize: font(15), fontWeight: '800', marginTop: 1 },
+    dashboardYearChevron: { color: '#ffffff', fontSize: font(17), fontWeight: '700' },
 
     searchInput: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, fontSize: font(13) },
 
-    singleFilterSection: { gap: 8 },
+    singleFilterSection: { gap: 12, width: '100%', borderWidth: 1, borderRadius: 14, padding: 14, overflow: 'hidden' },
+    filterSectionHeader: { flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'space-between', gap: 10 },
     sectionLabel: { fontSize: font(13), fontWeight: 'bold' },
+    filterSectionHint: { fontSize: font(10), marginTop: 2 },
+    activeFilterBadge: { maxWidth: '100%', borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
+    activeFilterBadgeText: { fontSize: font(10), fontWeight: '700' },
+    filterOptionGrid: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
     horizontalOptionRow: { gap: 8, paddingBottom: 4 },
-    filterOption: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 },
-    filterOptionActive: { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder },
-    filterOptionText: { fontSize: font(12), fontWeight: '600' },
-    filterOptionTextActive: { color: '#ffffff' },
+    filterOption: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9, minWidth: isMobile ? '47%' : 0, alignItems: 'center', justifyContent: 'center', flexGrow: isMobile ? 1 : 0, flexShrink: 1 },
+    filterOptionActive: { backgroundColor: theme.activeButton, borderColor: theme.activeButtonBorder, ...(Platform.OS === 'web' ? { boxShadow: '0 8px 20px rgba(105,101,232,0.22)' } : {}) },
+    filterOptionText: { fontSize: font(11), fontWeight: '650', textAlign: 'center' },
+    filterOptionTextActive: { color: '#ffffff', fontWeight: '800' },
 
     sectionTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
     sectionTitle: { fontSize: font(15), fontWeight: 'bold' },
