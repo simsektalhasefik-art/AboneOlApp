@@ -452,6 +452,7 @@ export default function App() {
       .cebin-subscription-scroll::-webkit-scrollbar-track { background: transparent; margin: 8px 0; }
       .cebin-subscription-scroll::-webkit-scrollbar-thumb { background: rgba(174,183,194,.34); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
       .cebin-subscription-scroll::-webkit-scrollbar-thumb:hover { background: rgba(174,183,194,.58); border: 2px solid transparent; background-clip: padding-box; }
+      .cebin-subscription-scroll::-webkit-scrollbar-corner { background: transparent; }
     `;
     return undefined;
   }, [theme.cardBorder, theme.textMuted]);
@@ -2076,9 +2077,9 @@ function createStyles(theme, isMobile, fontScale) {
     filterSectionHint: { fontSize: font(10), marginTop: 2 },
     activeFilterBadge: { maxWidth: '100%', borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
     activeFilterBadgeText: { fontSize: font(10), fontWeight: '700' },
-    filterOptionGrid: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
+    filterOptionGrid: { width: '100%', flexDirection: 'row', flexWrap: isMobile ? 'wrap' : 'nowrap', alignItems: 'stretch', gap: 8 },
     horizontalOptionRow: { gap: 8, paddingBottom: 4 },
-    filterOption: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9, minWidth: isMobile ? '47%' : 0, alignItems: 'center', justifyContent: 'center', flexGrow: isMobile ? 1 : 0, flexShrink: 1 },
+    filterOption: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 10, minHeight: 42, minWidth: isMobile ? '47%' : 0, alignItems: 'center', justifyContent: 'center', flexGrow: 1, flexBasis: isMobile ? '47%' : 0, flexShrink: 1 },
     filterOptionActive: { backgroundColor: theme.activeButton, borderColor: theme.activeButtonBorder, ...(Platform.OS === 'web' ? { boxShadow: '0 8px 20px rgba(105,101,232,0.22)' } : {}) },
     filterOptionText: { fontSize: font(11), fontWeight: '650', textAlign: 'center' },
     filterOptionTextActive: { color: '#ffffff', fontWeight: '800' },
@@ -2141,10 +2142,10 @@ function createStyles(theme, isMobile, fontScale) {
     calendarSubscriptionPrice: { color: 'rgba(255,255,255,0.85)', fontSize: font(8) },
 
     analyticsSection: { gap: 16 },
-    analysisToolbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    analysisToolbar: { flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: 10 },
     analysisToolbarLabel: { fontSize: font(11) },
     analysisToolbarHint: { fontSize: font(13), fontWeight: 'bold', marginTop: 1 },
-    yearSelectButton: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 12 },
+    yearSelectButton: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, alignSelf: isMobile ? 'stretch' : 'auto' },
     yearSelectCaption: { fontSize: font(9) },
     yearSelectValue: { fontSize: font(15), fontWeight: 'bold' },
 
@@ -2162,9 +2163,9 @@ function createStyles(theme, isMobile, fontScale) {
     legendDot: { width: 8, height: 8, borderRadius: 4 },
     legendText: { fontSize: font(10) },
 
-    chartScrollContent: { paddingBottom: 4 },
-    chartArea: { flexDirection: 'row', height: 210, alignItems: 'flex-end', gap: 12, paddingHorizontal: 4 },
-    chartColumn: { width: 44, alignItems: 'center', height: '100%', justifyContent: 'flex-end' },
+    chartScrollContent: { paddingBottom: 4, flexGrow: 1, minWidth: isMobile ? 720 : 0, width: isMobile ? 720 : '100%' },
+    chartArea: { flex: 1, width: '100%', flexDirection: 'row', height: 210, alignItems: 'flex-end', justifyContent: 'space-between', gap: isMobile ? 12 : 8, paddingHorizontal: isMobile ? 4 : 12 },
+    chartColumn: { width: isMobile ? 44 : 48, maxWidth: 56, flexShrink: 0, alignItems: 'center', height: '100%', justifyContent: 'flex-end' },
     chartAmount: { fontSize: font(8), marginBottom: 4, height: 14, textAlign: 'center' },
     chartTrack: { width: 30, flex: 1, borderWidth: 1, borderRadius: 8, overflow: 'hidden', justifyContent: 'flex-end' },
     chartStack: { width: '100%', flexDirection: 'column-reverse' },
@@ -2252,9 +2253,9 @@ function createStyles(theme, isMobile, fontScale) {
     fontScaleOptionText: { fontWeight: '600' },
     fontScaleOptionTextActive: { color: '#ffffff', fontWeight: 'bold' },
 
-    subscriptionModal: { width: '100%', maxWidth: 540, maxHeight: '90%', borderWidth: 1, borderRadius: 22, overflow: 'hidden' },
-    subscriptionModalScroll: { maxHeight: 460, width: '100%', ...(Platform.OS === 'web' ? { scrollbarWidth: 'thin', scrollbarColor: 'rgba(174,183,194,0.48) transparent' } : {}) },
-    subscriptionModalContent: { padding: 20, paddingTop: 4, gap: 16 },
+    subscriptionModal: { width: isMobile ? '96%' : '100%', maxWidth: 540, maxHeight: isMobile ? '94%' : '90%', borderWidth: 1, borderRadius: isMobile ? 18 : 22, overflow: 'hidden' },
+    subscriptionModalScroll: { flexGrow: 0, maxHeight: isMobile ? '100%' : 460, width: '100%', ...(Platform.OS === 'web' ? { scrollbarWidth: 'thin', scrollbarColor: 'rgba(174,183,194,0.48) transparent' } : {}) },
+    subscriptionModalContent: { padding: isMobile ? 14 : 20, paddingTop: 4, paddingBottom: 24, gap: 16 },
 
     formSection: { gap: 10 },
     formSectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -2262,11 +2263,11 @@ function createStyles(theme, isMobile, fontScale) {
     formSectionDescription: { fontSize: font(10) },
     formSectionAction: { fontSize: font(11), fontWeight: 'bold' },
 
-    removableOptionWrapper: { position: 'relative', minWidth: 0, maxWidth: '100%', flexShrink: 1 },
+    removableOptionWrapper: { position: 'relative', minWidth: 0, maxWidth: '100%', flexGrow: isMobile ? 1 : 0, flexBasis: isMobile ? '47%' : 'auto', flexShrink: 1 },
     removableOptionGrid: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 10, paddingTop: 4, paddingBottom: 4, paddingRight: 2, overflow: 'hidden' },
 
     // Şablon çipleri: artık düz/nötr taban, sol tarafta küçük renk noktası ile marka rengi korunur
-    templateOption: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, minWidth: 104, maxWidth: isMobile ? '100%' : 180, flexShrink: 1 },
+    templateOption: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, minHeight: 44, minWidth: 104, maxWidth: isMobile ? '100%' : 180, flexShrink: 1 },
     templateOptionText: { fontSize: font(12), fontWeight: '600' },
     templateDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
 
@@ -2315,7 +2316,7 @@ function createStyles(theme, isMobile, fontScale) {
     increasePeriodOptionTitle: { fontSize: font(11), fontWeight: '700', marginBottom: 3 },
     increasePeriodOptionHint: { fontSize: font(9), lineHeight: font(13) },
 
-    paymentMethodOption: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, minWidth: 120, maxWidth: isMobile ? '100%' : 210, flexShrink: 1 },
+    paymentMethodOption: { width: '100%', borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, minHeight: 44, minWidth: 120, maxWidth: isMobile ? '100%' : 210, flexShrink: 1 },
     paymentMethodOptionActive: { backgroundColor: theme.activeButton, borderColor: theme.activeButtonBorder },
     paymentMethodOptionText: { fontSize: font(12), fontWeight: '600' },
 
@@ -2324,12 +2325,12 @@ function createStyles(theme, isMobile, fontScale) {
     categoryOptionText: { fontSize: font(11), fontWeight: '600' },
     categoryDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
 
-    dateInputRow: { flexDirection: 'row', gap: 10 },
+    dateInputRow: { flexDirection: isMobile ? 'column' : 'row', gap: 10 },
     dateInputField: { flex: 1, gap: 4 },
     dateInputYearField: { flex: 1.3 },
     helperText: { fontSize: font(10), marginTop: 4 },
 
-    modalFooter: { flexDirection: 'row', gap: 10, padding: 20, borderTopWidth: 1 },
+    modalFooter: { flexDirection: 'row', gap: 10, padding: isMobile ? 14 : 20, borderTopWidth: 1 },
     modalCancelButton: { flex: 1, borderWidth: 1, borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
     modalCancelButtonText: { fontSize: font(13), fontWeight: 'bold' },
     modalSaveButton: { flex: 1, backgroundColor: theme.activeButton, borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
@@ -2352,7 +2353,7 @@ function createStyles(theme, isMobile, fontScale) {
     warningButtonText: { color: '#ffffff', fontSize: font(13), fontWeight: 'bold' },
     confirmationCard: { maxWidth: 420, padding: 28, ...(Platform.OS === 'web' ? { boxShadow: '0 24px 80px rgba(0,0,0,0.38)' } : {}) },
     confirmationMessage: { lineHeight: font(18), marginBottom: 22 },
-    confirmationActions: { width: '100%', flexDirection: 'row', gap: 10 },
+    confirmationActions: { width: '100%', flexDirection: isMobile ? 'column-reverse' : 'row', gap: 10 },
     confirmationSecondaryButton: { flex: 1, borderWidth: 1, borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
     confirmationSecondaryText: { fontSize: font(13), fontWeight: '700' },
     confirmationPrimaryButton: { flex: 1, backgroundColor: theme.activeButton, borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
