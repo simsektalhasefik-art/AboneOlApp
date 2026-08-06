@@ -447,12 +447,12 @@ export default function App() {
       document.head.appendChild(styleElement);
     }
     styleElement.textContent = `
-      .cebin-subscription-scroll { scrollbar-width: thin; scrollbar-color: rgba(174,183,194,.48) transparent; }
-      .cebin-subscription-scroll::-webkit-scrollbar { width: 8px; }
-      .cebin-subscription-scroll::-webkit-scrollbar-track { background: transparent; margin: 8px 0; }
-      .cebin-subscription-scroll::-webkit-scrollbar-thumb { background: rgba(174,183,194,.34); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
-      .cebin-subscription-scroll::-webkit-scrollbar-thumb:hover { background: rgba(174,183,194,.58); border: 2px solid transparent; background-clip: padding-box; }
-      .cebin-subscription-scroll::-webkit-scrollbar-corner { background: transparent; }
+      .cebin-subscription-scroll, .cebin-main-scroll { scrollbar-width: thin; scrollbar-color: rgba(174,183,194,.42) transparent; }
+      .cebin-subscription-scroll::-webkit-scrollbar, .cebin-main-scroll::-webkit-scrollbar { width: 7px; height: 7px; }
+      .cebin-subscription-scroll::-webkit-scrollbar-track, .cebin-main-scroll::-webkit-scrollbar-track { background: transparent; margin: 8px 0; }
+      .cebin-subscription-scroll::-webkit-scrollbar-thumb, .cebin-main-scroll::-webkit-scrollbar-thumb { background: rgba(174,183,194,.30); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
+      .cebin-subscription-scroll::-webkit-scrollbar-thumb:hover, .cebin-main-scroll::-webkit-scrollbar-thumb:hover { background: rgba(174,183,194,.56); border: 2px solid transparent; background-clip: padding-box; }
+      .cebin-subscription-scroll::-webkit-scrollbar-corner, .cebin-main-scroll::-webkit-scrollbar-corner { background: transparent; }
     `;
     return undefined;
   }, [theme.cardBorder, theme.textMuted]);
@@ -983,6 +983,7 @@ export default function App() {
           </View>
 
           <ScrollView
+            className="cebin-main-scroll"
             ref={mainScrollRef}
             style={[styles.mainScroll, { overflowAnchor: 'none', scrollbarWidth: 'thin', scrollbarColor: `${theme.cardBorder} transparent` }]}
             contentContainerStyle={styles.scrollContent}
@@ -2077,9 +2078,9 @@ function createStyles(theme, isMobile, fontScale) {
     filterSectionHint: { fontSize: font(10), marginTop: 2 },
     activeFilterBadge: { maxWidth: '100%', borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
     activeFilterBadgeText: { fontSize: font(10), fontWeight: '700' },
-    filterOptionGrid: { width: '100%', flexDirection: 'row', flexWrap: isMobile ? 'wrap' : 'nowrap', alignItems: 'stretch', gap: 8 },
+    filterOptionGrid: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', alignItems: 'stretch', justifyContent: 'flex-start', gap: 8, overflow: 'hidden' },
     horizontalOptionRow: { gap: 8, paddingBottom: 4 },
-    filterOption: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 10, minHeight: 42, minWidth: isMobile ? '47%' : 0, alignItems: 'center', justifyContent: 'center', flexGrow: 1, flexBasis: isMobile ? '47%' : 0, flexShrink: 1 },
+    filterOption: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 10, minHeight: 44, minWidth: isMobile ? '47%' : 148, alignItems: 'center', justifyContent: 'center', flexGrow: 1, flexBasis: isMobile ? '47%' : 148, flexShrink: 1, maxWidth: isMobile ? '100%' : 260 },
     filterOptionActive: { backgroundColor: theme.activeButton, borderColor: theme.activeButtonBorder, ...(Platform.OS === 'web' ? { boxShadow: '0 8px 20px rgba(105,101,232,0.22)' } : {}) },
     filterOptionText: { fontSize: font(11), fontWeight: '650', textAlign: 'center' },
     filterOptionTextActive: { color: '#ffffff', fontWeight: '800' },
@@ -2163,9 +2164,9 @@ function createStyles(theme, isMobile, fontScale) {
     legendDot: { width: 8, height: 8, borderRadius: 4 },
     legendText: { fontSize: font(10) },
 
-    chartScrollContent: { paddingBottom: 4, flexGrow: 1, minWidth: isMobile ? 720 : 0, width: isMobile ? 720 : '100%' },
-    chartArea: { flex: 1, width: '100%', flexDirection: 'row', height: 210, alignItems: 'flex-end', justifyContent: 'space-between', gap: isMobile ? 12 : 8, paddingHorizontal: isMobile ? 4 : 12 },
-    chartColumn: { width: isMobile ? 44 : 48, maxWidth: 56, flexShrink: 0, alignItems: 'center', height: '100%', justifyContent: 'flex-end' },
+    chartScrollContent: { paddingBottom: 4, flexGrow: 1, minWidth: isMobile ? 720 : '100%', width: isMobile ? 720 : '100%' },
+    chartArea: { flex: 1, width: '100%', minWidth: isMobile ? 720 : '100%', flexDirection: 'row', height: 210, alignItems: 'flex-end', justifyContent: 'space-between', gap: isMobile ? 12 : 0, paddingHorizontal: isMobile ? 4 : 8 },
+    chartColumn: { width: isMobile ? 44 : 'auto', minWidth: isMobile ? 44 : 40, maxWidth: isMobile ? 56 : 76, flex: isMobile ? 0 : 1, flexShrink: 0, alignItems: 'center', height: '100%', justifyContent: 'flex-end' },
     chartAmount: { fontSize: font(8), marginBottom: 4, height: 14, textAlign: 'center' },
     chartTrack: { width: 30, flex: 1, borderWidth: 1, borderRadius: 8, overflow: 'hidden', justifyContent: 'flex-end' },
     chartStack: { width: '100%', flexDirection: 'column-reverse' },
@@ -2263,11 +2264,11 @@ function createStyles(theme, isMobile, fontScale) {
     formSectionDescription: { fontSize: font(10) },
     formSectionAction: { fontSize: font(11), fontWeight: 'bold' },
 
-    removableOptionWrapper: { position: 'relative', minWidth: 0, maxWidth: '100%', flexGrow: isMobile ? 1 : 0, flexBasis: isMobile ? '47%' : 'auto', flexShrink: 1 },
+    removableOptionWrapper: { position: 'relative', minWidth: 0, maxWidth: isMobile ? '100%' : 220, flexGrow: 1, flexBasis: isMobile ? '47%' : 150, flexShrink: 1 },
     removableOptionGrid: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 10, paddingTop: 4, paddingBottom: 4, paddingRight: 2, overflow: 'hidden' },
 
     // Şablon çipleri: artık düz/nötr taban, sol tarafta küçük renk noktası ile marka rengi korunur
-    templateOption: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, minHeight: 44, minWidth: 104, maxWidth: isMobile ? '100%' : 180, flexShrink: 1 },
+    templateOption: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, minHeight: 44, minWidth: 0, maxWidth: '100%', flexShrink: 1 },
     templateOptionText: { fontSize: font(12), fontWeight: '600' },
     templateDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
 
@@ -2316,7 +2317,7 @@ function createStyles(theme, isMobile, fontScale) {
     increasePeriodOptionTitle: { fontSize: font(11), fontWeight: '700', marginBottom: 3 },
     increasePeriodOptionHint: { fontSize: font(9), lineHeight: font(13) },
 
-    paymentMethodOption: { width: '100%', borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, minHeight: 44, minWidth: 120, maxWidth: isMobile ? '100%' : 210, flexShrink: 1 },
+    paymentMethodOption: { width: '100%', borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, minHeight: 44, minWidth: 0, maxWidth: '100%', flexShrink: 1 },
     paymentMethodOptionActive: { backgroundColor: theme.activeButton, borderColor: theme.activeButtonBorder },
     paymentMethodOptionText: { fontSize: font(12), fontWeight: '600' },
 
