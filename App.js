@@ -232,8 +232,10 @@ export default function App() {
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [authMode, setAuthMode] = useState('login');
+  const [authName, setAuthName] = useState('');
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
+  const [authPasswordConfirm, setAuthPasswordConfirm] = useState('');
   const [authError, setAuthError] = useState('');
 
   const [subscriptions, setSubscriptions] = useState([]);
@@ -403,14 +405,41 @@ export default function App() {
   useEffect(() => { scrollMainToTop(false); }, [activeTab, selectedAnalysisYear]);
 
   const handleLogin = () => {
+    const trimmedName = authName.trim();
     const trimmedEmail = authEmail.trim();
-    if (!trimmedEmail || !authPassword) { setAuthError('Lütfen E-posta ve Şifrenizi Giriniz.'); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) { setAuthError('Lütfen Geçerli Bir E-posta Adresi Giriniz.'); return; }
-    if (authPassword.length < 4) { setAuthError('Şifre En Az 4 Karakter Olmalıdır.'); return; }
+
+    if (authMode === 'register' && !trimmedName) {
+      showAlert('Lütfen Ad Soyad veya Kullanıcı Adınızı Giriniz.');
+      return;
+    }
+    if (!trimmedEmail || !authPassword) {
+      showAlert(authMode === 'register' ? 'Lütfen Tüm Zorunlu Alanları Doldurunuz.' : 'Lütfen E-posta ve Şifrenizi Giriniz.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      showAlert('Lütfen Geçerli Bir E-posta Adresi Giriniz.');
+      return;
+    }
+    if (authPassword.length < 4) {
+      showAlert('Şifre En Az 4 Karakter Olmalıdır.');
+      return;
+    }
+    if (authMode === 'register' && !authPasswordConfirm) {
+      showAlert('Lütfen Şifrenizi Tekrar Giriniz.');
+      return;
+    }
+    if (authMode === 'register' && authPassword !== authPasswordConfirm) {
+      showAlert('Şifre ve Şifre Tekrarı Uyuşmuyor. Lütfen Bilgilerinizi Kontrol Ediniz.');
+      return;
+    }
+
     setAuthError('');
     try {
       localStorage.setItem('cebin_auth_v1', 'true');
       localStorage.setItem('cebin_auth_email_v1', trimmedEmail);
+      if (authMode === 'register') {
+        localStorage.setItem('cebin_auth_name_v1', trimmedName);
+      }
     } catch (e) { console.log(e); }
     setIsLoggedIn(true);
   };
@@ -905,6 +934,20 @@ export default function App() {
 
               <Text style={[styles.authTitle, { color: '#f8fafc' }]}>{authMode === 'login' ? 'Giriş Yap' : 'Kayıt Ol'}</Text>
 
+              {authMode === 'register' && (
+                <View style={styles.authFieldGroup}>
+                  <Text style={[styles.inputLabel, styles.authFieldLabel, { color: '#d2d7e0' }]}>Ad Soyad / Kullanıcı Adı</Text>
+                  <TextInput
+                    style={[styles.textInput, styles.authTextInput, { backgroundColor: '#252b38', color: '#f8fafc', borderColor: '#566071' }]}
+                    placeholder="Ad Soyad veya Kullanıcı Adı"
+                    placeholderTextColor="#8f98a8"
+                    autoCapitalize="words"
+                    value={authName}
+                    onChangeText={setAuthName}
+                  />
+                </View>
+              )}
+
               <View style={styles.authFieldGroup}>
                 <Text style={[styles.inputLabel, styles.authFieldLabel, { color: '#d2d7e0' }]}>E-posta</Text>
                 <TextInput
@@ -935,6 +978,20 @@ export default function App() {
                 )}
               </View>
 
+              {authMode === 'register' && (
+                <View style={styles.authFieldGroup}>
+                  <Text style={[styles.inputLabel, styles.authFieldLabel, { color: '#d2d7e0' }]}>Şifre Tekrarı</Text>
+                  <TextInput
+                    style={[styles.textInput, styles.authTextInput, { backgroundColor: '#252b38', color: '#f8fafc', borderColor: '#566071' }]}
+                    placeholder="••••••••"
+                    placeholderTextColor="#8f98a8"
+                    secureTextEntry
+                    value={authPasswordConfirm}
+                    onChangeText={setAuthPasswordConfirm}
+                  />
+                </View>
+              )}
+
               {!!authError && <Text style={styles.authErrorText}>{authError}</Text>}
 
               <TouchableOpacity style={[styles.primaryButton, styles.authPrimaryButton]} onPress={handleLogin}>
@@ -952,7 +1009,7 @@ export default function App() {
                 <Text style={styles.googleButtonText}>Google İle Devam Et</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.authSwitchButton} onPress={() => { setAuthMode(authMode === 'login' ? 'register' : 'login'); setAuthError(''); }}>
+              <TouchableOpacity style={styles.authSwitchButton} onPress={() => { setAuthMode(authMode === 'login' ? 'register' : 'login'); setAuthError(''); setAlertModal({ visible: false, message: '' }); setAuthPassword(''); setAuthPasswordConfirm(''); }}>
                 <Text style={[styles.authSwitchText, { color: '#63b3ff' }]}>
                   {authMode === 'login' ? 'Hesabın Yok Mu? Kayıt Ol' : 'Zaten Hesabın Var Mı? Giriş Yap'}
                 </Text>
@@ -960,6 +1017,23 @@ export default function App() {
             </View>
           </View>
         </ScrollView>
+
+        <Modal visible={alertModal.visible} transparent animationType="fade" onRequestClose={() => setAlertModal({ visible: false, message: '' })}>
+          <View style={styles.warningOverlay}>
+            <View style={[styles.warningCard, { backgroundColor: '#303746', borderColor: '#566071' }]}>
+              <View style={[styles.warningIconBox, { backgroundColor: 'rgba(105,101,232,0.14)', borderColor: '#7c78f0' }]}>
+                <View style={styles.warningTriangle}>
+                  <Text style={styles.warningBang}>!</Text>
+                </View>
+              </View>
+              <Text style={[styles.warningTitle, { color: '#f8fafc' }]}>Eksik veya Hatalı Bilgi</Text>
+              <Text style={[styles.warningMessage, { color: '#d2d7e0', marginBottom: 22 }]}>{alertModal.message}</Text>
+              <TouchableOpacity style={styles.warningButton} onPress={() => setAlertModal({ visible: false, message: '' })}>
+                <Text style={styles.warningButtonText}>Tamam</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     );
   }
@@ -2090,14 +2164,14 @@ function createStyles(theme, isMobile, fontScale) {
     authGlow: { position: 'absolute', width: isMobile ? 230 : 420, height: isMobile ? 230 : 420, borderRadius: 999, opacity: 0.16, backgroundColor: '#6965e8' },
     authGlowTop: { top: isMobile ? -110 : -180, left: isMobile ? -90 : -140 },
     authGlowBottom: { bottom: isMobile ? -120 : -210, right: isMobile ? -90 : -150, backgroundColor: '#3b82f6', opacity: 0.12 },
-    authCard: { width: '100%', maxWidth: 470, borderWidth: 1, borderRadius: isMobile ? 22 : 26, paddingHorizontal: isMobile ? 22 : 38, paddingVertical: isMobile ? 26 : 36 },
-    authHeader: { alignItems: 'center', marginBottom: 20 },
+    authCard: { width: '100%', maxWidth: 500, borderWidth: 1, borderRadius: isMobile ? 22 : 26, paddingHorizontal: isMobile ? 22 : 38, paddingVertical: isMobile ? 24 : 34 },
+    authHeader: { alignItems: 'center', marginBottom: isMobile ? 16 : 20 },
     authLogo: { fontSize: font(isMobile ? 27 : 30), fontWeight: '800', letterSpacing: -0.5 },
     authSubtitle: { fontSize: font(11), marginTop: 6 },
-    authTitle: { fontSize: font(19), fontWeight: '800', textAlign: 'center', marginTop: 4, marginBottom: 20 },
-    authFieldGroup: { width: '100%', marginBottom: 16 },
-    authFieldLabel: { marginBottom: 8 },
-    authTextInput: { minHeight: isMobile ? 50 : 52, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 12 },
+    authTitle: { fontSize: font(19), fontWeight: '800', textAlign: 'center', marginTop: 4, marginBottom: isMobile ? 18 : 22 },
+    authFieldGroup: { width: '100%', marginBottom: isMobile ? 14 : 17 },
+    authFieldLabel: { marginBottom: isMobile ? 8 : 9 },
+    authTextInput: { minHeight: isMobile ? 52 : 54, paddingHorizontal: isMobile ? 16 : 18, paddingVertical: isMobile ? 14 : 15, borderRadius: 12 },
     forgotPasswordButton: { alignSelf: 'flex-end', paddingVertical: 8, paddingLeft: 12 },
     forgotPasswordText: { color: '#aeb7c2', fontSize: font(11), fontWeight: '600' },
     authErrorText: { color: '#fda4af', fontSize: font(11), fontWeight: '600', lineHeight: font(17), marginBottom: 10 },
