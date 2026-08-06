@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput,
-  Modal, SafeAreaView, StatusBar, useWindowDimensions, Linking, Platform
+  Modal, SafeAreaView, StatusBar, useWindowDimensions, Linking, Platform, Pressable
 } from 'react-native';
 
 const DEFAULT_RATES = { USD: 47.56, EUR: 54.77 };
@@ -95,11 +95,6 @@ const convertToTL = (price, currency, rates = DEFAULT_RATES) => {
 };
 
 const normalizeText = (value = '') => String(value).toLocaleLowerCase('tr-TR').replace(/\s+/g, ' ').trim();
-
-const confirmAction = message => {
-  if (typeof window !== 'undefined' && typeof window.confirm === 'function') return window.confirm(message);
-  return true;
-};
 
 const isValidUrl = value => {
   if (!value) return true;
@@ -226,6 +221,30 @@ export default function App() {
   // Form doğrulama hatalarını artık çirkin tarayıcı alert()'i yerine bu modal ile gösteriyoruz.
   const [alertModal, setAlertModal] = useState({ visible: false, message: '' });
   const showAlert = message => setAlertModal({ visible: true, message });
+
+  // Tarayıcı confirm() yerine tüm kritik işlemler için uygulama temasıyla uyumlu özel onay modalı.
+  const confirmCallbackRef = useRef(null);
+  const [confirmModal, setConfirmModal] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    confirmLabel: 'Tamam',
+    cancelLabel: 'İptal',
+    tone: 'warning'
+  });
+  const requestConfirmation = ({ title, message, confirmLabel = 'Tamam', cancelLabel = 'İptal', tone = 'warning', onConfirm }) => {
+    confirmCallbackRef.current = onConfirm;
+    setConfirmModal({ visible: true, title, message, confirmLabel, cancelLabel, tone });
+  };
+  const closeConfirmModal = () => {
+    confirmCallbackRef.current = null;
+    setConfirmModal(current => ({ ...current, visible: false }));
+  };
+  const approveConfirmModal = () => {
+    const callback = confirmCallbackRef.current;
+    closeConfirmModal();
+    if (typeof callback === 'function') callback();
+  };
 
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [formStep, setFormStep] = useState(1);
@@ -357,9 +376,15 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    if (!confirmAction('Oturumu kapatmak istediğinize emin misiniz?')) return;
-    try { localStorage.setItem('cebin_auth_v1', 'false'); } catch (e) { console.log(e); }
-    setIsLoggedIn(false);
+    requestConfirmation({
+      title: 'Oturumu Kapat',
+      message: 'Oturumu kapatmak istediğinize emin misiniz?',
+      confirmLabel: 'Çıkış Yap',
+      onConfirm: () => {
+        try { localStorage.setItem('cebin_auth_v1', 'false'); } catch (e) { console.log(e); }
+        setIsLoggedIn(false);
+      }
+    });
   };
 
   const selectedPreset = BACKGROUND_PRESETS[backgroundPreset] || BACKGROUND_PRESETS.smoke;
@@ -618,9 +643,15 @@ export default function App() {
   const handleDeleteSubscription = id => {
     const preservedScrollPosition = mainScrollPositionRef.current;
     const target = safeList.find(s => s.id === id);
-    if (!confirmAction(`"${target?.name || 'Bu kayıt'}" kalıcı olarak silinsin mi?`)) return;
-    setSubscriptions(safeList.filter(s => s.id !== id));
-    restoreMainScrollPosition(preservedScrollPosition);
+    requestConfirmation({
+      title: 'Aboneliği Sil',
+      message: `"${target?.name || 'Bu kayıt'}" aboneliği kalıcı olarak silinecek. Bu işlem geri alınamaz.`,
+      confirmLabel: 'Tamam',
+      onConfirm: () => {
+        setSubscriptions(current => current.filter(s => s.id !== id));
+        restoreMainScrollPosition(preservedScrollPosition);
+      }
+    });
   };
 
   const togglePaid = subscription => {
@@ -642,8 +673,12 @@ export default function App() {
 
   const removeTemplate = index => {
     const target = safeTemplates[index];
-    if (!confirmAction(`"${target?.name || 'Bu şablon'}" silinsin mi?`)) return;
-    setTemplatesList(safeTemplates.filter((_, i) => i !== index));
+    requestConfirmation({
+      title: 'Şablonu Sil',
+      message: `"${target?.name || 'Bu şablon'}" hızlı seçim şablonlarından kaldırılacak.`,
+      confirmLabel: 'Tamam',
+      onConfirm: () => setTemplatesList(current => current.filter((_, i) => i !== index))
+    });
   };
 
   const addPaymentMethod = () => {
@@ -659,10 +694,18 @@ export default function App() {
   const removePaymentMethod = paymentMethod => {
     const usageCount = safeList.filter(s => s.paymentMethod === paymentMethod).length;
     if (usageCount > 0) { showAlert(`Bu ödeme yöntemi ${usageCount} kayıtta kullanılıyor. Önce ilgili kayıtların ödeme yöntemini değiştiriniz.`); return; }
-    if (!confirmAction(`"${paymentMethod}" ödeme yöntemi silinsin mi?`)) return;
-    const updated = safePaymentMethods.filter(m => m !== paymentMethod);
-    setPaymentMethodsList(updated);
-    if (formPaymentMethod === paymentMethod) setFormPaymentMethod(updated[0] || '');
+    requestConfirmation({
+      title: 'Ödeme Yöntemini Sil',
+      message: `"${paymentMethod}" ödeme yöntemi listenizden kaldırılacak.`,
+      confirmLabel: 'Tamam',
+      onConfirm: () => {
+        setPaymentMethodsList(current => {
+          const updated = current.filter(m => m !== paymentMethod);
+          if (formPaymentMethod === paymentMethod) setFormPaymentMethod(updated[0] || '');
+          return updated;
+        });
+      }
+    });
   };
 
   const handleExportCSV = () => {
@@ -716,19 +759,24 @@ export default function App() {
         const parsedBackup = JSON.parse(fileText);
         const importedSubscriptions = Array.isArray(parsedBackup) ? parsedBackup : parsedBackup.subscriptions;
         if (!Array.isArray(importedSubscriptions)) throw new Error('Abonelik listesi bulunamadı.');
-        if (!confirmAction(`${importedSubscriptions.length} kayıt içe aktarılacak ve mevcut liste değiştirilecek. Devam edilsin mi?`)) return;
 
-        setSubscriptions(importedSubscriptions);
-        if (Array.isArray(parsedBackup.templates)) setTemplatesList(parsedBackup.templates);
-        if (Array.isArray(parsedBackup.paymentMethods)) setPaymentMethodsList(parsedBackup.paymentMethods);
-        if (parsedBackup.exchangeRates) {
-          setExchangeRates({ USD: Number(parsedBackup.exchangeRates.USD) || DEFAULT_RATES.USD, EUR: Number(parsedBackup.exchangeRates.EUR) || DEFAULT_RATES.EUR });
-        }
-        const importedAppearance = parsedBackup.appearance;
-        if (importedAppearance && BACKGROUND_PRESETS[importedAppearance.backgroundPreset]) setBackgroundPreset(importedAppearance.backgroundPreset);
-        if (importedAppearance && FONT_SCALE_OPTIONS.some(o => o.key === importedAppearance.fontScaleKey)) setFontScaleKey(importedAppearance.fontScaleKey);
-
-        showAlert('Yedek başarıyla geri yüklendi.');
+        requestConfirmation({
+          title: 'Yedeği Geri Yükle',
+          message: `${importedSubscriptions.length} kayıt içe aktarılacak ve mevcut abonelik listeniz değiştirilecek.`,
+          confirmLabel: 'Geri Yükle',
+          onConfirm: () => {
+            setSubscriptions(importedSubscriptions);
+            if (Array.isArray(parsedBackup.templates)) setTemplatesList(parsedBackup.templates);
+            if (Array.isArray(parsedBackup.paymentMethods)) setPaymentMethodsList(parsedBackup.paymentMethods);
+            if (parsedBackup.exchangeRates) {
+              setExchangeRates({ USD: Number(parsedBackup.exchangeRates.USD) || DEFAULT_RATES.USD, EUR: Number(parsedBackup.exchangeRates.EUR) || DEFAULT_RATES.EUR });
+            }
+            const importedAppearance = parsedBackup.appearance;
+            if (importedAppearance && BACKGROUND_PRESETS[importedAppearance.backgroundPreset]) setBackgroundPreset(importedAppearance.backgroundPreset);
+            if (importedAppearance && FONT_SCALE_OPTIONS.some(o => o.key === importedAppearance.fontScaleKey)) setFontScaleKey(importedAppearance.fontScaleKey);
+            showAlert('Yedek başarıyla geri yüklendi.');
+          }
+        });
       } catch (error) {
         showAlert(`Yedek yüklenemedi: ${error.message}`);
       }
@@ -1088,7 +1136,7 @@ export default function App() {
                         const billingMonthKey = (Number(subscription.billingYear) || calendarYear) * 12 + ((Number(subscription.billingMonth) || 1) - 1);
                         if (targetMonthKey < billingMonthKey) return false;
                         if (subscription.period === 'monthly') return Number(subscription.billingDay) === dayNumber;
-                        return Number(subscription.billingDay) === dayNumber && Number(subscription.billingMonth) === calendarMonth + 1 && Number(subscription.billingYear) === calendarYear;
+                        return Number(subscription.billingDay) === dayNumber && Number(subscription.billingMonth) === calendarMonth + 1;
                       });
 
                       const hasSubscription = subscriptionsForDay.length > 0;
@@ -1108,7 +1156,7 @@ export default function App() {
                               return (
                                 <View key={subscription.id} style={[styles.calendarSubscriptionBadge, { backgroundColor: badgeColor }]}>
                                   <Text style={styles.calendarSubscriptionName} numberOfLines={1}>{subscription.name}</Text>
-                                  <Text style={styles.calendarSubscriptionPrice}>{formatShortCurrency(convertToTL(subscription.price, subscription.currency, exchangeRates), 'TRY')}</Text>
+                                  <Text style={styles.calendarSubscriptionPrice}>{formatShortCurrency(getSubscriptionCostForMonth(subscription, calendarYear, calendarMonth, exchangeRates), 'TRY')}</Text>
                                 </View>
                               );
                             })}
@@ -1323,7 +1371,7 @@ export default function App() {
                       <Text style={[styles.subscriptionSubtitle, { color: theme.textSecondary }]}>{sub.category} • {sub.paymentMethod}</Text>
                     </View>
                   </View>
-                  <Text style={[styles.subscriptionPrice, { color: theme.textPrimary }]}>{formatCurrency(sub.price, sub.currency)}</Text>
+                  <Text style={[styles.subscriptionPrice, { color: theme.textPrimary }]}>{formatCurrency(getSubscriptionCostForMonth(sub, dayDrawer.year, dayDrawer.month, exchangeRates), 'TRY')}</Text>
                 </View>
               ))}
             </ScrollView>
@@ -1332,7 +1380,7 @@ export default function App() {
               <View style={[styles.chartFooter, { borderTopColor: theme.cardBorder, marginHorizontal: 20, marginBottom: 18 }]}>
                 <Text style={[styles.chartFooterLabel, { color: theme.textPrimary }]}>Toplam</Text>
                 <Text style={[styles.chartFooterValue, { color: theme.accent }]}>
-                  {formatCurrency((dayDrawer.items || []).reduce((t, s) => t + convertToTL(s.price, s.currency, exchangeRates), 0), 'TRY')}
+                  {formatCurrency((dayDrawer.items || []).reduce((t, s) => t + getSubscriptionCostForMonth(s, dayDrawer.year, dayDrawer.month, exchangeRates), 0), 'TRY')}
                 </Text>
               </View>
             )}
@@ -1487,7 +1535,7 @@ export default function App() {
                         </TouchableOpacity>
                       </View>
 
-                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.removableOptionRow}>
+                      <View style={styles.removableOptionGrid}>
                         {safeTemplates.map((template, index) => (
                           <View key={`${template.name}-${index}`} style={styles.removableOptionWrapper}>
                             <TouchableOpacity
@@ -1503,12 +1551,21 @@ export default function App() {
                               <View style={[styles.templateDot, { backgroundColor: template.color }]} />
                               <Text style={[styles.templateOptionText, { color: theme.textPrimary }]} numberOfLines={1}>{template.name}</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.removeOptionButton} onPress={() => removeTemplate(index)}>
-                              <Text style={styles.removeOptionText}>✕</Text>
-                            </TouchableOpacity>
+                            <Pressable
+                              accessibilityRole="button"
+                              accessibilityLabel={`${template.name} şablonunu sil`}
+                              hitSlop={8}
+                              style={({ hovered, pressed }) => [
+                                styles.removeOptionButton,
+                                (hovered || pressed || Platform.OS !== 'web') && styles.removeOptionButtonVisible
+                              ]}
+                              onPress={() => removeTemplate(index)}
+                            >
+                              <Text style={styles.removeOptionText}>×</Text>
+                            </Pressable>
                           </View>
                         ))}
-                      </ScrollView>
+                      </View>
 
                       {showTemplateForm && (
                         <View style={[styles.inlineForm, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}>
@@ -1610,18 +1667,27 @@ export default function App() {
                       </TouchableOpacity>
                     </View>
 
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.removableOptionRow}>
+                    <View style={styles.removableOptionGrid}>
                       {safePaymentMethods.map(paymentMethod => (
                         <View key={paymentMethod} style={styles.removableOptionWrapper}>
                           <TouchableOpacity style={[styles.paymentMethodOption, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }, formPaymentMethod === paymentMethod && styles.paymentMethodOptionActive]} onPress={() => setFormPaymentMethod(paymentMethod)}>
                             <Text style={[styles.paymentMethodOptionText, { color: formPaymentMethod === paymentMethod ? '#ffffff' : theme.textSecondary }]} numberOfLines={1}>{paymentMethod}</Text>
                           </TouchableOpacity>
-                          <TouchableOpacity style={styles.removeOptionButton} onPress={() => removePaymentMethod(paymentMethod)}>
-                            <Text style={styles.removeOptionText}>✕</Text>
-                          </TouchableOpacity>
+                          <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={`${paymentMethod} ödeme yöntemini sil`}
+                            hitSlop={8}
+                            style={({ hovered, pressed }) => [
+                              styles.removeOptionButton,
+                              (hovered || pressed || Platform.OS !== 'web') && styles.removeOptionButtonVisible
+                            ]}
+                            onPress={() => removePaymentMethod(paymentMethod)}
+                          >
+                            <Text style={styles.removeOptionText}>×</Text>
+                          </Pressable>
                         </View>
                       ))}
-                    </ScrollView>
+                    </View>
 
                     {showPaymentMethodForm && (
                       <View style={[styles.inlineForm, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}>
@@ -1730,6 +1796,27 @@ export default function App() {
                   </TouchableOpacity>
                 </>
               )}
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={confirmModal.visible} transparent animationType="fade" onRequestClose={closeConfirmModal}>
+        <View style={styles.warningOverlay}>
+          <Pressable style={styles.confirmBackdrop} onPress={closeConfirmModal} />
+          <View style={[styles.warningCard, styles.confirmationCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+            <View style={[styles.warningIconBox, { backgroundColor: 'rgba(251,191,36,0.14)', borderColor: theme.warning }]}>
+              <Text style={styles.warningIcon}>⚠</Text>
+            </View>
+            <Text style={[styles.warningTitle, { color: theme.textPrimary }]}>{confirmModal.title}</Text>
+            <Text style={[styles.warningMessage, styles.confirmationMessage, { color: theme.textSecondary }]}>{confirmModal.message}</Text>
+            <View style={styles.confirmationActions}>
+              <TouchableOpacity style={[styles.confirmationSecondaryButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={closeConfirmModal}>
+                <Text style={[styles.confirmationSecondaryText, { color: theme.textSecondary }]}>{confirmModal.cancelLabel}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.confirmationPrimaryButton} onPress={approveConfirmModal}>
+                <Text style={styles.confirmationPrimaryText}>{confirmModal.confirmLabel}</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -2024,16 +2111,17 @@ function createStyles(theme, isMobile, fontScale) {
     formSectionDescription: { fontSize: font(10) },
     formSectionAction: { fontSize: font(11), fontWeight: 'bold' },
 
-    removableOptionWrapper: { position: 'relative' },
-    removableOptionRow: { gap: 8, paddingBottom: 4 },
+    removableOptionWrapper: { position: 'relative', minWidth: 0, maxWidth: '100%' },
+    removableOptionGrid: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 10, paddingTop: 4, paddingBottom: 4, paddingRight: 2 },
 
     // Şablon çipleri: artık düz/nötr taban, sol tarafta küçük renk noktası ile marka rengi korunur
-    templateOption: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, maxWidth: 150 },
+    templateOption: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, minWidth: 104, maxWidth: isMobile ? 156 : 180 },
     templateOptionText: { fontSize: font(12), fontWeight: '600' },
     templateDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
 
-    removeOptionButton: { position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: 10, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', zIndex: 5 },
-    removeOptionText: { color: '#ffffff', fontSize: font(10), fontWeight: 'bold' },
+    removeOptionButton: { position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: 7, backgroundColor: 'rgba(31,41,55,0.72)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center', zIndex: 5, opacity: Platform.OS === 'web' ? 0 : 0.72 },
+    removeOptionButtonVisible: { opacity: 0.9 },
+    removeOptionText: { color: 'rgba(255,255,255,0.9)', fontSize: font(14), fontWeight: '500', lineHeight: font(15) },
 
     inlineForm: { borderWidth: 1, borderRadius: 12, padding: 12, gap: 10, marginTop: 4 },
     inlineInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -2062,13 +2150,13 @@ function createStyles(theme, isMobile, fontScale) {
     periodOptionText: { fontSize: font(12), fontWeight: '600' },
     periodOptionTextActive: { color: theme.accent, fontWeight: 'bold' },
 
-    projectionFieldCard: { borderWidth: 1, borderRadius: 12, padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-    projectionFieldCopy: { flex: 1 },
-    projectionRateInputWrap: { width: 90, flexDirection: 'row', alignItems: 'center', gap: 4 },
+    projectionFieldCard: { borderWidth: 1, borderRadius: 12, padding: 12, flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: 12, width: '100%', minWidth: 0, overflow: 'hidden' },
+    projectionFieldCopy: { flex: 1, minWidth: 0 },
+    projectionRateInputWrap: { width: isMobile ? '100%' : 112, maxWidth: '100%', flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 0 },
     projectionRateInput: { flex: 1, textAlign: 'center' },
     projectionPercent: { fontSize: font(13), fontWeight: 'bold' },
 
-    paymentMethodOption: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, maxWidth: 140 },
+    paymentMethodOption: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, minWidth: 120, maxWidth: isMobile ? 180 : 210 },
     paymentMethodOptionActive: { backgroundColor: theme.activeButton, borderColor: theme.activeButtonBorder },
     paymentMethodOptionText: { fontSize: font(12), fontWeight: '600' },
 
@@ -2093,7 +2181,8 @@ function createStyles(theme, isMobile, fontScale) {
     secondaryButton: { borderWidth: 1, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 14, alignItems: 'center' },
     secondaryButtonText: { fontSize: font(12), fontWeight: 'bold' },
 
-    warningOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 20 },
+    warningOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.68)', alignItems: 'center', justifyContent: 'center', padding: 20 },
+    confirmBackdrop: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
     warningCard: { width: '100%', maxWidth: 360, borderWidth: 1, borderRadius: 22, padding: 24, alignItems: 'center' },
     warningIconBox: { width: 48, height: 48, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
     warningIcon: { fontSize: font(20) },
@@ -2101,6 +2190,13 @@ function createStyles(theme, isMobile, fontScale) {
     warningMessage: { fontSize: font(12), textAlign: 'center', marginBottom: 6 },
     warningHint: { fontSize: font(11), textAlign: 'center', marginBottom: 20 },
     warningButton: { width: '100%', backgroundColor: theme.activeButton, borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
-    warningButtonText: { color: '#ffffff', fontSize: font(13), fontWeight: 'bold' }
+    warningButtonText: { color: '#ffffff', fontSize: font(13), fontWeight: 'bold' },
+    confirmationCard: { maxWidth: 420, padding: 28, ...(Platform.OS === 'web' ? { boxShadow: '0 24px 80px rgba(0,0,0,0.38)' } : {}) },
+    confirmationMessage: { lineHeight: font(18), marginBottom: 22 },
+    confirmationActions: { width: '100%', flexDirection: 'row', gap: 10 },
+    confirmationSecondaryButton: { flex: 1, borderWidth: 1, borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
+    confirmationSecondaryText: { fontSize: font(13), fontWeight: '700' },
+    confirmationPrimaryButton: { flex: 1, backgroundColor: theme.activeButton, borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
+    confirmationPrimaryText: { color: '#ffffff', fontSize: font(13), fontWeight: '700' }
   });
 }
