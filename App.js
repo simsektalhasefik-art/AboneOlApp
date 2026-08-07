@@ -10,6 +10,7 @@ import { app } from './src/firebase';
 import Svg, { Path, Circle } from 'react-native-svg';
 
 const auth = getAuth(app);
+auth.languageCode = 'tr';
 const db = getFirestore(app);
 const DEFAULT_RATES = { USD: 47.56, EUR: 54.77 };
 
@@ -306,6 +307,13 @@ export default function App() {
   const [authPasswordVisible, setAuthPasswordVisible] = useState(false);
   const [authPasswordConfirmVisible, setAuthPasswordConfirmVisible] = useState(false);
   const registrationFlowRef = useRef(false);
+
+  // Şifremi Unuttum akışı giriş ekranından bağımsız, yalnızca e-posta ile çalışır.
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [forgotPasswordError, setForgotPasswordError] = useState('');
+  const [isPasswordResetSending, setIsPasswordResetSending] = useState(false);
+  const [isForgotPasswordInputFocused, setIsForgotPasswordInputFocused] = useState(false);
 
   const [subscriptions, setSubscriptions] = useState([]);
   const [exchangeRates, setExchangeRates] = useState(DEFAULT_RATES);
@@ -683,32 +691,66 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
     }
   };
 
-  const handleForgotPassword = async () => {
-    const identifier = authEmail.trim();
+  const isValidEmailAddress = value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
 
-    if (!identifier) {
-      showAlert('Lütfen E-posta veya Kullanıcı Adınızı Giriniz.');
+  const openForgotPassword = () => {
+    const loginValue = authEmail.trim();
+    setForgotPasswordEmail(isValidEmailAddress(loginValue) ? loginValue : '');
+    setForgotPasswordError('');
+    setIsForgotPasswordInputFocused(false);
+    setIsForgotPasswordOpen(true);
+  };
+
+  const closeForgotPassword = () => {
+    if (isPasswordResetSending) return;
+    setIsForgotPasswordOpen(false);
+    setForgotPasswordError('');
+    setIsForgotPasswordInputFocused(false);
+  };
+
+  const handleForgotPassword = async () => {
+    const email = forgotPasswordEmail.trim().toLocaleLowerCase('tr-TR');
+
+    if (!email) {
+      setForgotPasswordError('Lütfen E-posta Adresinizi Giriniz.');
       return;
     }
 
+    if (!isValidEmailAddress(email)) {
+      setForgotPasswordError('Lütfen Geçerli Bir E-posta Adresi Giriniz.');
+      return;
+    }
+
+    setForgotPasswordError('');
+    setIsPasswordResetSending(true);
+
     try {
-      const resolvedEmail = await resolveLoginEmail(identifier);
+      await sendPasswordResetEmail(auth, email);
 
-      if (!resolvedEmail) {
-        showAlert('Kullanıcı Adı veya E-posta Bulunamadı.');
-        return;
-      }
+      setIsForgotPasswordOpen(false);
+      setForgotPasswordEmail('');
+      setIsForgotPasswordInputFocused(false);
 
-      await sendPasswordResetEmail(auth, resolvedEmail);
-
-      showAlert('Şifre Sıfırlama Bağlantısı E-posta Adresinize Gönderildi.', {
+      showAlert('Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.', {
         title: 'E-posta Gönderildi',
         preserveCase: true,
         type: 'success'
       });
     } catch (error) {
       console.log('Şifre sıfırlama e-postası gönderilemedi:', error);
-      showAlert(mapFirebaseAuthError(error?.code));
+
+      const resetErrorMessages = {
+        'auth/invalid-email': 'Geçersiz E-posta Adresi.',
+        'auth/user-not-found': 'Bu E-posta Adresiyle Kayıtlı Bir Hesap Bulunamadı.',
+        'auth/too-many-requests': 'Çok Fazla Deneme Yapıldı. Lütfen Bir Süre Sonra Tekrar Deneyiniz.',
+        'auth/network-request-failed': 'Ağ Bağlantısı Hatası. İnternet Bağlantınızı Kontrol Ediniz.'
+      };
+
+      setForgotPasswordError(
+        resetErrorMessages[error?.code] || 'Şifre Sıfırlama E-postası Gönderilemedi. Lütfen Tekrar Deneyiniz.'
+      );
+    } finally {
+      setIsPasswordResetSending(false);
     }
   };
 
@@ -1327,7 +1369,7 @@ if (isAuthChecking) {
                   </Pressable>
                 </View>
                 {authMode === 'login' && (
-                  <TouchableOpacity style={styles.forgotPasswordButton} onPress={handleForgotPassword}>
+                  <TouchableOpacity style={styles.forgotPasswordButton} onPress={openForgotPassword}>
                     <Text style={styles.forgotPasswordText}>Şifremi Unuttum?</Text>
                   </TouchableOpacity>
                 )}
@@ -1377,6 +1419,115 @@ if (isAuthChecking) {
             </View>
           </View>
         </ScrollView>
+
+        <Modal visible={isForgotPasswordOpen} transparent animationType="fade" onRequestClose={closeForgotPassword}>
+          <View style={styles.warningOverlay}>
+            <Pressable style={styles.forgotPasswordBackdrop} onPress={closeForgotPassword} />
+            <View
+              style={[
+                styles.forgotPasswordModal,
+                styles.glassSurface,
+                {
+                  backgroundColor: Platform.OS === 'web' ? 'rgba(48,55,70,0.97)' : '#303746',
+                  borderColor: '#566071',
+                  ...(Platform.OS === 'web'
+                    ? { boxShadow: '0 28px 80px rgba(3,7,18,0.55), 0 8px 28px rgba(79,70,229,0.18)' }
+                    : {})
+                }
+              ]}
+            >
+              <View style={styles.forgotPasswordModalHeader}>
+                <View style={styles.forgotPasswordIconBox}>
+                  <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+                    <Path d="M4 6.75A2.75 2.75 0 0 1 6.75 4h10.5A2.75 2.75 0 0 1 20 6.75v10.5A2.75 2.75 0 0 1 17.25 20H6.75A2.75 2.75 0 0 1 4 17.25V6.75Z" stroke="#b9ddff" strokeWidth={1.55} />
+                    <Path d="m5.2 7 6.8 5.15L18.8 7" stroke="#9b98ff" strokeWidth={1.65} strokeLinecap="round" strokeLinejoin="round" />
+                  </Svg>
+                </View>
+                <Pressable
+                  style={({ hovered, pressed }) => [styles.forgotPasswordCloseButton, (hovered || pressed) && styles.forgotPasswordCloseButtonHover]}
+                  onPress={closeForgotPassword}
+                  disabled={isPasswordResetSending}
+                >
+                  <Text style={styles.forgotPasswordCloseText}>×</Text>
+                </Pressable>
+              </View>
+
+              <Text style={styles.forgotPasswordTitle}>Şifremi Unuttum</Text>
+              <Text style={styles.forgotPasswordDescription}>
+                Hesabınıza bağlı e-posta adresini girin. Şifrenizi güvenli şekilde yenileyebilmeniz için Firebase tarafından bir sıfırlama bağlantısı gönderilecektir.
+              </Text>
+
+              <View style={styles.forgotPasswordFieldGroup}>
+                <Text style={styles.forgotPasswordLabel}>E-posta Adresi</Text>
+                <TextInput
+                  style={[
+                    styles.forgotPasswordInput,
+                    {
+                      borderColor: forgotPasswordError
+                        ? '#f87171'
+                        : isForgotPasswordInputFocused
+                          ? '#7c78f0'
+                          : '#566071'
+                    },
+                    isForgotPasswordInputFocused && styles.forgotPasswordInputFocused
+                  ]}
+                  placeholder="ornek@eposta.com"
+                  placeholderTextColor="#8f98a8"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="email-address"
+                  textContentType="emailAddress"
+                  value={forgotPasswordEmail}
+                  onChangeText={value => {
+                    setForgotPasswordEmail(value.replace(/\s/g, ''));
+                    if (forgotPasswordError) setForgotPasswordError('');
+                  }}
+                  onFocus={() => setIsForgotPasswordInputFocused(true)}
+                  onBlur={() => setIsForgotPasswordInputFocused(false)}
+                  onSubmitEditing={handleForgotPassword}
+                  editable={!isPasswordResetSending}
+                />
+                {!!forgotPasswordError && (
+                  <Text style={styles.forgotPasswordErrorText}>{forgotPasswordError}</Text>
+                )}
+              </View>
+
+              <View style={styles.forgotPasswordInfoBox}>
+                <Text style={styles.forgotPasswordInfoIcon}>i</Text>
+                <Text style={styles.forgotPasswordInfoText}>
+                  E-postadaki bağlantı üzerinden yeni şifrenizi belirleyebilirsiniz. Cebin PRO mevcut şifrenizi görüntülemez veya e-posta ile göndermez.
+                </Text>
+              </View>
+
+              <View style={styles.forgotPasswordActions}>
+                <Pressable
+                  style={({ hovered, pressed }) => [
+                    styles.forgotPasswordSecondaryButton,
+                    (hovered || pressed) && styles.forgotPasswordSecondaryButtonHover
+                  ]}
+                  onPress={closeForgotPassword}
+                  disabled={isPasswordResetSending}
+                >
+                  <Text style={styles.forgotPasswordSecondaryButtonText}>Vazgeç</Text>
+                </Pressable>
+
+                <Pressable
+                  style={({ hovered, pressed }) => [
+                    styles.forgotPasswordPrimaryButton,
+                    (hovered || pressed) && styles.premiumButtonHover,
+                    isPasswordResetSending && styles.forgotPasswordButtonDisabled
+                  ]}
+                  onPress={handleForgotPassword}
+                  disabled={isPasswordResetSending}
+                >
+                  <Text style={styles.forgotPasswordPrimaryButtonText}>
+                    {isPasswordResetSending ? 'Gönderiliyor...' : 'Sıfırlama Bağlantısı Gönder'}
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
 
         <Modal visible={alertModal.visible} transparent animationType="fade" onRequestClose={closeAlertModal}>
           <View style={styles.warningOverlay}>
@@ -2700,6 +2851,30 @@ function createStyles(theme, isMobile, fontScale) {
     eyeButtonHover: { opacity: 1, backgroundColor: 'rgba(139,213,255,0.08)' },
     forgotPasswordButton: { alignSelf: 'flex-end', paddingVertical: 8, paddingLeft: 12 },
     forgotPasswordText: { color: '#aeb7c2', fontSize: font(11), fontWeight: '600' },
+    forgotPasswordBackdrop: { ...StyleSheet.absoluteFillObject },
+    forgotPasswordModal: { width: '100%', maxWidth: 520, borderWidth: 1, borderRadius: isMobile ? 22 : 26, padding: isMobile ? 22 : 30, zIndex: 2 },
+    forgotPasswordModalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 },
+    forgotPasswordIconBox: { width: 48, height: 48, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(105,101,232,0.14)', borderWidth: 1, borderColor: 'rgba(124,120,240,0.72)' },
+    forgotPasswordCloseButton: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(37,43,56,0.90)', borderWidth: 1, borderColor: '#566071', ...(Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '160ms' } : {}) },
+    forgotPasswordCloseButtonHover: { backgroundColor: 'rgba(105,101,232,0.16)', borderColor: '#7c78f0' },
+    forgotPasswordCloseText: { color: '#c5cbd6', fontSize: font(22), lineHeight: font(23), fontWeight: '400', marginTop: -2 },
+    forgotPasswordTitle: { color: '#f8fafc', fontSize: font(isMobile ? 20 : 22), fontWeight: '800', letterSpacing: -0.25 },
+    forgotPasswordDescription: { color: '#b9c1cf', fontSize: font(12), lineHeight: font(19), marginTop: 8, marginBottom: 22 },
+    forgotPasswordFieldGroup: { width: '100%' },
+    forgotPasswordLabel: { color: '#d2d7e0', fontSize: font(11), fontWeight: '700', marginBottom: 9 },
+    forgotPasswordInput: { width: '100%', minHeight: 54, borderWidth: 1, borderRadius: 13, backgroundColor: '#252b38', color: '#f8fafc', paddingHorizontal: 17, paddingVertical: 14, fontSize: font(13), outlineStyle: 'none', ...(Platform.OS === 'web' ? { transitionDuration: '160ms' } : {}) },
+    forgotPasswordInputFocused: { borderColor: '#7c78f0', ...(Platform.OS === 'web' ? { boxShadow: '0 0 0 3px rgba(105,101,232,0.14)' } : {}) },
+    forgotPasswordErrorText: { color: '#fda4af', fontSize: font(10.5), fontWeight: '600', lineHeight: font(16), marginTop: 8 },
+    forgotPasswordInfoBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 18, padding: 13, borderRadius: 12, backgroundColor: 'rgba(99,179,255,0.08)', borderWidth: 1, borderColor: 'rgba(99,179,255,0.18)' },
+    forgotPasswordInfoIcon: { width: 20, height: 20, borderRadius: 10, overflow: 'hidden', textAlign: 'center', color: '#b9ddff', backgroundColor: 'rgba(99,179,255,0.14)', fontSize: font(11), lineHeight: font(20), fontWeight: '800' },
+    forgotPasswordInfoText: { flex: 1, minWidth: 0, color: '#aeb7c2', fontSize: font(10.5), lineHeight: font(16) },
+    forgotPasswordActions: { flexDirection: isMobile ? 'column-reverse' : 'row', gap: 10, marginTop: 22 },
+    forgotPasswordSecondaryButton: { minHeight: 50, flex: isMobile ? 0 : 0.72, paddingHorizontal: 18, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#252b38', borderWidth: 1, borderColor: '#566071', ...(Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '160ms' } : {}) },
+    forgotPasswordSecondaryButtonHover: { borderColor: '#7c78f0', backgroundColor: 'rgba(105,101,232,0.10)' },
+    forgotPasswordSecondaryButtonText: { color: '#d2d7e0', fontSize: font(11.5), fontWeight: '700' },
+    forgotPasswordPrimaryButton: { minHeight: 50, flex: isMobile ? 0 : 1.45, paddingHorizontal: 18, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#6965e8', borderWidth: 1, borderColor: '#7c78f0', ...(Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '160ms', boxShadow: '0 10px 26px rgba(105,101,232,0.22)' } : {}) },
+    forgotPasswordPrimaryButtonText: { color: '#ffffff', fontSize: font(11.5), fontWeight: '800', textAlign: 'center' },
+    forgotPasswordButtonDisabled: { opacity: 0.62 },
     authErrorText: { color: '#fda4af', fontSize: font(11), fontWeight: '600', lineHeight: font(17), marginBottom: 10 },
     authPrimaryButton: { marginTop: 2, minHeight: 52, justifyContent: 'center', borderRadius: 12 },
     authDividerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 18 },
