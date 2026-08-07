@@ -113,14 +113,49 @@ const toTitleCaseTr = value => {
   });
 };
 
-const sanitizeDecimalInput = value => {
-  const cleaned = String(value ?? '').replace(/[^0-9.,]/g, '');
-  const firstSeparatorIndex = cleaned.search(/[.,]/);
-  if (firstSeparatorIndex === -1) return cleaned;
-  const integerPart = cleaned.slice(0, firstSeparatorIndex);
-  const decimalPart = cleaned.slice(firstSeparatorIndex + 1).replace(/[.,]/g, '');
-  return `${integerPart}${cleaned[firstSeparatorIndex]}${decimalPart}`;
+const sanitizeNumericInput = (value, options = {}) => {
+  const {
+    allowDecimal = true,
+    max = null,
+    maxDecimals = 2
+  } = options;
+
+  let cleaned = String(value ?? '').replace(',', '.');
+  cleaned = allowDecimal
+    ? cleaned.replace(/[^0-9.]/g, '')
+    : cleaned.replace(/[^0-9]/g, '');
+
+  if (!allowDecimal) {
+    const normalized = cleaned.replace(/^0+(?=\d)/, '');
+    if (normalized === '') return '';
+    const numericValue = Number(normalized);
+    if (Number.isFinite(max) && numericValue > max) return String(max);
+    return normalized;
+  }
+
+  const firstSeparatorIndex = cleaned.indexOf('.');
+  let integerPart = firstSeparatorIndex === -1 ? cleaned : cleaned.slice(0, firstSeparatorIndex);
+  let decimalPart = firstSeparatorIndex === -1 ? '' : cleaned.slice(firstSeparatorIndex + 1).replace(/\./g, '');
+
+  integerPart = integerPart.replace(/^0+(?=\d)/, '');
+  if (integerPart === '' && firstSeparatorIndex !== -1) integerPart = '0';
+  if (integerPart === '' && cleaned !== '') integerPart = '0';
+  decimalPart = decimalPart.slice(0, maxDecimals);
+
+  let normalized = integerPart;
+  if (firstSeparatorIndex !== -1) normalized += `,${decimalPart}`;
+
+  const numericValue = Number(normalized.replace(',', '.'));
+  if (Number.isFinite(max) && Number.isFinite(numericValue) && numericValue > max) {
+    return String(max);
+  }
+
+  return normalized;
 };
+
+const sanitizeDecimalInput = value => sanitizeNumericInput(value, { allowDecimal: true, maxDecimals: 2 });
+const sanitizeIntegerInput = value => sanitizeNumericInput(value, { allowDecimal: false });
+const sanitizePercentageInput = value => sanitizeNumericInput(value, { allowDecimal: true, max: 100, maxDecimals: 2 });
 
 const isValidUrl = value => {
   if (!value) return true;
@@ -390,6 +425,7 @@ export default function App() {
   const [formNotificationChannel, setFormNotificationChannel] = useState('email');
   const [formAnnualIncreaseRate, setFormAnnualIncreaseRate] = useState('0');
   const [formIncreaseApplicationPeriod, setFormIncreaseApplicationPeriod] = useState('anniversary');
+  const [focusedNumericInput, setFocusedNumericInput] = useState(null);
 
   const [showTemplateForm, setShowTemplateForm] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState('');
@@ -992,7 +1028,7 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
     if (!Number.isFinite(numericPrice) || numericPrice <= 0) { showAlert('Lütfen sıfırdan büyük geçerli bir tutar giriniz.'); return; }
     if (!Number.isInteger(numericMonth) || numericMonth < 1 || numericMonth > 12) { showAlert('Ay değeri 1 ile 12 arasında olmalıdır.'); return; }
     if (!YEARS.includes(numericYear)) { showAlert('Lütfen geçerli bir yıl seçiniz.'); return; }
-    if (!Number.isFinite(numericAnnualIncreaseRate) || numericAnnualIncreaseRate < 0 || numericAnnualIncreaseRate > 500) { showAlert('Yıllık artış oranı 0 ile 500 arasında olmalıdır.'); return; }
+    if (!Number.isFinite(numericAnnualIncreaseRate) || numericAnnualIncreaseRate < 0 || numericAnnualIncreaseRate > 100) { showAlert('Yıllık artış oranı 0 ile 100 arasında olmalıdır.'); return; }
 
     const maximumDay = getDaysInMonth(numericMonth - 1, numericYear);
     if (!Number.isInteger(numericDay) || numericDay < 1 || numericDay > maximumDay) {
@@ -2272,7 +2308,17 @@ if (isAuthChecking) {
                         <View style={[styles.inlineForm, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}>
                           <TextInput style={[styles.textInput, { backgroundColor: theme.cardBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} placeholder="Şablon Adı" placeholderTextColor={theme.textMuted} value={newTemplateName} onChangeText={setNewTemplateName} />
                           <View style={styles.inlineInputRow}>
-                            <TextInput style={[styles.textInput, styles.flexInput, { backgroundColor: theme.cardBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} placeholder="Fiyat" placeholderTextColor={theme.textMuted} keyboardType="decimal-pad" value={newTemplatePrice} onChangeText={value => setNewTemplatePrice(sanitizeDecimalInput(value))} />
+                            <TextInput
+                              style={[styles.textInput, styles.flexInput, { backgroundColor: theme.cardBg, color: theme.textPrimary, borderColor: theme.cardBorder }, focusedNumericInput === 'templatePrice' && styles.numericInputFocused]}
+                              placeholder="Fiyat"
+                              placeholderTextColor={theme.textMuted}
+                              keyboardType="decimal-pad"
+                              inputMode="decimal"
+                              value={newTemplatePrice}
+                              onFocus={() => setFocusedNumericInput('templatePrice')}
+                              onBlur={() => setFocusedNumericInput(null)}
+                              onChangeText={value => setNewTemplatePrice(sanitizeDecimalInput(value))}
+                            />
                             <View style={styles.currencyOptionRow}>
                               {['TRY', 'USD', 'EUR'].map(currency => (
                                 <TouchableOpacity key={currency} style={[styles.compactOptionButton, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }, newTemplateCurrency === currency && styles.compactOptionButtonActive]} onPress={() => setNewTemplateCurrency(currency)}>
@@ -2306,7 +2352,17 @@ if (isAuthChecking) {
                       </View>
                       <View style={styles.formColumn}>
                         <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Tutar / Fiyat</Text>
-                        <TextInput style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} placeholder="0,00" placeholderTextColor={theme.textMuted} keyboardType="decimal-pad" value={formPrice} onChangeText={value => setFormPrice(sanitizeDecimalInput(value))} />
+                        <TextInput
+                          style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }, focusedNumericInput === 'price' && styles.numericInputFocused]}
+                          placeholder="0,00"
+                          placeholderTextColor={theme.textMuted}
+                          keyboardType="decimal-pad"
+                          inputMode="decimal"
+                          value={formPrice}
+                          onFocus={() => setFocusedNumericInput('price')}
+                          onBlur={() => setFocusedNumericInput(null)}
+                          onChangeText={value => setFormPrice(sanitizeDecimalInput(value))}
+                        />
                       </View>
                     </View>
 
@@ -2341,12 +2397,16 @@ if (isAuthChecking) {
                       </View>
                       <View style={styles.projectionRateInputWrap}>
                         <TextInput
-                          style={[styles.textInput, styles.projectionRateInput, { backgroundColor: theme.cardBg, color: theme.textPrimary, borderColor: theme.cardBorder }]}
+                          style={[styles.textInput, styles.projectionRateInput, { backgroundColor: theme.cardBg, color: theme.textPrimary, borderColor: theme.cardBorder }, focusedNumericInput === 'annualRate' && styles.numericInputFocused]}
                           placeholder="0"
                           placeholderTextColor={theme.textMuted}
                           keyboardType="decimal-pad"
+                          inputMode="decimal"
                           value={formAnnualIncreaseRate}
-                          onChangeText={value => setFormAnnualIncreaseRate(sanitizeDecimalInput(value))}
+                          selectTextOnFocus={formAnnualIncreaseRate === '0'}
+                          onFocus={() => setFocusedNumericInput('annualRate')}
+                          onBlur={() => setFocusedNumericInput(null)}
+                          onChangeText={value => setFormAnnualIncreaseRate(sanitizePercentageInput(value))}
                         />
                         <Text style={[styles.projectionPercent, { color: theme.textSecondary }]}>%</Text>
                       </View>
@@ -2453,15 +2513,15 @@ if (isAuthChecking) {
                     <View style={styles.dateInputRow}>
                       <View style={styles.dateInputField}>
                         <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Gün</Text>
-                        <TextInput style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} placeholder="1" placeholderTextColor={theme.textMuted} keyboardType="number-pad" value={formDay} onChangeText={setFormDay} />
+                        <TextInput style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }, focusedNumericInput === 'day' && styles.numericInputFocused]} placeholder="1" placeholderTextColor={theme.textMuted} keyboardType="number-pad" inputMode="numeric" value={formDay} onFocus={() => setFocusedNumericInput('day')} onBlur={() => setFocusedNumericInput(null)} onChangeText={value => setFormDay(sanitizeIntegerInput(value))} />
                       </View>
                       <View style={styles.dateInputField}>
                         <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Ay</Text>
-                        <TextInput style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} placeholder="1" placeholderTextColor={theme.textMuted} keyboardType="number-pad" value={formMonth} onChangeText={setFormMonth} />
+                        <TextInput style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }, focusedNumericInput === 'month' && styles.numericInputFocused]} placeholder="1" placeholderTextColor={theme.textMuted} keyboardType="number-pad" inputMode="numeric" value={formMonth} onFocus={() => setFocusedNumericInput('month')} onBlur={() => setFocusedNumericInput(null)} onChangeText={value => setFormMonth(sanitizeIntegerInput(value))} />
                       </View>
                       <View style={[styles.dateInputField, styles.dateInputYearField]}>
                         <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Yıl</Text>
-                        <TextInput style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]} placeholder="2026" placeholderTextColor={theme.textMuted} keyboardType="number-pad" value={formYear} onChangeText={setFormYear} />
+                        <TextInput style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }, focusedNumericInput === 'year' && styles.numericInputFocused]} placeholder="2026" placeholderTextColor={theme.textMuted} keyboardType="number-pad" inputMode="numeric" value={formYear} onFocus={() => setFocusedNumericInput('year')} onBlur={() => setFocusedNumericInput(null)} onChangeText={value => setFormYear(sanitizeIntegerInput(value))} />
                       </View>
                     </View>
                     <Text style={[styles.helperText, { color: theme.textMuted }]}>Aylık Ödemelerde Başlangıç Ayı, Yıllık Ödemelerde Tahsilat Ayı Olarak Kullanılır.</Text>
@@ -2943,7 +3003,8 @@ function createStyles(theme, isMobile, fontScale) {
     formColumn: { flex: 1, gap: 4 },
 
     inputLabel: { fontSize: font(11), fontWeight: '600' },
-    textInput: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: font(13) },
+    textInput: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: font(13), ...(Platform.OS === 'web' ? { outlineStyle: 'none', transitionProperty: 'border-color, box-shadow, background-color', transitionDuration: '160ms' } : {}) },
+    numericInputFocused: { borderColor: theme.activeButtonBorder, borderWidth: 1.5, ...(Platform.OS === 'web' ? { boxShadow: `0 0 0 3px ${hexToRgba(theme.activeButton, 0.16)}` } : {}) },
 
     currencyOptionRow: { flexDirection: 'row', gap: 6 },
     periodOptionRow: { flexDirection: 'row', gap: 8 },
