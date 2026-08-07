@@ -334,19 +334,20 @@ export default function App() {
   const [newPaymentMethodName, setNewPaymentMethodName] = useState('');
 
   useEffect(() => {
-    try {
-      const savedSubscriptions = localStorage.getItem('cebin_subscriptions_v5');
-      if (savedSubscriptions) {
-        const parsed = JSON.parse(savedSubscriptions);
-        setSubscriptions(Array.isArray(parsed) ? parsed : []);
-      }
-useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, firebaseUser => {
       setIsLoggedIn(!!firebaseUser);
       setIsAuthChecking(false);
     });
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+    try {
+      const savedSubscriptions = localStorage.getItem('cebin_subscriptions_v5');
+      if (savedSubscriptions) {
+        const parsed = JSON.parse(savedSubscriptions);
+        setSubscriptions(Array.isArray(parsed) ? parsed : []);
+      }
       const savedTemplates = localStorage.getItem('cebin_templates_v1');
       if (savedTemplates) {
         const parsed = JSON.parse(savedTemplates);
