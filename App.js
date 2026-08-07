@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile, sendPasswordResetEmail, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
 import { app } from './src/firebase';
 import Svg, { Path, Circle } from 'react-native-svg';
 
@@ -444,6 +444,12 @@ export default function App() {
   const [showPaymentMethodForm, setShowPaymentMethodForm] = useState(false);
   const [newPaymentMethodName, setNewPaymentMethodName] = useState('');
 
+  // Kullanıcı verilerini cihazdan bağımsız hale getirmek için Firestore senkronizasyon durumu.
+  const [cloudSyncUserId, setCloudSyncUserId] = useState(null);
+  const cloudSyncReadyRef = useRef(false);
+  const cloudHasAppDataRef = useRef(false);
+  const lastCloudAppDataRef = useRef('');
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async firebaseUser => {
       // Kayıt sırasında Firebase hesabı otomatik oturuma açar. Panelin bir an görünmesini engelle.
@@ -454,6 +460,12 @@ export default function App() {
       }
 
       setIsLoggedIn(!!firebaseUser);
+      setCloudSyncUserId(firebaseUser?.uid || null);
+      if (!firebaseUser) {
+        cloudSyncReadyRef.current = false;
+        cloudHasAppDataRef.current = false;
+        lastCloudAppDataRef.current = '';
+      }
 
       if (firebaseUser) {
         let username = firebaseUser.displayName || '';
@@ -523,6 +535,121 @@ export default function App() {
   useEffect(() => { if (isLoaded) try { localStorage.setItem('cebin_exchange_rates_v1', JSON.stringify(exchangeRates)); } catch (e) { console.log(e); } }, [exchangeRates, isLoaded]);
   useEffect(() => { if (isLoaded) try { localStorage.setItem('cebin_appearance_v1', JSON.stringify({ backgroundPreset, fontScaleKey })); } catch (e) { console.log(e); } }, [backgroundPreset, fontScaleKey, isLoaded]);
   useEffect(() => { if (isLoaded) try { localStorage.setItem('cebin_notifications_v1', String(notificationsEnabled)); } catch (e) { console.log(e); } }, [notificationsEnabled, isLoaded]);
+
+  // Aynı Firebase hesabıyla web ve telefonda aynı verilerin görünmesi için kullanıcıya özel
+  // uygulama verilerini users/{uid}.appData altında gerçek zamanlı senkronize et.
+  useEffect(() => {
+    if (!isLoaded || !isLoggedIn || !cloudSyncUserId) return undefined;
+
+    cloudSyncReadyRef.current = false;
+    const userRef = doc(db, 'users', cloudSyncUserId);
+
+    const unsubscribe = onSnapshot(
+      userRef,
+      async snapshot => {
+        const cloudAppData = snapshot.exists() ? snapshot.data()?.appData : null;
+
+        if (cloudAppData && typeof cloudAppData === 'object') {
+          cloudHasAppDataRef.current = true;
+          lastCloudAppDataRef.current = JSON.stringify(cloudAppData);
+
+          if (Array.isArray(cloudAppData.subscriptions)) setSubscriptions(cloudAppData.subscriptions);
+          if (Array.isArray(cloudAppData.templates)) setTemplatesList(cloudAppData.templates);
+          if (Array.isArray(cloudAppData.paymentMethods)) setPaymentMethodsList(cloudAppData.paymentMethods);
+          if (BACKGROUND_PRESETS[cloudAppData.backgroundPreset]) setBackgroundPreset(cloudAppData.backgroundPreset);
+          if (FONT_SCALE_OPTIONS.some(option => option.key === cloudAppData.fontScaleKey)) setFontScaleKey(cloudAppData.fontScaleKey);
+          if (typeof cloudAppData.notificationsEnabled === 'boolean') setNotificationsEnabled(cloudAppData.notificationsEnabled);
+        } else {
+          // İlk geçişte masaüstündeki mevcut localStorage verisini buluta taşı.
+          // Boş bir telefondan giriş yapılması, masaüstündeki verilerin üzerine boş veri yazmasın.
+          const hasMeaningfulLocalData =
+            subscriptions.length > 0 ||
+            JSON.stringify(templatesList) !== JSON.stringify(DEFAULT_TEMPLATES) ||
+            JSON.stringify(paymentMethodsList) !== JSON.stringify(DEFAULT_PAYMENT_METHODS) ||
+            backgroundPreset !== 'smoke' ||
+            fontScaleKey !== 'normal' ||
+            notificationsEnabled !== true;
+
+          if (hasMeaningfulLocalData) {
+            const initialAppData = {
+              subscriptions,
+              templates: templatesList,
+              paymentMethods: paymentMethodsList,
+              backgroundPreset,
+              fontScaleKey,
+              notificationsEnabled
+            };
+            const fingerprint = JSON.stringify(initialAppData);
+            try {
+              await setDoc(userRef, { appData: initialAppData }, { merge: true });
+              cloudHasAppDataRef.current = true;
+              lastCloudAppDataRef.current = fingerprint;
+            } catch (error) {
+              console.log('İlk bulut senkronizasyonu yapılamadı:', error);
+            }
+          }
+        }
+
+        cloudSyncReadyRef.current = true;
+      },
+      error => {
+        cloudSyncReadyRef.current = true;
+        console.log('Bulut verileri dinlenemedi:', error);
+      }
+    );
+
+    return unsubscribe;
+  }, [isLoaded, isLoggedIn, cloudSyncUserId]);
+
+  // Kullanıcı değişikliklerini kısa bir gecikmeyle Firestore'a yaz. Böylece web ve mobil
+  // aynı Firebase hesabında aynı abonelikleri ve kişisel ayarları görür.
+  useEffect(() => {
+    if (!isLoaded || !isLoggedIn || !cloudSyncUserId || !cloudSyncReadyRef.current) return undefined;
+
+    const hasMeaningfulData =
+      subscriptions.length > 0 ||
+      cloudHasAppDataRef.current ||
+      JSON.stringify(templatesList) !== JSON.stringify(DEFAULT_TEMPLATES) ||
+      JSON.stringify(paymentMethodsList) !== JSON.stringify(DEFAULT_PAYMENT_METHODS) ||
+      backgroundPreset !== 'smoke' ||
+      fontScaleKey !== 'normal' ||
+      notificationsEnabled !== true;
+
+    if (!hasMeaningfulData) return undefined;
+
+    const appData = {
+      subscriptions,
+      templates: templatesList,
+      paymentMethods: paymentMethodsList,
+      backgroundPreset,
+      fontScaleKey,
+      notificationsEnabled
+    };
+    const fingerprint = JSON.stringify(appData);
+    if (fingerprint === lastCloudAppDataRef.current) return undefined;
+
+    const timer = setTimeout(async () => {
+      try {
+        await setDoc(doc(db, 'users', cloudSyncUserId), { appData }, { merge: true });
+        cloudHasAppDataRef.current = true;
+        lastCloudAppDataRef.current = fingerprint;
+      } catch (error) {
+        console.log('Bulut senkronizasyonu yapılamadı:', error);
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [
+    subscriptions,
+    templatesList,
+    paymentMethodsList,
+    backgroundPreset,
+    fontScaleKey,
+    notificationsEnabled,
+    isLoaded,
+    isLoggedIn,
+    cloudSyncUserId
+  ]);
 
   useEffect(() => {
     let isMounted = true;
@@ -1618,12 +1745,14 @@ if (isAuthChecking) {
             </View>
 
             <View style={styles.headerActions}>
-              <View style={[styles.miniRatesBadge, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}>
-                <Text style={styles.miniRatesIcon}>💱</Text>
-                <Text style={[styles.miniRatesText, { color: theme.textSecondary }]} numberOfLines={1}>
-                  USD {Number(exchangeRates.USD).toFixed(2)} · EUR {Number(exchangeRates.EUR).toFixed(2)}
-                </Text>
-              </View>
+              {isDesktop && (
+                <View style={[styles.miniRatesBadge, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}>
+                  <Text style={styles.miniRatesIcon}>💱</Text>
+                  <Text style={[styles.miniRatesText, { color: theme.textSecondary }]} numberOfLines={1}>
+                    USD {Number(exchangeRates.USD).toFixed(2)} · EUR {Number(exchangeRates.EUR).toFixed(2)}
+                  </Text>
+                </View>
+              )}
 
               <TouchableOpacity
                 style={[styles.iconButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}
@@ -1632,9 +1761,11 @@ if (isAuthChecking) {
                 <Text style={styles.iconButtonText}>{notificationsEnabled ? '🔔' : '🔕'}</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={[styles.iconButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={openUserSettings}>
-                <View style={styles.profileGlyph}><View style={styles.profileGlyphHead} /><View style={styles.profileGlyphBody} /></View>
-              </TouchableOpacity>
+              {isDesktop && (
+                <TouchableOpacity style={[styles.iconButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={openUserSettings}>
+                  <View style={styles.profileGlyph}><View style={styles.profileGlyphHead} /><View style={styles.profileGlyphBody} /></View>
+                </TouchableOpacity>
+              )}
 
               <TouchableOpacity style={[styles.iconButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={() => setIsAppearanceModalOpen(true)}>
                 <Text style={styles.iconButtonText}>⚙️</Text>
@@ -2080,15 +2211,28 @@ if (isAuthChecking) {
           {!isDesktop && (
             <View style={[styles.bottomNavigation, { backgroundColor: theme.headerBg, borderTopColor: theme.cardBorder }]}>
               {[
-                { key: 'list', icon: '💳', label: 'Abonelikler' },
-                { key: 'calendar', icon: '📅', label: 'Takvim' },
-                { key: 'analytics', icon: '📊', label: 'Analiz' }
-              ].map(navItem => (
-                <TouchableOpacity key={navItem.key} style={styles.bottomNavigationItem} onPress={() => handleTabChange(navItem.key)}>
-                  <Text style={styles.bottomNavigationIcon}>{navItem.icon}</Text>
-                  <Text style={[styles.bottomNavigationText, { color: activeTab === navItem.key ? '#9b98ff' : theme.textSecondary }]}>{navItem.label}</Text>
-                </TouchableOpacity>
-              ))}
+                { key: 'list', icon: '💳', label: 'Abonelikler', onPress: () => handleTabChange('list') },
+                { key: 'calendar', icon: '📅', label: 'Takvim', onPress: () => handleTabChange('calendar') },
+                { key: 'analytics', icon: '📊', label: 'Analiz', onPress: () => handleTabChange('analytics') },
+                { key: 'settings', icon: '⚙️', label: 'Ayarlar', onPress: openUserSettings },
+                { key: 'logout', icon: '↪', label: 'Çıkış', onPress: handleLogout }
+              ].map(navItem => {
+                const isActiveMobileTab = ['list', 'calendar', 'analytics'].includes(navItem.key) && activeTab === navItem.key;
+                const isLogoutItem = navItem.key === 'logout';
+                return (
+                  <TouchableOpacity key={navItem.key} style={styles.bottomNavigationItem} onPress={navItem.onPress}>
+                    <Text style={[styles.bottomNavigationIcon, isLogoutItem && { color: theme.danger }]}>{navItem.icon}</Text>
+                    <Text
+                      style={[
+                        styles.bottomNavigationText,
+                        { color: isLogoutItem ? theme.danger : isActiveMobileTab ? '#9b98ff' : theme.textSecondary }
+                      ]}
+                    >
+                      {navItem.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           )}
         </View>
@@ -3076,10 +3220,10 @@ function createStyles(theme, isMobile, fontScale) {
     progressTrack: { height: 6, borderRadius: 3, overflow: 'hidden' },
     progressFill: { height: '100%', borderRadius: 3 },
 
-    bottomNavigation: { flexDirection: 'row', height: 60, borderTopWidth: 1, alignItems: 'center', justifyContent: 'space-around', zIndex: 10 },
+    bottomNavigation: { flexDirection: 'row', height: isMobile ? 68 : 60, borderTopWidth: 1, alignItems: 'center', justifyContent: 'space-around', zIndex: 10, paddingBottom: isMobile ? 4 : 0 },
     bottomNavigationItem: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 },
     bottomNavigationIcon: { fontSize: font(16) },
-    bottomNavigationText: { fontSize: font(10), fontWeight: 'bold' },
+    bottomNavigationText: { fontSize: font(isMobile ? 9 : 10), fontWeight: 'bold' },
 
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 16, ...(Platform.OS === 'web' ? { backdropFilter: 'blur(8px)' } : {}) },
     settingsBackdrop: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
