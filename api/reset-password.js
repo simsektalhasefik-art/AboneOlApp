@@ -1,8 +1,3 @@
-Kitaplık
-/
-api_reset-password.js.txt
-
-
 const admin = require('firebase-admin');
 const { Resend } = require('resend');
 const crypto = require('crypto');
