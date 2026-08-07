@@ -4,7 +4,7 @@ import {
   Modal, SafeAreaView, StatusBar, useWindowDimensions, Linking, Platform, Pressable
 } from 'react-native';
 
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile, sendPasswordResetEmail, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 import { app } from './src/firebase';
 
@@ -265,9 +265,31 @@ export default function App() {
   // Bildirim tercihi: sağ üstteki zil butonuyla açılıp kapatılır, tercih localStorage'da tutulur.
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
-  // Form doğrulama hatalarını artık çirkin tarayıcı alert()'i yerine bu modal ile gösteriyoruz.
-  const [alertModal, setAlertModal] = useState({ visible: false, message: '' });
-  const showAlert = message => setAlertModal({ visible: true, message: toTitleCaseTr(message) });
+  // Form doğrulama ve başarı mesajları aynı kurumsal modal tasarımını kullanır.
+  const alertCloseCallbackRef = useRef(null);
+  const [alertModal, setAlertModal] = useState({ visible: false, title: 'Eksik veya Hatalı Bilgi', message: '' });
+  const showAlert = (message, options = {}) => {
+    alertCloseCallbackRef.current = typeof options.onClose === 'function' ? options.onClose : null;
+    setAlertModal({
+      visible: true,
+      title: options.title || 'Eksik veya Hatalı Bilgi',
+      message: options.preserveCase ? String(message || '') : toTitleCaseTr(message)
+    });
+  };
+  const closeAlertModal = () => {
+    const callback = alertCloseCallbackRef.current;
+    alertCloseCallbackRef.current = null;
+    setAlertModal(current => ({ ...current, visible: false }));
+    if (typeof callback === 'function') callback();
+  };
+
+  const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
+  const [currentUserProfile, setCurrentUserProfile] = useState({ username: '', email: '' });
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
+  const [passwordErrors, setPasswordErrors] = useState({ current: '', next: '', confirm: '', general: '' });
+  const [isPasswordUpdating, setIsPasswordUpdating] = useState(false);
 
   // Tarayıcı confirm() yerine tüm kritik işlemler için uygulama temasıyla uyumlu özel onay modalı.
   const confirmCallbackRef = useRef(null);
@@ -334,8 +356,26 @@ export default function App() {
   const [newPaymentMethodName, setNewPaymentMethodName] = useState('');
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, firebaseUser => {
+    const unsubscribe = onAuthStateChanged(auth, async firebaseUser => {
       setIsLoggedIn(!!firebaseUser);
+
+      if (firebaseUser) {
+        let username = firebaseUser.displayName || '';
+        let email = firebaseUser.email || '';
+        try {
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          if (userDoc.exists()) {
+            username = userDoc.data()?.username || username;
+            email = userDoc.data()?.email || email;
+          }
+        } catch (profileError) {
+          console.log('Kullanıcı profili okunamadı:', profileError);
+        }
+        setCurrentUserProfile({ username, email });
+      } else {
+        setCurrentUserProfile({ username: '', email: '' });
+      }
+
       setIsAuthChecking(false);
     });
     return unsubscribe;
@@ -486,7 +526,7 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
 
         const existingUsernameDoc = await getDoc(doc(db, 'usernames', usernameKey));
         if (existingUsernameDoc.exists()) {
-          showAlert('Bu Kullanıcı Adı Zaten Kullanılıyor. Lütfen Başka Bir Kullanıcı Adı Seçiniz.');
+          showAlert('Bu Kullanıcı Adıyla Hesap Mevcut', { preserveCase: true });
           return;
         }
 
@@ -523,8 +563,12 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
         setAuthEmail('');
         setAuthPassword('');
         setAuthPasswordConfirm('');
-        setAuthMode('login');
-        showAlert('Kaydınız Başarıyla Oluşturuldu. Lütfen Giriş Yapınız.');
+
+        showAlert('', {
+          title: 'Kayıt Başarıyla Oluşturuldu',
+          preserveCase: true,
+          onClose: () => setAuthMode('login')
+        });
         return;
       }
 
@@ -538,12 +582,103 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
       setAuthPassword('');
     } catch (error) {
       console.log('Kimlik doğrulama hatası:', error);
+      if (authMode === 'register' && error?.code === 'auth/email-already-in-use') {
+        showAlert('Bu Kullanıcı Adıyla Hesap Mevcut', { preserveCase: true });
+        return;
+      }
       showAlert(mapFirebaseAuthError(error?.code));
     }
   };
 
-  const handleForgotPassword = () => {
-    setAuthError('Şifre Sıfırlama Bağlantısı İçin Kurumsal E-posta Entegrasyonu Yapılandırılmalıdır.');
+  const handleForgotPassword = async () => {
+    const identifier = authEmail.trim();
+    if (!identifier) {
+      showAlert('Lütfen E-posta veya Kullanıcı Adınızı Giriniz.');
+      return;
+    }
+
+    try {
+      const resolvedEmail = await resolveLoginEmail(identifier);
+      if (!resolvedEmail) {
+        showAlert('Kullanıcı Adı veya E-posta Bulunamadı.');
+        return;
+      }
+
+      await sendPasswordResetEmail(auth, resolvedEmail);
+      showAlert('Şifre Sıfırlama Bağlantısı E-posta Adresinize Gönderildi.', {
+        title: 'E-posta Gönderildi'
+      });
+    } catch (error) {
+      console.log('Şifre sıfırlama e-postası gönderilemedi:', error);
+      showAlert(mapFirebaseAuthError(error?.code));
+    }
+  };
+
+  const openUserSettings = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    let username = user.displayName || '';
+    let email = user.email || '';
+    try {
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      if (userDoc.exists()) {
+        username = userDoc.data()?.username || username;
+        email = userDoc.data()?.email || email;
+      }
+    } catch (error) {
+      console.log('Kullanıcı ayarları yüklenemedi:', error);
+    }
+
+    setCurrentUserProfile({ username, email });
+    setCurrentPassword('');
+    setNewPassword('');
+    setNewPasswordConfirm('');
+    setPasswordErrors({ current: '', next: '', confirm: '', general: '' });
+    setIsUserSettingsOpen(true);
+  };
+
+  const validatePasswordFields = () => {
+    const errors = { current: '', next: '', confirm: '', general: '' };
+    if (!currentPassword) errors.current = 'Mevcut şifrenizi giriniz.';
+    if (!newPassword) errors.next = 'Yeni şifrenizi giriniz.';
+    else if (newPassword.length < 6) errors.next = 'Yeni şifre en az 6 karakter olmalıdır.';
+    if (!newPasswordConfirm) errors.confirm = 'Yeni şifrenizi tekrar giriniz.';
+    else if (newPassword !== newPasswordConfirm) errors.confirm = 'Şifreler uyuşmuyor.';
+    setPasswordErrors(errors);
+    return !errors.current && !errors.next && !errors.confirm;
+  };
+
+  const handleChangePassword = async () => {
+    if (!validatePasswordFields()) return;
+    const user = auth.currentUser;
+    if (!user?.email) {
+      setPasswordErrors(current => ({ ...current, general: 'Oturum bilgileri bulunamadı. Lütfen yeniden giriş yapınız.' }));
+      return;
+    }
+
+    setIsPasswordUpdating(true);
+    setPasswordErrors({ current: '', next: '', confirm: '', general: '' });
+    try {
+      const credential = EmailAuthProvider.credential(user.email, currentPassword);
+      await reauthenticateWithCredential(user, credential);
+      await updatePassword(user, newPassword);
+      setCurrentPassword('');
+      setNewPassword('');
+      setNewPasswordConfirm('');
+      showAlert('Şifreniz Başarıyla Güncellendi.', { title: 'İşlem Başarılı' });
+    } catch (error) {
+      console.log('Şifre güncellenemedi:', error);
+      if (['auth/wrong-password', 'auth/invalid-credential'].includes(error?.code)) {
+        setPasswordErrors(current => ({ ...current, current: 'Eski şifre yanlış.' }));
+      } else if (error?.code === 'auth/weak-password') {
+        setPasswordErrors(current => ({ ...current, next: 'Yeni şifre en az 6 karakter olmalıdır.' }));
+      } else {
+        setPasswordErrors(current => ({ ...current, general: mapFirebaseAuthError(error?.code) }));
+      }
+    } finally {
+      setIsPasswordUpdating(false);
+    }
   };
 
   const handleGoogleLogin = () => {
@@ -1060,10 +1195,10 @@ if (isAuthChecking) {
               )}
 
               <View style={styles.authFieldGroup}>
-                <Text style={[styles.inputLabel, styles.authFieldLabel, { color: '#d2d7e0' }]}>E-posta</Text>
+                <Text style={[styles.inputLabel, styles.authFieldLabel, { color: '#d2d7e0' }]}>{authMode === 'login' ? 'E-posta / Kullanıcı Adı' : 'E-posta'}</Text>
                 <TextInput
                   style={[styles.textInput, styles.authTextInput, { backgroundColor: '#252b38', color: '#f8fafc', borderColor: '#566071' }]}
-                  placeholder="ornek@eposta.com"
+                  placeholder={authMode === 'login' ? 'E-posta / Kullanıcı Adı' : 'ornek@eposta.com'}
                   placeholderTextColor="#8f98a8"
                   autoCapitalize="none"
                   keyboardType="email-address"
@@ -1120,7 +1255,7 @@ if (isAuthChecking) {
                 <Text style={styles.googleButtonText}>Google İle Devam Et</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.authSwitchButton} onPress={() => { setAuthMode(authMode === 'login' ? 'register' : 'login'); setAuthError(''); setAlertModal({ visible: false, message: '' }); setAuthPassword(''); setAuthPasswordConfirm(''); }}>
+              <TouchableOpacity style={styles.authSwitchButton} onPress={() => { setAuthMode(authMode === 'login' ? 'register' : 'login'); setAuthError(''); closeAlertModal(); setAuthPassword(''); setAuthPasswordConfirm(''); }}>
                 <Text style={[styles.authSwitchText, { color: '#63b3ff' }]}>
                   {authMode === 'login' ? 'Hesabın Yok Mu? Kayıt Ol' : 'Zaten Hesabın Var Mı? Giriş Yap'}
                 </Text>
@@ -1129,7 +1264,7 @@ if (isAuthChecking) {
           </View>
         </ScrollView>
 
-        <Modal visible={alertModal.visible} transparent animationType="fade" onRequestClose={() => setAlertModal({ visible: false, message: '' })}>
+        <Modal visible={alertModal.visible} transparent animationType="fade" onRequestClose={closeAlertModal}>
           <View style={styles.warningOverlay}>
             <View style={[styles.warningCard, { backgroundColor: '#303746', borderColor: '#566071' }]}>
               <View style={[styles.warningIconBox, { backgroundColor: 'rgba(105,101,232,0.14)', borderColor: '#7c78f0' }]}>
@@ -1137,9 +1272,9 @@ if (isAuthChecking) {
                   <Text style={styles.warningBang}>!</Text>
                 </View>
               </View>
-              <Text style={[styles.warningTitle, { color: '#f8fafc' }]}>Eksik veya Hatalı Bilgi</Text>
+              <Text style={[styles.warningTitle, { color: '#f8fafc' }]}>{alertModal.title}</Text>
               <Text style={[styles.warningMessage, { color: '#d2d7e0', marginBottom: 22 }]}>{alertModal.message}</Text>
-              <TouchableOpacity style={styles.warningButton} onPress={() => setAlertModal({ visible: false, message: '' })}>
+              <TouchableOpacity style={styles.warningButton} onPress={closeAlertModal}>
                 <Text style={styles.warningButtonText}>Tamam</Text>
               </TouchableOpacity>
             </View>
@@ -1189,11 +1324,8 @@ if (isAuthChecking) {
               <TouchableOpacity style={[styles.secondaryButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={handleExportCSV}>
                 <Text style={[styles.secondaryButtonText, { color: theme.textPrimary }]}>📄 CSV Excel İndir</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.secondaryButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={handleExportJSON}>
-                <Text style={[styles.secondaryButtonText, { color: theme.accent }]}>💾 JSON Yedek Al</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.secondaryButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={handleImportJSON}>
-                <Text style={[styles.secondaryButtonText, { color: theme.textSecondary }]}>↩️ Yedeği Geri Yükle</Text>
+              <TouchableOpacity style={[styles.secondaryButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={openUserSettings}>
+                <Text style={[styles.secondaryButtonText, { color: theme.accent }]}>👤 Kullanıcı Ayarları</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.primaryButton} onPress={() => openSubscriptionForm()}>
                 <Text style={styles.primaryButtonText}>+ Yeni Abonelik Ekle</Text>
@@ -1229,6 +1361,10 @@ if (isAuthChecking) {
                 onPress={() => setNotificationsEnabled(v => !v)}
               >
                 <Text style={styles.iconButtonText}>{notificationsEnabled ? '🔔' : '🔕'}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={[styles.iconButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={openUserSettings}>
+                <Text style={styles.iconButtonText}>👤</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={[styles.iconButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={() => setIsAppearanceModalOpen(true)}>
@@ -1833,6 +1969,92 @@ if (isAuthChecking) {
         </View>
       </Modal>
 
+      <Modal visible={isUserSettingsOpen} transparent animationType="fade" onRequestClose={() => setIsUserSettingsOpen(false)}>
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity style={styles.settingsBackdrop} activeOpacity={1} onPress={() => setIsUserSettingsOpen(false)} />
+          <View style={[styles.userSettingsModal, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.96) : theme.cardBg, borderColor: theme.cardBorder }]}>
+            <View style={styles.modalHeader}>
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Kullanıcı Ayarları</Text>
+                <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Hesap bilgilerinizi görüntüleyin ve şifrenizi güvenli şekilde güncelleyin.</Text>
+              </View>
+              <TouchableOpacity style={[styles.modalCloseButton, { backgroundColor: theme.inputBg }]} onPress={() => setIsUserSettingsOpen(false)}>
+                <Text style={[styles.modalCloseText, { color: theme.textSecondary }]}>×</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.userSettingsScroll} contentContainerStyle={styles.userSettingsContent} showsVerticalScrollIndicator>
+              <View style={[styles.settingsInfoCard, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}>
+                <Text style={[styles.formSectionTitle, { color: theme.textPrimary }]}>Hesap Bilgileri</Text>
+                <View style={styles.settingsInfoRow}>
+                  <Text style={[styles.settingsInfoLabel, { color: theme.textMuted }]}>Kullanıcı Adı</Text>
+                  <Text style={[styles.settingsInfoValue, { color: theme.textPrimary }]}>{currentUserProfile.username || '-'}</Text>
+                </View>
+                <View style={styles.settingsInfoRow}>
+                  <Text style={[styles.settingsInfoLabel, { color: theme.textMuted }]}>E-posta</Text>
+                  <Text style={[styles.settingsInfoValue, { color: theme.textPrimary }]}>{currentUserProfile.email || auth.currentUser?.email || '-'}</Text>
+                </View>
+              </View>
+
+              <View style={styles.formSection}>
+                <Text style={[styles.formSectionTitle, { color: theme.textPrimary }]}>Şifremi Değiştir</Text>
+                <Text style={[styles.formSectionDescription, { color: theme.textMuted }]}>Güvenlik nedeniyle önce mevcut şifreniz doğrulanır.</Text>
+
+                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Mevcut Şifre</Text>
+                <TextInput
+                  style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: passwordErrors.current ? theme.danger : theme.cardBorder }]}
+                  secureTextEntry
+                  value={currentPassword}
+                  onChangeText={value => { setCurrentPassword(value); setPasswordErrors(current => ({ ...current, current: '', general: '' })); }}
+                  placeholder="Mevcut şifreniz"
+                  placeholderTextColor={theme.textMuted}
+                />
+                {!!passwordErrors.current && <Text style={[styles.fieldErrorText, { color: theme.danger }]}>{passwordErrors.current}</Text>}
+
+                <View style={[styles.twoColumnRow, isMobile && styles.singleColumnRow]}>
+                  <View style={styles.formColumn}>
+                    <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Yeni Şifre</Text>
+                    <TextInput
+                      style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: passwordErrors.next ? theme.danger : theme.cardBorder }]}
+                      secureTextEntry
+                      value={newPassword}
+                      onChangeText={value => { setNewPassword(value); setPasswordErrors(current => ({ ...current, next: '', confirm: current.confirm && value === newPasswordConfirm ? '' : current.confirm, general: '' })); }}
+                      placeholder="En az 6 karakter"
+                      placeholderTextColor={theme.textMuted}
+                    />
+                    {!!passwordErrors.next && <Text style={[styles.fieldErrorText, { color: theme.danger }]}>{passwordErrors.next}</Text>}
+                  </View>
+
+                  <View style={styles.formColumn}>
+                    <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Yeni Şifre Tekrarı</Text>
+                    <TextInput
+                      style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: passwordErrors.confirm ? theme.danger : theme.cardBorder }]}
+                      secureTextEntry
+                      value={newPasswordConfirm}
+                      onChangeText={value => { setNewPasswordConfirm(value); setPasswordErrors(current => ({ ...current, confirm: value && value !== newPassword ? 'Şifreler uyuşmuyor.' : '', general: '' })); }}
+                      placeholder="Yeni şifreyi tekrar giriniz"
+                      placeholderTextColor={theme.textMuted}
+                    />
+                    {!!passwordErrors.confirm && <Text style={[styles.fieldErrorText, { color: theme.danger }]}>{passwordErrors.confirm}</Text>}
+                  </View>
+                </View>
+
+                {!!passwordErrors.general && <Text style={[styles.settingsGeneralError, { color: theme.danger, backgroundColor: hexToRgba(theme.danger, 0.10), borderColor: hexToRgba(theme.danger, 0.35) }]}>{passwordErrors.general}</Text>}
+              </View>
+            </ScrollView>
+
+            <View style={[styles.modalFooter, { borderTopColor: theme.cardBorder }]}>
+              <TouchableOpacity style={[styles.modalCancelButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={() => setIsUserSettingsOpen(false)}>
+                <Text style={[styles.modalCancelButtonText, { color: theme.textSecondary }]}>Kapat</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.modalSaveButton, isPasswordUpdating && { opacity: 0.65 }]} disabled={isPasswordUpdating} onPress={handleChangePassword}>
+                <Text style={styles.modalSaveButtonText}>{isPasswordUpdating ? 'Güncelleniyor...' : 'Şifreyi Güncelle'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={isAppearanceModalOpen} transparent animationType="fade" onRequestClose={() => setIsAppearanceModalOpen(false)}>
         <View style={styles.modalOverlay}>
           <View style={[styles.appearanceModal, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
@@ -2247,7 +2469,7 @@ if (isAuthChecking) {
       </Modal>
 
       {/* Genel doğrulama / bilgi uyarısı - alert() yerine kullanılan şık modal */}
-      <Modal visible={alertModal.visible} transparent animationType="fade" onRequestClose={() => setAlertModal({ visible: false, message: '' })}>
+      <Modal visible={alertModal.visible} transparent animationType="fade" onRequestClose={closeAlertModal}>
         <View style={styles.warningOverlay}>
           <View style={[styles.warningCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
             <View style={[styles.warningIconBox, { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder }]}>
@@ -2257,7 +2479,7 @@ if (isAuthChecking) {
             </View>
             <Text style={[styles.warningTitle, { color: theme.textPrimary }]}>Eksik Bilgi</Text>
             <Text style={[styles.warningMessage, { color: theme.textSecondary }]}>{alertModal.message}</Text>
-            <TouchableOpacity style={styles.warningButton} onPress={() => setAlertModal({ visible: false, message: '' })}>
+            <TouchableOpacity style={styles.warningButton} onPress={closeAlertModal}>
               <Text style={styles.warningButtonText}>Tamam</Text>
             </TouchableOpacity>
           </View>
@@ -2504,7 +2726,17 @@ function createStyles(theme, isMobile, fontScale) {
     bottomNavigationIcon: { fontSize: font(16) },
     bottomNavigationText: { fontSize: font(10), fontWeight: 'bold' },
 
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 16 },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 16, ...(Platform.OS === 'web' ? { backdropFilter: 'blur(8px)' } : {}) },
+    settingsBackdrop: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
+    userSettingsModal: { width: isMobile ? '96%' : '100%', maxWidth: 540, maxHeight: isMobile ? '94%' : '90%', borderWidth: 1, borderRadius: isMobile ? 18 : 22, overflow: 'hidden' },
+    userSettingsScroll: { flexGrow: 0, maxHeight: isMobile ? '100%' : 480, width: '100%' },
+    userSettingsContent: { padding: isMobile ? 14 : 20, paddingTop: 4, paddingBottom: 24, gap: 18 },
+    settingsInfoCard: { borderWidth: 1, borderRadius: 14, padding: 14, gap: 12 },
+    settingsInfoRow: { flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', gap: 4, paddingTop: 4 },
+    settingsInfoLabel: { fontSize: font(11), fontWeight: '600' },
+    settingsInfoValue: { fontSize: font(12), fontWeight: '700', flexShrink: 1, textAlign: isMobile ? 'left' : 'right' },
+    fieldErrorText: { fontSize: font(10), fontWeight: '600', marginTop: -4, marginBottom: 6 },
+    settingsGeneralError: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: font(11), fontWeight: '600', marginTop: 4 },
     drawerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
     drawerBackdrop: { flex: 1 },
     dayDrawerPanel: { width: '100%', maxHeight: '75%', borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: 1, paddingBottom: 20 },
@@ -2635,7 +2867,7 @@ function createStyles(theme, isMobile, fontScale) {
     secondaryButton: { borderWidth: 1, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 14, alignItems: 'center' },
     secondaryButtonText: { fontSize: font(12), fontWeight: 'bold' },
 
-    warningOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.68)', alignItems: 'center', justifyContent: 'center', padding: 20 },
+    warningOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.68)', alignItems: 'center', justifyContent: 'center', padding: 20, ...(Platform.OS === 'web' ? { backdropFilter: 'blur(8px)' } : {}) },
     confirmBackdrop: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
     warningCard: { width: '100%', maxWidth: isMobile ? 390 : 420, borderWidth: 1, borderRadius: 24, padding: isMobile ? 22 : 28, alignItems: 'center', ...(Platform.OS === 'web' ? { boxShadow: '0 24px 80px rgba(0,0,0,0.40)' } : {}) },
     warningIconBox: { width: 58, height: 58, borderRadius: 17, borderWidth: 1.25, alignItems: 'center', justifyContent: 'center', marginBottom: 18 },
