@@ -4,7 +4,7 @@ import {
   Modal, SafeAreaView, StatusBar, useWindowDimensions, Linking, Platform, Pressable
 } from 'react-native';
 
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile, sendPasswordResetEmail, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 import { app } from './src/firebase';
 import Svg, { Path, Circle } from 'react-native-svg';
@@ -648,38 +648,31 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
   };
 
   const handleForgotPassword = async () => {
-    const email = authEmail.trim().toLocaleLowerCase('tr-TR');
+    const identifier = authEmail.trim();
 
-    if (!email) {
-      showAlert('Lütfen E-posta Adresinizi Giriniz.');
-      return;
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      showAlert('Lütfen Geçerli Bir E-posta Adresi Giriniz.');
+    if (!identifier) {
+      showAlert('Lütfen E-posta veya Kullanıcı Adınızı Giriniz.');
       return;
     }
 
     try {
-      const response = await fetch('/api/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
-      });
+      const resolvedEmail = await resolveLoginEmail(identifier);
 
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(result?.message || 'Yeni şifre oluşturulamadı.');
+      if (!resolvedEmail) {
+        showAlert('Kullanıcı Adı veya E-posta Bulunamadı.');
+        return;
       }
 
-      showAlert('Yeni Geçici Şifreniz E-posta Adresinize Gönderildi.', {
-        title: 'Yeni Şifre Gönderildi',
+      await sendPasswordResetEmail(auth, resolvedEmail);
+
+      showAlert('Şifre Sıfırlama Bağlantısı E-posta Adresinize Gönderildi.', {
+        title: 'E-posta Gönderildi',
         preserveCase: true,
         type: 'success'
       });
     } catch (error) {
-      console.log('Geçici şifre gönderilemedi:', error);
-      showAlert(error?.message || 'Yeni Şifre Gönderilemedi. Lütfen Tekrar Deneyiniz.', { preserveCase: true });
+      console.log('Şifre sıfırlama e-postası gönderilemedi:', error);
+      showAlert(mapFirebaseAuthError(error?.code));
     }
   };
 
