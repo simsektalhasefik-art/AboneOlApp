@@ -6,7 +6,7 @@ import {
 
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
-import { app } from './firebase';
+import { app } from './src/firebase';
 
 const auth = getAuth(app);
 const db = getFirestore(app);
