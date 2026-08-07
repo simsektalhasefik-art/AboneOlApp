@@ -244,6 +244,8 @@ export default function App() {
   const [authPasswordConfirm, setAuthPasswordConfirm] = useState('');
   const [authError, setAuthError] = useState('');
   const [isAuthChecking, setIsAuthChecking] = useState(true);
+  const [authPasswordVisible, setAuthPasswordVisible] = useState(false);
+  const [authPasswordConfirmVisible, setAuthPasswordConfirmVisible] = useState(false);
 
   const [subscriptions, setSubscriptions] = useState([]);
   const [exchangeRates, setExchangeRates] = useState(DEFAULT_RATES);
@@ -267,13 +269,14 @@ export default function App() {
 
   // Form doğrulama ve başarı mesajları aynı kurumsal modal tasarımını kullanır.
   const alertCloseCallbackRef = useRef(null);
-  const [alertModal, setAlertModal] = useState({ visible: false, title: 'Eksik veya Hatalı Bilgi', message: '' });
+  const [alertModal, setAlertModal] = useState({ visible: false, title: 'Eksik veya Hatalı Bilgi', message: '', type: 'error' });
   const showAlert = (message, options = {}) => {
     alertCloseCallbackRef.current = typeof options.onClose === 'function' ? options.onClose : null;
     setAlertModal({
       visible: true,
       title: options.title || 'Eksik veya Hatalı Bilgi',
-      message: options.preserveCase ? String(message || '') : toTitleCaseTr(message)
+      message: options.preserveCase ? String(message || '') : toTitleCaseTr(message),
+      type: options.type || 'error'
     });
   };
   const closeAlertModal = () => {
@@ -290,6 +293,23 @@ export default function App() {
   const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
   const [passwordErrors, setPasswordErrors] = useState({ current: '', next: '', confirm: '', general: '' });
   const [isPasswordUpdating, setIsPasswordUpdating] = useState(false);
+  const [currentPasswordVisible, setCurrentPasswordVisible] = useState(false);
+  const [newPasswordVisible, setNewPasswordVisible] = useState(false);
+  const [newPasswordConfirmVisible, setNewPasswordConfirmVisible] = useState(false);
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'error' });
+  const toastTimerRef = useRef(null);
+
+  const showToast = (message, type = 'error') => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast({ visible: true, message, type });
+    toastTimerRef.current = setTimeout(() => {
+      setToast(current => ({ ...current, visible: false }));
+    }, 2800);
+  };
+
+  useEffect(() => () => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+  }, []);
 
   // Tarayıcı confirm() yerine tüm kritik işlemler için uygulama temasıyla uyumlu özel onay modalı.
   const confirmCallbackRef = useRef(null);
@@ -567,6 +587,7 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
         showAlert('', {
           title: 'Kayıt Başarıyla Oluşturuldu',
           preserveCase: true,
+          type: 'success',
           onClose: () => setAuthMode('login')
         });
         return;
@@ -646,6 +667,8 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
     if (!newPasswordConfirm) errors.confirm = 'Yeni şifrenizi tekrar giriniz.';
     else if (newPassword !== newPasswordConfirm) errors.confirm = 'Şifreler uyuşmuyor.';
     setPasswordErrors(errors);
+    const firstError = errors.current || errors.next || errors.confirm;
+    if (firstError) showToast(firstError, 'error');
     return !errors.current && !errors.next && !errors.confirm;
   };
 
@@ -666,15 +689,19 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
       setCurrentPassword('');
       setNewPassword('');
       setNewPasswordConfirm('');
-      showAlert('Şifreniz Başarıyla Güncellendi.', { title: 'İşlem Başarılı' });
+      showAlert('', { title: 'Şifreniz Başarıyla Güncellendi', preserveCase: true, type: 'success' });
     } catch (error) {
       console.log('Şifre güncellenemedi:', error);
       if (['auth/wrong-password', 'auth/invalid-credential'].includes(error?.code)) {
         setPasswordErrors(current => ({ ...current, current: 'Eski şifre yanlış.' }));
+        showToast('Eski şifre yanlış.', 'error');
       } else if (error?.code === 'auth/weak-password') {
         setPasswordErrors(current => ({ ...current, next: 'Yeni şifre en az 6 karakter olmalıdır.' }));
+        showToast('Yeni şifre en az 6 karakter olmalıdır.', 'error');
       } else {
-        setPasswordErrors(current => ({ ...current, general: mapFirebaseAuthError(error?.code) }));
+        const message = mapFirebaseAuthError(error?.code);
+        setPasswordErrors(current => ({ ...current, general: message }));
+        showToast(message, 'error');
       }
     } finally {
       setIsPasswordUpdating(false);
@@ -1209,14 +1236,20 @@ if (isAuthChecking) {
 
               <View style={styles.authFieldGroup}>
                 <Text style={[styles.inputLabel, styles.authFieldLabel, { color: '#d2d7e0' }]}>Şifre</Text>
-                <TextInput
-                  style={[styles.textInput, styles.authTextInput, { backgroundColor: '#252b38', color: '#f8fafc', borderColor: '#566071' }]}
-                  placeholder="••••••••"
-                  placeholderTextColor="#8f98a8"
-                  secureTextEntry
-                  value={authPassword}
-                  onChangeText={setAuthPassword}
-                />
+                <View style={[styles.passwordInputShell, { backgroundColor: '#252b38', borderColor: '#566071' }]}>
+                  <TextInput
+                    style={[styles.authPasswordInput, { color: '#f8fafc' }]}
+                    placeholder="••••••••"
+                    placeholderTextColor="#8f98a8"
+                    secureTextEntry={!authPasswordVisible}
+                    value={authPassword}
+                    onChangeText={setAuthPassword}
+                  />
+                  <Pressable style={({ hovered, pressed }) => [styles.eyeButton, (hovered || pressed) && styles.eyeButtonHover]} onPress={() => setAuthPasswordVisible(value => !value)}>
+                    <Text style={styles.eyeIcon}>👁</Text>
+                    {authPasswordVisible && <View style={styles.eyeSlash} />}
+                  </Pressable>
+                </View>
                 {authMode === 'login' && (
                   <TouchableOpacity style={styles.forgotPasswordButton} onPress={handleForgotPassword}>
                     <Text style={styles.forgotPasswordText}>Şifremi Unuttum?</Text>
@@ -1227,14 +1260,20 @@ if (isAuthChecking) {
               {authMode === 'register' && (
                 <View style={styles.authFieldGroup}>
                   <Text style={[styles.inputLabel, styles.authFieldLabel, { color: '#d2d7e0' }]}>Şifre Tekrarı</Text>
-                  <TextInput
-                    style={[styles.textInput, styles.authTextInput, { backgroundColor: '#252b38', color: '#f8fafc', borderColor: '#566071' }]}
-                    placeholder="••••••••"
-                    placeholderTextColor="#8f98a8"
-                    secureTextEntry
-                    value={authPasswordConfirm}
-                    onChangeText={setAuthPasswordConfirm}
-                  />
+                  <View style={[styles.passwordInputShell, { backgroundColor: '#252b38', borderColor: '#566071' }]}>
+                    <TextInput
+                      style={[styles.authPasswordInput, { color: '#f8fafc' }]}
+                      placeholder="••••••••"
+                      placeholderTextColor="#8f98a8"
+                      secureTextEntry={!authPasswordConfirmVisible}
+                      value={authPasswordConfirm}
+                      onChangeText={setAuthPasswordConfirm}
+                    />
+                    <Pressable style={({ hovered, pressed }) => [styles.eyeButton, (hovered || pressed) && styles.eyeButtonHover]} onPress={() => setAuthPasswordConfirmVisible(value => !value)}>
+                      <Text style={styles.eyeIcon}>👁</Text>
+                      {authPasswordConfirmVisible && <View style={styles.eyeSlash} />}
+                    </Pressable>
+                  </View>
                 </View>
               )}
 
@@ -1267,16 +1306,20 @@ if (isAuthChecking) {
         <Modal visible={alertModal.visible} transparent animationType="fade" onRequestClose={closeAlertModal}>
           <View style={styles.warningOverlay}>
             <View style={[styles.warningCard, { backgroundColor: '#303746', borderColor: '#566071' }]}>
-              <View style={[styles.warningIconBox, { backgroundColor: 'rgba(105,101,232,0.14)', borderColor: '#7c78f0' }]}>
-                <View style={styles.warningTriangle}>
-                  <Text style={styles.warningBang}>!</Text>
-                </View>
+              <View style={[styles.warningIconBox, alertModal.type === 'success' ? styles.successIconBox : { backgroundColor: 'rgba(105,101,232,0.14)', borderColor: '#7c78f0' }]}>
+                {alertModal.type === 'success' ? (
+                  <Text style={styles.successCheck}>✓</Text>
+                ) : (
+                  <View style={styles.warningTriangle}>
+                    <Text style={styles.warningBang}>!</Text>
+                  </View>
+                )}
               </View>
               <Text style={[styles.warningTitle, { color: '#f8fafc' }]}>{alertModal.title}</Text>
-              <Text style={[styles.warningMessage, { color: '#d2d7e0', marginBottom: 22 }]}>{alertModal.message}</Text>
-              <TouchableOpacity style={styles.warningButton} onPress={closeAlertModal}>
+              {!!alertModal.message && <Text style={[styles.warningMessage, { color: '#d2d7e0', marginBottom: 22 }]}>{alertModal.message}</Text>}
+              <Pressable style={({ hovered, pressed }) => [styles.warningButton, (hovered || pressed) && styles.premiumButtonHover]} onPress={closeAlertModal}>
                 <Text style={styles.warningButtonText}>Tamam</Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </View>
         </Modal>
@@ -1325,7 +1368,7 @@ if (isAuthChecking) {
                 <Text style={[styles.secondaryButtonText, { color: theme.textPrimary }]}>📄 CSV Excel İndir</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.secondaryButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={openUserSettings}>
-                <Text style={[styles.secondaryButtonText, { color: theme.accent }]}>👤 Kullanıcı Ayarları</Text>
+                <View style={styles.userSettingsButtonContent}><View style={styles.profileGlyph}><View style={styles.profileGlyphHead} /><View style={styles.profileGlyphBody} /></View><Text style={[styles.secondaryButtonText, { color: '#8bd5ff' }]}>Kullanıcı Ayarları</Text></View>
               </TouchableOpacity>
               <TouchableOpacity style={styles.primaryButton} onPress={() => openSubscriptionForm()}>
                 <Text style={styles.primaryButtonText}>+ Yeni Abonelik Ekle</Text>
@@ -1364,7 +1407,7 @@ if (isAuthChecking) {
               </TouchableOpacity>
 
               <TouchableOpacity style={[styles.iconButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={openUserSettings}>
-                <Text style={styles.iconButtonText}>👤</Text>
+                <View style={styles.profileGlyph}><View style={styles.profileGlyphHead} /><View style={styles.profileGlyphBody} /></View>
               </TouchableOpacity>
 
               <TouchableOpacity style={[styles.iconButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={() => setIsAppearanceModalOpen(true)}>
@@ -1998,43 +2041,62 @@ if (isAuthChecking) {
 
               <View style={styles.formSection}>
                 <Text style={[styles.formSectionTitle, { color: theme.textPrimary }]}>Şifremi Değiştir</Text>
-                <Text style={[styles.formSectionDescription, { color: theme.textMuted }]}>Güvenlik nedeniyle önce mevcut şifreniz doğrulanır.</Text>
+                <Text style={[styles.formSectionDescription, { color: theme.textMuted }]}>Güvenlik Nedeniyle Önce Mevcut Şifreniz Doğrulanır.</Text>
 
                 <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Mevcut Şifre</Text>
-                <TextInput
-                  style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: passwordErrors.current ? theme.danger : theme.cardBorder }]}
-                  secureTextEntry
-                  value={currentPassword}
-                  onChangeText={value => { setCurrentPassword(value); setPasswordErrors(current => ({ ...current, current: '', general: '' })); }}
-                  placeholder="Mevcut şifreniz"
-                  placeholderTextColor={theme.textMuted}
-                />
+                <View style={[styles.passwordInputShell, { backgroundColor: theme.inputBg, borderColor: passwordErrors.current ? theme.danger : theme.cardBorder }]}>
+                  <TextInput
+                    style={[styles.passwordTextInput, { color: theme.textPrimary }]}
+                    secureTextEntry={!currentPasswordVisible}
+                    value={currentPassword}
+                    onChangeText={value => { setCurrentPassword(value); setPasswordErrors(current => ({ ...current, current: '', general: '' })); }}
+                    placeholder="Mevcut şifreniz"
+                    placeholderTextColor={theme.textMuted}
+                  />
+                  <Pressable style={({ hovered, pressed }) => [styles.eyeButton, (hovered || pressed) && styles.eyeButtonHover]} onPress={() => setCurrentPasswordVisible(value => !value)}>
+                    <Text style={styles.eyeIcon}>👁</Text>
+                    {currentPasswordVisible && <View style={styles.eyeSlash} />}
+                  </Pressable>
+                </View>
                 {!!passwordErrors.current && <Text style={[styles.fieldErrorText, { color: theme.danger }]}>{passwordErrors.current}</Text>}
 
                 <View style={[styles.twoColumnRow, isMobile && styles.singleColumnRow]}>
                   <View style={styles.formColumn}>
                     <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Yeni Şifre</Text>
-                    <TextInput
-                      style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: passwordErrors.next ? theme.danger : theme.cardBorder }]}
-                      secureTextEntry
-                      value={newPassword}
-                      onChangeText={value => { setNewPassword(value); setPasswordErrors(current => ({ ...current, next: '', confirm: current.confirm && value === newPasswordConfirm ? '' : current.confirm, general: '' })); }}
-                      placeholder="En az 6 karakter"
-                      placeholderTextColor={theme.textMuted}
-                    />
+                    <View style={[styles.passwordInputShell, { backgroundColor: theme.inputBg, borderColor: passwordErrors.next ? theme.danger : theme.cardBorder }]}>
+                      <TextInput
+                        style={[styles.passwordTextInput, { color: theme.textPrimary }]}
+                        secureTextEntry={!newPasswordVisible}
+                        value={newPassword}
+                        onChangeText={value => { setNewPassword(value); setPasswordErrors(current => ({ ...current, next: '', confirm: current.confirm && value === newPasswordConfirm ? '' : current.confirm, general: '' })); }}
+                        placeholder="En az 6 karakter"
+                        placeholderTextColor={theme.textMuted}
+                      />
+                      <Pressable style={({ hovered, pressed }) => [styles.eyeButton, (hovered || pressed) && styles.eyeButtonHover]} onPress={() => setNewPasswordVisible(value => !value)}>
+                        <Text style={styles.eyeIcon}>👁</Text>
+                        {newPasswordVisible && <View style={styles.eyeSlash} />}
+                      </Pressable>
+                    </View>
                     {!!passwordErrors.next && <Text style={[styles.fieldErrorText, { color: theme.danger }]}>{passwordErrors.next}</Text>}
                   </View>
 
                   <View style={styles.formColumn}>
                     <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Yeni Şifre Tekrarı</Text>
-                    <TextInput
-                      style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: passwordErrors.confirm ? theme.danger : theme.cardBorder }]}
-                      secureTextEntry
-                      value={newPasswordConfirm}
-                      onChangeText={value => { setNewPasswordConfirm(value); setPasswordErrors(current => ({ ...current, confirm: value && value !== newPassword ? 'Şifreler uyuşmuyor.' : '', general: '' })); }}
-                      placeholder="Yeni şifreyi tekrar giriniz"
-                      placeholderTextColor={theme.textMuted}
-                    />
+                    <View style={[styles.passwordInputShell, { backgroundColor: theme.inputBg, borderColor: passwordErrors.confirm ? theme.danger : theme.cardBorder }]}>
+                      <TextInput
+                        style={[styles.passwordTextInput, { color: theme.textPrimary }]}
+                        secureTextEntry={!newPasswordConfirmVisible}
+                        value={newPasswordConfirm}
+                        onChangeText={value => { setNewPasswordConfirm(value); setPasswordErrors(current => ({ ...current, confirm: value && value !== newPassword ? 'Şifreler uyuşmuyor.' : '', general: '' })); }}
+                        onBlur={() => { if (newPasswordConfirm && newPasswordConfirm !== newPassword) showToast('Şifreler uyuşmuyor.', 'error'); }}
+                        placeholder="Yeni şifreyi tekrar giriniz"
+                        placeholderTextColor={theme.textMuted}
+                      />
+                      <Pressable style={({ hovered, pressed }) => [styles.eyeButton, (hovered || pressed) && styles.eyeButtonHover]} onPress={() => setNewPasswordConfirmVisible(value => !value)}>
+                        <Text style={styles.eyeIcon}>👁</Text>
+                        {newPasswordConfirmVisible && <View style={styles.eyeSlash} />}
+                      </Pressable>
+                    </View>
                     {!!passwordErrors.confirm && <Text style={[styles.fieldErrorText, { color: theme.danger }]}>{passwordErrors.confirm}</Text>}
                   </View>
                 </View>
@@ -2044,12 +2106,12 @@ if (isAuthChecking) {
             </ScrollView>
 
             <View style={[styles.modalFooter, { borderTopColor: theme.cardBorder }]}>
-              <TouchableOpacity style={[styles.modalCancelButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={() => setIsUserSettingsOpen(false)}>
+              <Pressable style={({ hovered, pressed }) => [styles.modalCancelButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }, (hovered || pressed) && styles.premiumButtonHover]} onPress={() => setIsUserSettingsOpen(false)}>
                 <Text style={[styles.modalCancelButtonText, { color: theme.textSecondary }]}>Kapat</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.modalSaveButton, isPasswordUpdating && { opacity: 0.65 }]} disabled={isPasswordUpdating} onPress={handleChangePassword}>
+              </Pressable>
+              <Pressable style={({ hovered, pressed }) => [styles.modalSaveButton, isPasswordUpdating && { opacity: 0.65 }, (hovered || pressed) && !isPasswordUpdating && styles.premiumButtonHover]} disabled={isPasswordUpdating} onPress={handleChangePassword}>
                 <Text style={styles.modalSaveButtonText}>{isPasswordUpdating ? 'Güncelleniyor...' : 'Şifreyi Güncelle'}</Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </View>
         </View>
@@ -2468,20 +2530,33 @@ if (isAuthChecking) {
         </View>
       </Modal>
 
+      {toast.visible && (
+        <View pointerEvents="none" style={[styles.toastWrap, { backgroundColor: toast.type === 'success' ? hexToRgba(theme.success, 0.96) : hexToRgba(theme.danger, 0.96) }]}>
+          <View style={styles.toastDot}>
+            <Text style={styles.toastDotText}>{toast.type === 'success' ? '✓' : '!'}</Text>
+          </View>
+          <Text style={styles.toastText}>{toast.message}</Text>
+        </View>
+      )}
+
       {/* Genel doğrulama / bilgi uyarısı - alert() yerine kullanılan şık modal */}
       <Modal visible={alertModal.visible} transparent animationType="fade" onRequestClose={closeAlertModal}>
         <View style={styles.warningOverlay}>
           <View style={[styles.warningCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
-            <View style={[styles.warningIconBox, { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder }]}>
-              <View style={styles.warningTriangle}>
-                <Text style={styles.warningBang}>!</Text>
-              </View>
+            <View style={[styles.warningIconBox, alertModal.type === 'success' ? styles.successIconBox : { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder }]}>
+              {alertModal.type === 'success' ? (
+                <Text style={styles.successCheck}>✓</Text>
+              ) : (
+                <View style={styles.warningTriangle}>
+                  <Text style={styles.warningBang}>!</Text>
+                </View>
+              )}
             </View>
-            <Text style={[styles.warningTitle, { color: theme.textPrimary }]}>Eksik Bilgi</Text>
-            <Text style={[styles.warningMessage, { color: theme.textSecondary }]}>{alertModal.message}</Text>
-            <TouchableOpacity style={styles.warningButton} onPress={closeAlertModal}>
+            <Text style={[styles.warningTitle, { color: theme.textPrimary }]}>{alertModal.title}</Text>
+            {!!alertModal.message && <Text style={[styles.warningMessage, { color: theme.textSecondary }]}>{alertModal.message}</Text>}
+            <Pressable style={({ hovered, pressed }) => [styles.warningButton, (hovered || pressed) && styles.premiumButtonHover]} onPress={closeAlertModal}>
               <Text style={styles.warningButtonText}>Tamam</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
       </Modal>
@@ -2522,6 +2597,13 @@ function createStyles(theme, isMobile, fontScale) {
     authFieldGroup: { width: '100%', marginBottom: isMobile ? 14 : 17 },
     authFieldLabel: { marginBottom: isMobile ? 8 : 9 },
     authTextInput: { minHeight: isMobile ? 52 : 54, paddingHorizontal: isMobile ? 16 : 18, paddingVertical: isMobile ? 14 : 15, borderRadius: 12 },
+    passwordInputShell: { width: '100%', minHeight: isMobile ? 52 : 54, borderWidth: 1, borderRadius: 12, flexDirection: 'row', alignItems: 'center', overflow: 'hidden' },
+    authPasswordInput: { flex: 1, minWidth: 0, minHeight: isMobile ? 50 : 52, paddingLeft: isMobile ? 16 : 18, paddingRight: 8, paddingVertical: isMobile ? 14 : 15, fontSize: font(13), outlineStyle: 'none' },
+    passwordTextInput: { flex: 1, minWidth: 0, minHeight: 48, paddingLeft: 12, paddingRight: 8, paddingVertical: 10, fontSize: font(13), outlineStyle: 'none' },
+    eyeButton: { width: 46, minHeight: 48, alignItems: 'center', justifyContent: 'center', position: 'relative', opacity: 0.88, ...(Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '160ms' } : {}) },
+    eyeButtonHover: { opacity: 1, backgroundColor: 'rgba(139,213,255,0.08)' },
+    eyeIcon: { fontSize: font(16), color: '#b9ddff' },
+    eyeSlash: { position: 'absolute', width: 22, height: 2, borderRadius: 2, backgroundColor: '#f8fafc', transform: [{ rotate: '-42deg' }] },
     forgotPasswordButton: { alignSelf: 'flex-end', paddingVertical: 8, paddingLeft: 12 },
     forgotPasswordText: { color: '#aeb7c2', fontSize: font(11), fontWeight: '600' },
     authErrorText: { color: '#fda4af', fontSize: font(11), fontWeight: '600', lineHeight: font(17), marginBottom: 10 },
@@ -2565,6 +2647,10 @@ function createStyles(theme, isMobile, fontScale) {
 
     iconButton: { width: 34, height: 34, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
     iconButtonText: { fontSize: font(14) },
+    userSettingsButtonContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+    profileGlyph: { width: 20, height: 20, alignItems: 'center', justifyContent: 'center', position: 'relative' },
+    profileGlyphHead: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#b9ddff', position: 'absolute', top: 1, ...(Platform.OS === 'web' ? { boxShadow: '0 0 10px rgba(139,213,255,0.55)' } : {}) },
+    profileGlyphBody: { width: 15, height: 8, borderTopLeftRadius: 8, borderTopRightRadius: 8, borderBottomLeftRadius: 4, borderBottomRightRadius: 4, backgroundColor: '#8b9dff', position: 'absolute', bottom: 1, ...(Platform.OS === 'web' ? { boxShadow: '0 0 12px rgba(139,157,255,0.45)' } : {}) },
 
     mainScroll: { flex: 1, width: '100%' },
     scrollContent: { padding: isMobile ? 14 : 24, paddingBottom: 60, gap: 18, position: 'relative' },
@@ -2737,6 +2823,10 @@ function createStyles(theme, isMobile, fontScale) {
     settingsInfoValue: { fontSize: font(12), fontWeight: '700', flexShrink: 1, textAlign: isMobile ? 'left' : 'right' },
     fieldErrorText: { fontSize: font(10), fontWeight: '600', marginTop: -4, marginBottom: 6 },
     settingsGeneralError: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: font(11), fontWeight: '600', marginTop: 4 },
+    toastWrap: { position: 'absolute', right: isMobile ? 14 : 24, top: isMobile ? 18 : 24, zIndex: 99999, maxWidth: isMobile ? '92%' : 380, minHeight: 48, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11, flexDirection: 'row', alignItems: 'center', gap: 10, ...(Platform.OS === 'web' ? { boxShadow: '0 18px 48px rgba(0,0,0,0.30)', backdropFilter: 'blur(12px)', transitionDuration: '180ms' } : { elevation: 24 }) },
+    toastDot: { width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
+    toastDotText: { color: '#ffffff', fontSize: font(13), fontWeight: '900' },
+    toastText: { flex: 1, color: '#ffffff', fontSize: font(11), fontWeight: '700', lineHeight: font(16) },
     drawerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
     drawerBackdrop: { flex: 1 },
     dayDrawerPanel: { width: '100%', maxHeight: '75%', borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: 1, paddingBottom: 20 },
@@ -2857,9 +2947,9 @@ function createStyles(theme, isMobile, fontScale) {
     helperText: { fontSize: font(10), marginTop: 4 },
 
     modalFooter: { flexDirection: 'row', gap: 10, padding: isMobile ? 14 : 20, borderTopWidth: 1 },
-    modalCancelButton: { flex: 1, borderWidth: 1, borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
+    modalCancelButton: { flex: 1, borderWidth: 1, borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '180ms' } : {}) },
     modalCancelButtonText: { fontSize: font(13), fontWeight: 'bold' },
-    modalSaveButton: { flex: 1, backgroundColor: theme.activeButton, borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
+    modalSaveButton: { flex: 1, backgroundColor: theme.activeButton, borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '180ms' } : {}) },
     modalSaveButtonText: { color: '#ffffff', fontSize: font(13), fontWeight: 'bold' },
 
     primaryButton: { backgroundColor: theme.activeButton, borderRadius: 10, paddingVertical: 11, paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center' },
@@ -2876,7 +2966,10 @@ function createStyles(theme, isMobile, fontScale) {
     warningTitle: { fontSize: font(17), fontWeight: '800', marginBottom: 8, textAlign: 'center' },
     warningMessage: { fontSize: font(12), lineHeight: font(18), textAlign: 'center', marginBottom: 8 },
     warningHint: { fontSize: font(11), lineHeight: font(16), textAlign: 'center', marginBottom: 22 },
-    warningButton: { width: '100%', backgroundColor: theme.activeButton, borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
+    warningButton: { width: '100%', backgroundColor: theme.activeButton, borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '180ms' } : {}) },
+    premiumButtonHover: { opacity: 0.92, transform: [{ translateY: -1 }], ...(Platform.OS === 'web' ? { boxShadow: '0 10px 26px rgba(105,101,232,0.28)' } : {}) },
+    successIconBox: { backgroundColor: 'rgba(52,211,153,0.14)', borderColor: '#34d399' },
+    successCheck: { color: '#34d399', fontSize: font(30), fontWeight: '900', lineHeight: font(34) },
     warningButtonText: { color: '#ffffff', fontSize: font(13), fontWeight: 'bold' },
     confirmationCard: { maxWidth: 420 },
     confirmationMessage: { lineHeight: font(18), marginBottom: 22 },
