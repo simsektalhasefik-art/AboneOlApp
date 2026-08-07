@@ -4,6 +4,12 @@ import {
   Modal, SafeAreaView, StatusBar, useWindowDimensions, Linking, Platform, Pressable
 } from 'react-native';
 
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from 'firebase/auth';
+import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
+import { app } from './firebase';
+
+const auth = getAuth(app);
+const db = getFirestore(app);
 const DEFAULT_RATES = { USD: 47.56, EUR: 54.77 };
 
 const CATEGORY_COLORS = {
@@ -237,6 +243,7 @@ export default function App() {
   const [authPassword, setAuthPassword] = useState('');
   const [authPasswordConfirm, setAuthPasswordConfirm] = useState('');
   const [authError, setAuthError] = useState('');
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
 
   const [subscriptions, setSubscriptions] = useState([]);
   const [exchangeRates, setExchangeRates] = useState(DEFAULT_RATES);
@@ -328,15 +335,18 @@ export default function App() {
 
   useEffect(() => {
     try {
-      const savedAuth = localStorage.getItem('cebin_auth_v1');
-      if (savedAuth === 'true') setIsLoggedIn(true);
-
       const savedSubscriptions = localStorage.getItem('cebin_subscriptions_v5');
       if (savedSubscriptions) {
         const parsed = JSON.parse(savedSubscriptions);
         setSubscriptions(Array.isArray(parsed) ? parsed : []);
       }
-
+useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, firebaseUser => {
+      setIsLoggedIn(!!firebaseUser);
+      setIsAuthChecking(false);
+    });
+    return unsubscribe;
+  }, []);
       const savedTemplates = localStorage.getItem('cebin_templates_v1');
       if (savedTemplates) {
         const parsed = JSON.parse(savedTemplates);
@@ -404,24 +414,58 @@ export default function App() {
 
   useEffect(() => { scrollMainToTop(false); }, [activeTab, selectedAnalysisYear]);
 
-  const handleLogin = () => {
+const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
+
+  const resolveLoginEmail = async identifier => {
+    const trimmedIdentifier = identifier.trim();
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedIdentifier)) {
+      return trimmedIdentifier;
+    }
+    const usernameKey = normalizeUsernameKey(trimmedIdentifier);
+    if (!usernameKey) return null;
+    try {
+      const usernameDoc = await getDoc(doc(db, 'usernames', usernameKey));
+      if (usernameDoc.exists()) {
+        return usernameDoc.data().email || null;
+      }
+    } catch (error) {
+      console.log('Kullanıcı adı çözümlenemedi:', error);
+    }
+    return null;
+  };
+
+  const mapFirebaseAuthError = errorCode => {
+    const messages = {
+      'auth/email-already-in-use': 'Bu E-posta Adresi Zaten Kullanılıyor.',
+      'auth/invalid-email': 'Geçersiz E-posta Adresi.',
+      'auth/weak-password': 'Şifre En Az 6 Karakter Olmalıdır.',
+      'auth/user-not-found': 'Kullanıcı Adı veya E-posta Bulunamadı.',
+      'auth/wrong-password': 'Şifre Hatalı. Lütfen Tekrar Deneyiniz.',
+      'auth/invalid-credential': 'E-posta/Kullanıcı Adı veya Şifre Hatalı.',
+      'auth/too-many-requests': 'Çok Fazla Deneme Yapıldı. Lütfen Bir Süre Sonra Tekrar Deneyiniz.',
+      'auth/network-request-failed': 'Ağ Bağlantısı Hatası. İnternet Bağlantınızı Kontrol Ediniz.'
+    };
+    return messages[errorCode] || 'Bir Hata Oluştu. Lütfen Tekrar Deneyiniz.';
+  };
+
+  const handleLogin = async () => {
     const trimmedName = authName.trim();
-    const trimmedEmail = authEmail.trim();
+    const trimmedIdentifier = authEmail.trim();
 
     if (authMode === 'register' && !trimmedName) {
       showAlert('Lütfen Ad Soyad veya Kullanıcı Adınızı Giriniz.');
       return;
     }
-    if (!trimmedEmail || !authPassword) {
-      showAlert(authMode === 'register' ? 'Lütfen Tüm Zorunlu Alanları Doldurunuz.' : 'Lütfen E-posta ve Şifrenizi Giriniz.');
+    if (!trimmedIdentifier || !authPassword) {
+      showAlert(authMode === 'register' ? 'Lütfen Tüm Zorunlu Alanları Doldurunuz.' : 'Lütfen E-posta veya Kullanıcı Adınızı ve Şifrenizi Giriniz.');
       return;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+    if (authMode === 'register' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedIdentifier)) {
       showAlert('Lütfen Geçerli Bir E-posta Adresi Giriniz.');
       return;
     }
-    if (authPassword.length < 4) {
-      showAlert('Şifre En Az 4 Karakter Olmalıdır.');
+    if (authPassword.length < 6) {
+      showAlert('Şifre En Az 6 Karakter Olmalıdır.');
       return;
     }
     if (authMode === 'register' && !authPasswordConfirm) {
@@ -434,14 +478,67 @@ export default function App() {
     }
 
     setAuthError('');
+
     try {
-      localStorage.setItem('cebin_auth_v1', 'true');
-      localStorage.setItem('cebin_auth_email_v1', trimmedEmail);
       if (authMode === 'register') {
-        localStorage.setItem('cebin_auth_name_v1', trimmedName);
+        const usernameKey = normalizeUsernameKey(trimmedName);
+
+        const existingUsernameDoc = await getDoc(doc(db, 'usernames', usernameKey));
+        if (existingUsernameDoc.exists()) {
+          showAlert('Bu Kullanıcı Adı Zaten Kullanılıyor. Lütfen Başka Bir Kullanıcı Adı Seçiniz.');
+          return;
+        }
+
+        const credential = await createUserWithEmailAndPassword(auth, trimmedIdentifier, authPassword);
+
+        try {
+          await updateProfile(credential.user, { displayName: trimmedName });
+        } catch (profileError) {
+          console.log('Profil adı güncellenemedi:', profileError);
+        }
+
+        try {
+          await setDoc(doc(db, 'usernames', usernameKey), {
+            email: trimmedIdentifier,
+            uid: credential.user.uid
+          });
+          await setDoc(doc(db, 'users', credential.user.uid), {
+            username: trimmedName,
+            email: trimmedIdentifier
+          });
+        } catch (firestoreError) {
+          console.log('Kullanıcı adı eşlemesi kaydedilemedi:', firestoreError);
+        }
+
+        /*
+          Firebase, hesap oluşturulduğunda istemci tarafında kullanıcıyı otomatik
+          olarak oturuma açar. İstenen davranış "kayıt sonrası otomatik giriş
+          yapılmaması" olduğundan, oturum burada bilinçli olarak kapatılır ve
+          kullanıcı Giriş Yap ekranına yönlendirilir.
+        */
+        await signOut(auth);
+
+        setAuthName('');
+        setAuthEmail('');
+        setAuthPassword('');
+        setAuthPasswordConfirm('');
+        setAuthMode('login');
+        showAlert('Kaydınız Başarıyla Oluşturuldu. Lütfen Giriş Yapınız.');
+        return;
       }
-    } catch (e) { console.log(e); }
-    setIsLoggedIn(true);
+
+      const resolvedEmail = await resolveLoginEmail(trimmedIdentifier);
+      if (!resolvedEmail) {
+        showAlert('Kullanıcı Adı veya E-posta Bulunamadı.');
+        return;
+      }
+
+      await signInWithEmailAndPassword(auth, resolvedEmail, authPassword);
+      setAuthPassword('');
+    } catch (error) {
+      console.log('Kimlik doğrulama hatası:', error);
+      showAlert(mapFirebaseAuthError(error?.code));
+    }
   };
 
   const handleForgotPassword = () => {
@@ -457,9 +554,12 @@ export default function App() {
       title: 'Oturumu Kapat',
       message: 'Oturumu Kapatmak İstediğinize Emin Misiniz?',
       confirmLabel: 'Çıkış Yap',
-      onConfirm: () => {
-        try { localStorage.setItem('cebin_auth_v1', 'false'); } catch (e) { console.log(e); }
-        setIsLoggedIn(false);
+      onConfirm: async () => {
+        try {
+          await signOut(auth);
+        } catch (error) {
+          console.log('Çıkış yapılamadı:', error);
+        }
       }
     });
   };
@@ -892,6 +992,16 @@ export default function App() {
   const openDayDrawer = (dayNumber, itemsForDay) => {
     setDayDrawer({ visible: true, day: dayNumber, month: calendarMonth, year: calendarYear, items: itemsForDay });
   };
+if (isAuthChecking) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: '#171b2b' }]}>
+        <StatusBar barStyle="light-content" />
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: '#f8fafc', fontSize: 14, fontWeight: '600' }}>Yükleniyor...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (!isLoggedIn) {
     const authBackgroundStyle = Platform.OS === 'web'
