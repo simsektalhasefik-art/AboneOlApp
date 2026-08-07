@@ -4,9 +4,10 @@ import {
   Modal, SafeAreaView, StatusBar, useWindowDimensions, Linking, Platform, Pressable
 } from 'react-native';
 
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile, sendPasswordResetEmail, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 import { app } from './src/firebase';
+import Svg, { Path, Circle } from 'react-native-svg';
 
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -211,6 +212,29 @@ const hexToRgba = (hex, alpha) => {
   } catch { return hex; }
 };
 
+// Premium şifre görünürlük ikonu. Varsayılan durumda çizgili göz = şifre gizli.
+const PasswordEyeIcon = ({ visible, color = '#b9ddff' }) => (
+  <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M2.5 12s3.6-6 9.5-6 9.5 6 9.5 6-3.6 6-9.5 6-9.5-6-9.5-6Z"
+      stroke={color}
+      strokeWidth={1.65}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Circle cx={12} cy={12} r={2.65} stroke={color} strokeWidth={1.65} />
+    {!visible && (
+      <Path
+        d="M4 4 20 20"
+        stroke={color}
+        strokeWidth={1.65}
+        strokeLinecap="round"
+      />
+    )}
+  </Svg>
+);
+
+
 export default function App() {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
@@ -246,6 +270,7 @@ export default function App() {
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [authPasswordVisible, setAuthPasswordVisible] = useState(false);
   const [authPasswordConfirmVisible, setAuthPasswordConfirmVisible] = useState(false);
+  const registrationFlowRef = useRef(false);
 
   const [subscriptions, setSubscriptions] = useState([]);
   const [exchangeRates, setExchangeRates] = useState(DEFAULT_RATES);
@@ -377,6 +402,13 @@ export default function App() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async firebaseUser => {
+      // Kayıt sırasında Firebase hesabı otomatik oturuma açar. Panelin bir an görünmesini engelle.
+      if (registrationFlowRef.current) {
+        setIsLoggedIn(false);
+        if (!firebaseUser) setIsAuthChecking(false);
+        return;
+      }
+
       setIsLoggedIn(!!firebaseUser);
 
       if (firebaseUser) {
@@ -542,10 +574,13 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
 
     try {
       if (authMode === 'register') {
+        registrationFlowRef.current = true;
+        setIsLoggedIn(false);
         const usernameKey = normalizeUsernameKey(trimmedName);
 
         const existingUsernameDoc = await getDoc(doc(db, 'usernames', usernameKey));
         if (existingUsernameDoc.exists()) {
+          registrationFlowRef.current = false;
           showAlert('Bu Kullanıcı Adıyla Hesap Mevcut', { preserveCase: true });
           return;
         }
@@ -585,10 +620,10 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
         setAuthPasswordConfirm('');
 
         showAlert('', {
-          title: 'Kayıt Başarıyla Oluşturuldu',
+          title: 'Kayıt Başarıyla Gerçekleşti',
           preserveCase: true,
           type: 'success',
-          onClose: () => setAuthMode('login')
+          onClose: () => { registrationFlowRef.current = false; setIsLoggedIn(false); setAuthMode('login'); }
         });
         return;
       }
@@ -603,6 +638,7 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
       setAuthPassword('');
     } catch (error) {
       console.log('Kimlik doğrulama hatası:', error);
+      if (authMode === 'register') registrationFlowRef.current = false;
       if (authMode === 'register' && error?.code === 'auth/email-already-in-use') {
         showAlert('Bu Kullanıcı Adıyla Hesap Mevcut', { preserveCase: true });
         return;
@@ -612,26 +648,38 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
   };
 
   const handleForgotPassword = async () => {
-    const identifier = authEmail.trim();
-    if (!identifier) {
-      showAlert('Lütfen E-posta veya Kullanıcı Adınızı Giriniz.');
+    const email = authEmail.trim().toLocaleLowerCase('tr-TR');
+
+    if (!email) {
+      showAlert('Lütfen E-posta Adresinizi Giriniz.');
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showAlert('Lütfen Geçerli Bir E-posta Adresi Giriniz.');
       return;
     }
 
     try {
-      const resolvedEmail = await resolveLoginEmail(identifier);
-      if (!resolvedEmail) {
-        showAlert('Kullanıcı Adı veya E-posta Bulunamadı.');
-        return;
+      const response = await fetch('/api/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result?.message || 'Yeni şifre oluşturulamadı.');
       }
 
-      await sendPasswordResetEmail(auth, resolvedEmail);
-      showAlert('Şifre Sıfırlama Bağlantısı E-posta Adresinize Gönderildi.', {
-        title: 'E-posta Gönderildi'
+      showAlert('Yeni Geçici Şifreniz E-posta Adresinize Gönderildi.', {
+        title: 'Yeni Şifre Gönderildi',
+        preserveCase: true,
+        type: 'success'
       });
     } catch (error) {
-      console.log('Şifre sıfırlama e-postası gönderilemedi:', error);
-      showAlert(mapFirebaseAuthError(error?.code));
+      console.log('Geçici şifre gönderilemedi:', error);
+      showAlert(error?.message || 'Yeni Şifre Gönderilemedi. Lütfen Tekrar Deneyiniz.', { preserveCase: true });
     }
   };
 
@@ -1246,8 +1294,7 @@ if (isAuthChecking) {
                     onChangeText={setAuthPassword}
                   />
                   <Pressable style={({ hovered, pressed }) => [styles.eyeButton, (hovered || pressed) && styles.eyeButtonHover]} onPress={() => setAuthPasswordVisible(value => !value)}>
-                    <Text style={styles.eyeIcon}>👁</Text>
-                    {authPasswordVisible && <View style={styles.eyeSlash} />}
+                    <PasswordEyeIcon visible={authPasswordVisible} />
                   </Pressable>
                 </View>
                 {authMode === 'login' && (
@@ -1270,8 +1317,7 @@ if (isAuthChecking) {
                       onChangeText={setAuthPasswordConfirm}
                     />
                     <Pressable style={({ hovered, pressed }) => [styles.eyeButton, (hovered || pressed) && styles.eyeButtonHover]} onPress={() => setAuthPasswordConfirmVisible(value => !value)}>
-                      <Text style={styles.eyeIcon}>👁</Text>
-                      {authPasswordConfirmVisible && <View style={styles.eyeSlash} />}
+                      <PasswordEyeIcon visible={authPasswordConfirmVisible} />
                     </Pressable>
                   </View>
                 </View>
@@ -2054,8 +2100,7 @@ if (isAuthChecking) {
                     placeholderTextColor={theme.textMuted}
                   />
                   <Pressable style={({ hovered, pressed }) => [styles.eyeButton, (hovered || pressed) && styles.eyeButtonHover]} onPress={() => setCurrentPasswordVisible(value => !value)}>
-                    <Text style={styles.eyeIcon}>👁</Text>
-                    {currentPasswordVisible && <View style={styles.eyeSlash} />}
+                    <PasswordEyeIcon visible={currentPasswordVisible} color={theme.accent} />
                   </Pressable>
                 </View>
                 {!!passwordErrors.current && <Text style={[styles.fieldErrorText, { color: theme.danger }]}>{passwordErrors.current}</Text>}
@@ -2073,8 +2118,7 @@ if (isAuthChecking) {
                         placeholderTextColor={theme.textMuted}
                       />
                       <Pressable style={({ hovered, pressed }) => [styles.eyeButton, (hovered || pressed) && styles.eyeButtonHover]} onPress={() => setNewPasswordVisible(value => !value)}>
-                        <Text style={styles.eyeIcon}>👁</Text>
-                        {newPasswordVisible && <View style={styles.eyeSlash} />}
+                        <PasswordEyeIcon visible={newPasswordVisible} color={theme.accent} />
                       </Pressable>
                     </View>
                     {!!passwordErrors.next && <Text style={[styles.fieldErrorText, { color: theme.danger }]}>{passwordErrors.next}</Text>}
@@ -2093,8 +2137,7 @@ if (isAuthChecking) {
                         placeholderTextColor={theme.textMuted}
                       />
                       <Pressable style={({ hovered, pressed }) => [styles.eyeButton, (hovered || pressed) && styles.eyeButtonHover]} onPress={() => setNewPasswordConfirmVisible(value => !value)}>
-                        <Text style={styles.eyeIcon}>👁</Text>
-                        {newPasswordConfirmVisible && <View style={styles.eyeSlash} />}
+                        <PasswordEyeIcon visible={newPasswordConfirmVisible} color={theme.accent} />
                       </Pressable>
                     </View>
                     {!!passwordErrors.confirm && <Text style={[styles.fieldErrorText, { color: theme.danger }]}>{passwordErrors.confirm}</Text>}
@@ -2602,8 +2645,6 @@ function createStyles(theme, isMobile, fontScale) {
     passwordTextInput: { flex: 1, minWidth: 0, minHeight: 48, paddingLeft: 12, paddingRight: 8, paddingVertical: 10, fontSize: font(13), outlineStyle: 'none' },
     eyeButton: { width: 46, minHeight: 48, alignItems: 'center', justifyContent: 'center', position: 'relative', opacity: 0.88, ...(Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '160ms' } : {}) },
     eyeButtonHover: { opacity: 1, backgroundColor: 'rgba(139,213,255,0.08)' },
-    eyeIcon: { fontSize: font(16), color: '#b9ddff' },
-    eyeSlash: { position: 'absolute', width: 22, height: 2, borderRadius: 2, backgroundColor: '#f8fafc', transform: [{ rotate: '-42deg' }] },
     forgotPasswordButton: { alignSelf: 'flex-end', paddingVertical: 8, paddingLeft: 12 },
     forgotPasswordText: { color: '#aeb7c2', fontSize: font(11), fontWeight: '600' },
     authErrorText: { color: '#fda4af', fontSize: font(11), fontWeight: '600', lineHeight: font(17), marginBottom: 10 },
