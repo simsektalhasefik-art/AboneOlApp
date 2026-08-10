@@ -1,10 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import {
-  StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput,
+  StyleSheet, Text as RNText, View, ScrollView, TouchableOpacity, TextInput,
   Modal, SafeAreaView, StatusBar, useWindowDimensions, Linking, Platform, Pressable
 } from 'react-native';
 
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile, sendPasswordResetEmail, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile, sendPasswordResetEmail, EmailAuthProvider, reauthenticateWithCredential, updatePassword, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
 import { app } from './src/firebase';
 import Svg, { Path, Circle } from 'react-native-svg';
@@ -12,6 +12,270 @@ import Svg, { Path, Circle } from 'react-native-svg';
 const auth = getAuth(app);
 auth.languageCode = 'tr';
 const db = getFirestore(app);
+const LanguageContext = createContext('tr');
+
+// Arayüzdeki sabit metinleri tek merkezden TR / EN olarak sunar
+// Kullanıcı tarafından girilen abonelik adları ve özel veriler çevrilmez
+const UI_TRANSLATIONS_EN = {
+  'Yükleniyor...': 'Loading...',
+  'Akıllı Abonelik Ve Bütçe Asistanı': 'Smart Subscription And Budget Assistant',
+  'Giriş Yap': 'Sign In',
+  'Kayıt Ol': 'Sign Up',
+  'Ad Soyad / Kullanıcı Adı': 'Full Name / Username',
+  'Ad Soyad veya Kullanıcı Adı': 'Full Name or Username',
+  'E-posta / Kullanıcı Adı': 'Email / Username',
+  'E-posta': 'Email',
+  'E-posta Adresi': 'Email Address',
+  'Şifre': 'Password',
+  'Şifre Tekrarı': 'Confirm Password',
+  'Şifremi Unuttum?': 'Forgot Password?',
+  'veya': 'or',
+  'Google İle Devam Et': 'Continue With Google',
+  'Hesabın Yok Mu? Kayıt Ol': 'No Account? Sign Up',
+  'Zaten Hesabın Var Mı? Giriş Yap': 'Already Have An Account? Sign In',
+  'Beni Hatırla': 'Remember Me',
+  'Şifremi Unuttum': 'Forgot Password',
+  'Sıfırlama Bağlantısı Gönder': 'Send Reset Link',
+  'Gönderiliyor...': 'Sending...',
+  'Vazgeç': 'Cancel',
+  'Tamam': 'OK',
+  'İptal': 'Cancel',
+  'E-posta Gönderildi': 'Email Sent',
+  'Kayıt Başarıyla Gerçekleşti': 'Registration Completed Successfully',
+  'Eksik veya Hatalı Bilgi': 'Missing Or Invalid Information',
+  'Şifreniz Başarıyla Güncellendi': 'Password Updated Successfully',
+  'Abonelikler': 'Subscriptions',
+  'Takvim': 'Calendar',
+  'Ödeme Takvimi': 'Payment Calendar',
+  'Analiz ve Raporlar': 'Analytics And Reports',
+  'Kullanıcı Ayarları': 'User Settings',
+  'CSV Excel İndir': 'Download CSV Excel',
+  '+ Yeni Abonelik Ekle': '+ Add New Subscription',
+  '+ Abonelik Ekle': '+ Add Subscription',
+  '+ Ekle': '+ Add',
+  'Çıkış Yap': 'Sign Out',
+  'Oturumu Kapat': 'Sign Out',
+  'Aboneliklerinizi Ve Düzenli Ödemelerinizi Yönetin': 'Manage Your Subscriptions And Recurring Payments',
+  'Yaklaşan Ödeme Tarihlerini Takvim Üzerinden Takip Edin': 'Track Upcoming Payment Dates On The Calendar',
+  'Aylık Harcama Eğilimlerinizi Ve Bütçe Yükünüzü İnceleyin': 'Review Monthly Spending Trends And Your Budget Load',
+  'Görünüm Filtresi': 'View Filter',
+  'Abonelik Listenizi Tek Dokunuşla Daraltın': 'Narrow Your Subscription List With One Tap',
+  'Tüm Abonelikler': 'All Subscriptions',
+  'Aylık Ödemeler': 'Monthly Payments',
+  'Yıllık Ödemeler': 'Yearly Payments',
+  'Yaklaşan Ödemeler': 'Upcoming Payments',
+  'En Yüksek Tutar': 'Highest Amount',
+  'Ada Göre': 'By Name',
+  'Kayıt Bulunamadı': 'No Records Found',
+  'Arama Metnini Veya Görünüm Filtresini Değiştiriniz': 'Change The Search Text Or View Filter',
+  'Abonelik, Kategori veya Ödeme Yöntemi Ara...': 'Search Subscription, Category Or Payment Method...',
+  'Günlük Maliyet': 'Daily Cost',
+  'Bütçe Yılı': 'Budget Year',
+  'Ödendi': 'Paid',
+  'Ödendi İşaretle': 'Mark As Paid',
+  'Düzenle': 'Edit',
+  'Kredi': 'Credit',
+  'Eğlence': 'Entertainment',
+  'Yazılım & AI': 'Software & AI',
+  'Müzik': 'Music',
+  'Eğitim': 'Education',
+  'Bulut & Depolama': 'Cloud & Storage',
+  'Spor & Sağlık': 'Sports & Health',
+  'Diğer': 'Other',
+  'Bildirim Yok': 'No Notification',
+  'Aynı Gün': 'Same Day',
+  '1 Gün Önce': '1 Day Before',
+  '2 Gün Önce': '2 Days Before',
+  '3 Gün Önce': '3 Days Before',
+  '1 Hafta Önce': '1 Week Before',
+  'Sabit Abonelikler': 'Fixed Subscriptions',
+  'Toplam Finansal Yük': 'Total Financial Load',
+  'Sabit Abonelik Harcaması': 'Fixed Subscription Spending',
+  'Aylık Harcama Grafiği': 'Monthly Spending Chart',
+  'Akıllı Asistan Özeti': 'Smart Assistant Summary',
+  'Ödeme Yöntemine Göre Aylık Dağılım': 'Monthly Distribution By Payment Method',
+  'Kategori Bazlı Aylık Dağılım': 'Monthly Distribution By Category',
+  'Toplam / Ay': 'Total / Month',
+  'Yeni Abonelik Ekle': 'Add New Subscription',
+  'Hızlı Şablon Seç': 'Choose Quick Template',
+  '+ Şablon Ekle': '+ Add Template',
+  'Temel Bilgiler': 'Basic Information',
+  'Servis / Abonelik Adı': 'Service / Subscription Name',
+  'Tutar / Fiyat': 'Amount / Price',
+  'Para Birimi': 'Currency',
+  'Ödeme Periyodu': 'Payment Period',
+  'Aylık': 'Monthly',
+  'Yıllık': 'Yearly',
+  'Yıllık Tahmini Artış / Zam Oranı (%)': 'Estimated Annual Increase / Raise Rate (%)',
+  'Zam Uygulama Periyodu': 'Increase Application Period',
+  'Ödeme Yapılan Kart / Hesap': 'Payment Card / Account',
+  '+ Yöntem Ekle': '+ Add Method',
+  'Kategori': 'Category',
+  'Ödeme Tarihi': 'Payment Date',
+  'Gün': 'Day',
+  'Ay': 'Month',
+  'Yıl': 'Year',
+  'Hatırlatıcı Kuralı': 'Reminder Rule',
+  'Bildirim Kanalı': 'Notification Channel',
+  'Tarayıcı Bildirimi': 'Browser Notification',
+  'İptal / Yönetim Bağlantısı': 'Cancel / Management Link',
+  'İleri →': 'Next →',
+  '← Geri': '← Back',
+  'Kaydet': 'Save',
+  'Kapat': 'Close',
+  'Şifremi Değiştir': 'Change My Password',
+  'Mevcut Şifre': 'Current Password',
+  'Yeni Şifre': 'New Password',
+  'Yeni Şifre Tekrarı': 'Confirm New Password',
+  'Şifreyi Güncelle': 'Update Password',
+  'Görünüm Ayarları': 'Appearance Settings',
+  'Tema': 'Theme',
+  'Yazı Boyutu': 'Font Size',
+  'Küçük': 'Small',
+  'Normal': 'Normal',
+  'Büyük': 'Large',
+  'Çok Büyük': 'Extra Large',
+  'Açık Füme': 'Light Smoke',
+  'Antrasit': 'Anthracite',
+  'Lacivert': 'Navy',
+  'Adaçayı': 'Sage',
+  'Açık Yeşil': 'Light Green',
+  'Kayısı': 'Apricot',
+  'Kum': 'Sand',
+  'Lavanta': 'Lavender',
+  'Gül Kurusu': 'Dusty Rose',
+  'Açık': 'Light',
+  'Ocak': 'January', 'Şubat': 'February', 'Mart': 'March', 'Nisan': 'April', 'Mayıs': 'May', 'Haziran': 'June',
+  'Temmuz': 'July', 'Ağustos': 'August', 'Eylül': 'September', 'Ekim': 'October', 'Kasım': 'November', 'Aralık': 'December',
+  'Bugün': 'Today', 'Yarın': 'Tomorrow',
+  'Aboneliği Sil': 'Delete Subscription',
+  'Şablonu Sil': 'Delete Template',
+  'Ödeme Yöntemini Sil': 'Delete Payment Method',
+  'Geri Yükle': 'Restore',
+  'Yedeği Geri Yükle': 'Restore Backup',
+'Abonelik Veya Sabit Gider Bilgilerini Girin': 'Enter Subscription Or Fixed Expense Details',
+  'Abonelik Yıl Dönümünde': 'On Subscription Anniversary',
+  'Aboneliğin Tahsil Edildiği Yöntemi Seçin': 'Select The Payment Method Used For This Subscription',
+  'Aktif Bir Abonelik Eklediğinizde Aylık Dağılım Burada Görünür': 'Monthly Distribution Appears Here After You Add An Active Subscription',
+  'Ana Panel Bütçe Yılı': 'Dashboard Budget Year',
+  'Arka Plan Teması': 'Background Theme',
+  'Arka Plan Temasını Ve Yazı Boyutunu Kişiselleştirin': 'Customize The Background Theme And Font Size',
+  'Artışın Abonelik Yıl Dönümünde Veya Her Takvim Yılı Başında Devreye Girmesini Seçin': 'Choose Whether The Increase Applies On The Subscription Anniversary Or At The Start Of Each Calendar Year',
+  'Ayarları Uygula': 'Apply Settings',
+  'Aylık Bütçe Dağılımı': 'Monthly Budget Distribution',
+  'Aylık Toplam': 'Monthly Total',
+  'Aylık Ödeme Yükü Bulunamadı': 'No Monthly Payment Load Found',
+  'Başlangıç / İlk Taksit Tarihi': 'Start / First Installment Date',
+  'Başlangıç Ayı Geldiğinde Zam Uygulanır': 'The Increase Applies When The Start Month Arrives',
+  'Bildirim E-posta Adresi': 'Notification Email Address',
+  'Bitiş Tarihini Görmek İçin Vade İle Başlangıç Ayı/Yılını Girin': 'Enter The Term And Start Month/Year To See The End Date',
+  'Bu Abonelik Zaten Kayıtlı': 'This Subscription Is Already Registered',
+  'Bu Gün İçin Ödeme Yok': 'No Payment For This Day',
+  'Bu Güne Ait Ödemeler': 'Payments For This Day',
+  'E-Postadaki Bağlantı Üzerinden Yeni Şifrenizi Belirleyebilirsiniz Cebin PRO Mevcut Şifrenizi Görüntülemez Veya E-Posta İle Göndermez': 'You Can Set A New Password Using The Link In The Email Cebin PRO Does Not View Or Send Your Existing Password By Email',
+  'Finansal Analizlerin Gösterileceği Yılı Seçin': 'Select The Year For Financial Analytics',
+  'Görünüm Ayarları': 'Appearance Settings',
+  'Güvenlik Nedeniyle Önce Mevcut Şifreniz Doğrulanır': 'For Security Your Current Password Is Verified First',
+  'Hatırlatıcı E-Postaları Bu Adrese Yönlendirilecektir': 'Reminder Emails Will Be Sent To This Address',
+  'Hazır Bir Servis Seçerek Alanları Otomatik Doldurun': 'Choose A Ready Service To Fill The Fields Automatically',
+  'Her 1 Ocak Tarihinde Zam Uygulanır': 'The Increase Applies Every January 1',
+  'Hesabınıza Bağlı E-Posta Adresini Girin Şifrenizi Güvenli Şekilde Yenileyebilmeniz İçin Firebase Tarafından Bir Sıfırlama Bağlantısı Gönderilecektir': 'Enter The Email Address Linked To Your Account Firebase Will Send A Reset Link So You Can Securely Renew Your Password',
+  'Hesap Bilgileri': 'Account Information',
+  'Hesap Bilgilerinizi Görüntüleyin Ve Şifrenizi Güvenli Şekilde Güncelleyin': 'View Your Account Information And Securely Update Your Password',
+  'Kart Ve Hesap Bazında Aylık Ödeme Yükü': 'Monthly Payment Load By Card And Account',
+  'Kredi / Taksit Planı': 'Credit / Installment Plan',
+  'Kullanıcı Adı': 'Username',
+  'Mevcut Kaydı Düzenleyebilir Veya Aboneliği Farklı Bir Adla Ekleyebilirsiniz': 'You Can Edit The Existing Record Or Add The Subscription With A Different Name',
+  'Raporlama Dönemi': 'Reporting Period',
+  'Raporlama Yılı': 'Reporting Year',
+  'Seçilen Oran, Gelecek Yıllardaki Maliyet Ve Bütçe Projeksiyonlarına Bileşik Olarak Yansıtılır': 'The Selected Rate Is Applied Compounded To Future Cost And Budget Projections',
+  'Seçilen Yıl İçin Kategori Verisi Bulunamadı': 'No Category Data Found For The Selected Year',
+  'Sonraki ▶': 'Next ▶',
+  'Tahmini Son Taksit': 'Estimated Final Installment',
+  'Takvim Yılı': 'Calendar Year',
+  'Takvim Yılı Başında (Ocak)': 'At The Start Of The Calendar Year (January)',
+  'Tarayıcı Bildirimlerinin Çalışması İçin Cihazınızda Ve Tarayıcınızda Bildirim İzninin Açık Olması Gerekir İzin Sorulduğunda “İzin Ver” Seçeneğini Kullanın': 'Browser Notifications Require Notification Permission On Your Device And Browser Choose “Allow” When Permission Is Requested',
+  'Toplam': 'Total',
+  'Toplam Taksit Sayısı (Vade)': 'Total Installment Count (Term)',
+  'Tüm Analizler Seçilen Yıla Göre Güncellenir': 'All Analytics Update According To The Selected Year',
+  'Vade Ve İlk Taksit Ayını Girin Kayıt, Son Taksit Ayından Sonra Takvim Ve Raporlarda Otomatik Olarak Sona Erer': 'Enter The Term And First Installment Month The Record Automatically Ends In Calendar And Reports After The Final Installment Month',
+  'Yönet': 'Manage',
+  'Ödeme Takviminde Görüntülenecek Yılı Seçin': 'Select The Year To Display In The Payment Calendar',
+  'Özet Maliyetlerin Hesaplanacağı Projeksiyon Yılını Seçin': 'Select The Projection Year Used For Summary Cost Calculations',
+  'Şablonu Kaydet': 'Save Template',
+  '◀ Önceki': '◀ Previous',
+  '📧 E-posta': '📧 Email',
+  '🌐 Tarayıcı Bildirimi': '🌐 Browser Notification',
+  '📄 CSV Excel İndir': '📄 Download CSV Excel',
+  '🚪 Çıkış Yap': '🚪 Sign Out',
+  'Lütfen Ad Soyad veya Kullanıcı Adınızı Giriniz.': 'Please Enter Your Full Name Or Username',
+  'Lütfen E-posta Adresinizi Giriniz.': 'Please Enter Your Email Address',
+  'Lütfen E-posta veya Kullanıcı Adınızı ve Şifrenizi Giriniz.': 'Please Enter Your Email Or Username And Password',
+  'Lütfen Geçerli Bir E-posta Adresi Giriniz.': 'Please Enter A Valid Email Address',
+  'Lütfen Tüm Zorunlu Alanları Doldurunuz.': 'Please Fill In All Required Fields',
+  'Lütfen Şifrenizi Tekrar Giriniz.': 'Please Enter Your Password Again',
+  'Şifre En Az 6 Karakter Olmalıdır.': 'Password Must Be At Least 6 Characters',
+  'Şifre ve Şifre Tekrarı Uyuşmuyor. Lütfen Bilgilerinizi Kontrol Ediniz.': 'Password And Confirmation Do Not Match Please Check Your Information',
+  'Kullanıcı Adı veya E-posta Bulunamadı.': 'Username Or Email Not Found',
+  'Bu Kullanıcı Adıyla Hesap Mevcut': 'An Account With This Username Already Exists',
+  'Bu E-posta Adresi Zaten Kullanılıyor.': 'This Email Address Is Already In Use',
+  'Geçersiz E-posta Adresi.': 'Invalid Email Address',
+  'Şifre Hatalı. Lütfen Tekrar Deneyiniz.': 'Incorrect Password Please Try Again',
+  'E-posta/Kullanıcı Adı veya Şifre Hatalı.': 'Email/Username Or Password Is Incorrect',
+  'Çok Fazla Deneme Yapıldı. Lütfen Bir Süre Sonra Tekrar Deneyiniz.': 'Too Many Attempts Please Try Again Later',
+  'Ağ Bağlantısı Hatası. İnternet Bağlantınızı Kontrol Ediniz.': 'Network Error Please Check Your Internet Connection',
+  'Bir Hata Oluştu. Lütfen Tekrar Deneyiniz.': 'An Error Occurred Please Try Again',
+  'Bu E-posta Adresiyle Kayıtlı Bir Hesap Bulunamadı.': 'No Account Was Found With This Email Address',
+  'Şifre Sıfırlama E-postası Gönderilemedi. Lütfen Tekrar Deneyiniz.': 'Password Reset Email Could Not Be Sent Please Try Again',
+  'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.': 'Password Reset Link Was Sent To Your Email Address',
+  'Oturumu Kapatmak İstediğinize Emin Misiniz?': 'Are You Sure You Want To Sign Out',
+  'Mevcut şifrenizi giriniz.': 'Enter Your Current Password',
+  'Yeni şifrenizi giriniz.': 'Enter Your New Password',
+  'Yeni şifre en az 6 karakter olmalıdır.': 'New Password Must Be At Least 6 Characters',
+  'Yeni şifrenizi tekrar giriniz.': 'Enter Your New Password Again',
+  'Şifreler uyuşmuyor.': 'Passwords Do Not Match',
+  'Eski şifre yanlış.': 'Current Password Is Incorrect',
+  'Oturum bilgileri bulunamadı. Lütfen yeniden giriş yapınız.': 'Session Information Was Not Found Please Sign In Again',
+  'Google İle Giriş İçin OAuth Entegrasyonu Yapılandırılmalıdır.': 'OAuth Integration Must Be Configured For Google Sign In',
+  'Toplam Finansal Yük: Abonelikler Ve Aktif Kredi Taksitleri Birlikte Gösterilir': 'Total Financial Load: Subscriptions And Active Credit Installments Are Shown Together',
+  'Sabit Abonelikler: Kredi Taksitleri Ölçekten Ayrılarak Küçük Giderler Daha Net Görünür': 'Fixed Subscriptions: Credit Installments Are Excluded From The Scale So Smaller Expenses Stay Clear',
+  'Detay İçin Bir Aya Dokunun Grafiği Yatay Kaydırabilirsiniz': 'Tap A Month For Details You Can Scroll The Chart Horizontally',
+  'Detay İçin Çubukların Üzerine Gelin Veya Tıklayın': 'Hover Over Or Click A Bar For Details'
+};
+
+const translateUiString = (value, language) => {
+  if (language !== 'en' || typeof value !== 'string') return value;
+  if (UI_TRANSLATIONS_EN[value]) return UI_TRANSLATIONS_EN[value];
+
+  let translated = value;
+  const exactTrimmed = value.trim();
+  if (UI_TRANSLATIONS_EN[exactTrimmed]) {
+    const leading = value.match(/^\s*/)?.[0] || '';
+    const trailing = value.match(/\s*$/)?.[0] || '';
+    return `${leading}${UI_TRANSLATIONS_EN[exactTrimmed]}${trailing}`;
+  }
+
+  translated = translated
+    .replace(/(\d+) gün kaldı/gi, '$1 days left')
+    .replace(/Her Ayın\s+(\d+)\.\s+Günü/gi, 'Every Month On Day $1')
+    .replace(/(\d+) Taksit · Bitiş/gi, '$1 Installments · Ends')
+    .replace(/(\d+) Taksit/gi, '$1 Installments')
+    .replace(/Geçen Aya Göre/gi, 'Vs Previous Month')
+    .replace(/Yıllık Artış:/gi, 'Annual Increase:')
+    .replace(/kayıt/gi, 'records');
+  return translated;
+};
+
+const translateUiChildren = (children, language) => {
+  if (Array.isArray(children)) return children.map(child => translateUiChildren(child, language));
+  if (typeof children === 'string') return translateUiString(children, language);
+  return children;
+};
+
+const Text = ({ children, ...props }) => {
+  const language = useContext(LanguageContext);
+  return <RNText {...props}>{translateUiChildren(children, language)}</RNText>;
+};
 const DEFAULT_RATES = { USD: 47.56, EUR: 54.77 };
 
 const CATEGORY_COLORS = {
@@ -383,6 +647,8 @@ export default function App() {
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [authPasswordVisible, setAuthPasswordVisible] = useState(false);
   const [authPasswordConfirmVisible, setAuthPasswordConfirmVisible] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
+  const [language, setLanguage] = useState('tr');
   const registrationFlowRef = useRef(false);
 
   // Şifremi Unuttum akışı giriş ekranından bağımsız, yalnızca e-posta ile çalışır.
@@ -608,6 +874,12 @@ export default function App() {
 
       const savedNotifications = localStorage.getItem('cebin_notifications_v1');
       if (savedNotifications !== null) setNotificationsEnabled(savedNotifications === 'true');
+
+      const savedRememberMe = localStorage.getItem('cebin_remember_me_v1');
+      if (savedRememberMe !== null) setRememberMe(savedRememberMe === 'true');
+
+      const savedLanguage = localStorage.getItem('cebin_language_v1');
+      if (savedLanguage === 'tr' || savedLanguage === 'en') setLanguage(savedLanguage);
     } catch (error) {
       console.log('Kayıtlı veriler okunamadı:', error);
     }
@@ -620,6 +892,9 @@ export default function App() {
   useEffect(() => { if (isLoaded) try { localStorage.setItem('cebin_exchange_rates_v1', JSON.stringify(exchangeRates)); } catch (e) { console.log(e); } }, [exchangeRates, isLoaded]);
   useEffect(() => { if (isLoaded) try { localStorage.setItem('cebin_appearance_v1', JSON.stringify({ backgroundPreset, fontScaleKey })); } catch (e) { console.log(e); } }, [backgroundPreset, fontScaleKey, isLoaded]);
   useEffect(() => { if (isLoaded) try { localStorage.setItem('cebin_notifications_v1', String(notificationsEnabled)); } catch (e) { console.log(e); } }, [notificationsEnabled, isLoaded]);
+  useEffect(() => { if (isLoaded) try { localStorage.setItem('cebin_remember_me_v1', String(rememberMe)); } catch (e) { console.log(e); } }, [rememberMe, isLoaded]);
+  useEffect(() => { if (isLoaded) try { localStorage.setItem('cebin_language_v1', language); } catch (e) { console.log(e); } }, [language, isLoaded]);
+  useEffect(() => { auth.languageCode = language === 'en' ? 'en' : 'tr'; }, [language]);
 
   // Aynı Firebase hesabıyla web ve telefonda aynı verilerin görünmesi için kullanıcıya özel
   // uygulama verilerini users/{uid}.appData altında gerçek zamanlı senkronize et.
@@ -890,6 +1165,9 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
         return;
       }
 
+      if (Platform.OS === 'web') {
+        await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
+      }
       await signInWithEmailAndPassword(auth, resolvedEmail, authPassword);
       setAuthPassword('');
     } catch (error) {
@@ -1144,8 +1422,12 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
 
   const selectedViewFilterLabel = VIEW_FILTER_OPTIONS.find(o => o.key === viewFilter)?.label || 'Tüm Abonelikler';
 
+  const dashboardMetricList = analyticsIncludeCredits
+    ? safeList
+    : safeList.filter(item => item?.category !== 'Kredi');
+
   const dashboardMonthlyTotals = Array.from({ length: 12 }, (_, monthIndex) =>
-    safeList.reduce(
+    dashboardMetricList.reduce(
       (total, subscription) => total + getSubscriptionCostForMonth(subscription, selectedDashboardYear, monthIndex, exchangeRates),
       0
     )
@@ -1156,8 +1438,8 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
 
   const realNow = new Date();
   const prevMonthDate = new Date(realNow.getFullYear(), realNow.getMonth() - 1, 1);
-  const thisRealMonthTotal = safeList.reduce((t, s) => t + getSubscriptionCostForMonth(s, realNow.getFullYear(), realNow.getMonth(), exchangeRates), 0);
-  const prevRealMonthTotal = safeList.reduce((t, s) => t + getSubscriptionCostForMonth(s, prevMonthDate.getFullYear(), prevMonthDate.getMonth(), exchangeRates), 0);
+  const thisRealMonthTotal = dashboardMetricList.reduce((t, s) => t + getSubscriptionCostForMonth(s, realNow.getFullYear(), realNow.getMonth(), exchangeRates), 0);
+  const prevRealMonthTotal = dashboardMetricList.reduce((t, s) => t + getSubscriptionCostForMonth(s, prevMonthDate.getFullYear(), prevMonthDate.getMonth(), exchangeRates), 0);
   const monthlyChangePercent = prevRealMonthTotal > 0
     ? ((thisRealMonthTotal - prevRealMonthTotal) / prevRealMonthTotal) * 100
     : (thisRealMonthTotal > 0 ? 100 : 0);
@@ -1569,7 +1851,7 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
   const daysInCurrentMonth = getDaysInMonth(calendarMonth, calendarYear);
   const firstDayOffset = (new Date(calendarYear, calendarMonth, 1).getDay() + 6) % 7;
 
-  const handleAnalysisYearChange = year => { scrollMainToTop(false); setSelectedAnalysisYear(year); };
+  const handleAnalysisYearChange = year => { scrollMainToTop(false); setSelectedAnalysisYear(year); setSelectedDashboardYear(year); };
   const handleTabChange = tabKey => { scrollMainToTop(false); setActiveTab(tabKey); };
 
   const openDayDrawer = (dayNumber, itemsForDay) => {
@@ -1577,12 +1859,14 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
   };
 if (isAuthChecking) {
     return (
+      <LanguageContext.Provider value={language}>
       <SafeAreaView style={[styles.container, { backgroundColor: '#171b2b' }]}>
         <StatusBar barStyle="light-content" />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ color: '#f8fafc', fontSize: 14, fontWeight: '600' }}>Yükleniyor...</Text>
         </View>
       </SafeAreaView>
+      </LanguageContext.Provider>
     );
   }
 
@@ -1595,6 +1879,7 @@ if (isAuthChecking) {
       : { backgroundColor: '#171b2b' };
 
     return (
+      <LanguageContext.Provider value={language}>
       <SafeAreaView style={[styles.container, authBackgroundStyle]}>
         <StatusBar barStyle="light-content" />
         <View pointerEvents="none" style={[styles.authGlow, styles.authGlowTop]} />
@@ -1620,6 +1905,19 @@ if (isAuthChecking) {
                 }
               ]}
             >
+              <View style={styles.authTopUtilityRow}>
+                <View style={styles.languageSegment}>
+                  {['tr', 'en'].map(option => (
+                    <Pressable
+                      key={option}
+                      onPress={() => setLanguage(option)}
+                      style={[styles.languageSegmentButton, language === option && styles.languageSegmentButtonActive]}
+                    >
+                      <Text style={[styles.languageSegmentText, language === option && styles.languageSegmentTextActive]}>{option.toUpperCase()}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
               <View style={styles.authHeader}>
                 <Text style={[styles.authLogo, { color: '#f8fafc' }]}>Cebin <Text style={{ color: '#9b98ff' }}>PRO</Text></Text>
                 <Text style={[styles.authSubtitle, { color: '#c5cbd6' }]}>Akıllı Abonelik Ve Bütçe Asistanı</Text>
@@ -1632,7 +1930,7 @@ if (isAuthChecking) {
                   <Text style={[styles.inputLabel, styles.authFieldLabel, { color: '#d2d7e0' }]}>Ad Soyad / Kullanıcı Adı</Text>
                   <TextInput
                     style={[styles.textInput, styles.authTextInput, { backgroundColor: '#252b38', color: '#f8fafc', borderColor: '#566071' }]}
-                    placeholder="Ad Soyad veya Kullanıcı Adı"
+                    placeholder={language === 'en' ? 'Full Name or Username' : 'Ad Soyad veya Kullanıcı Adı'}
                     placeholderTextColor="#8f98a8"
                     autoCapitalize="words"
                     value={authName}
@@ -1645,10 +1943,11 @@ if (isAuthChecking) {
                 <Text style={[styles.inputLabel, styles.authFieldLabel, { color: '#d2d7e0' }]}>{authMode === 'login' ? 'E-posta / Kullanıcı Adı' : 'E-posta'}</Text>
                 <TextInput
                   style={[styles.textInput, styles.authTextInput, { backgroundColor: '#252b38', color: '#f8fafc', borderColor: '#566071' }]}
-                  placeholder={authMode === 'login' ? 'E-posta / Kullanıcı Adı' : 'ornek@eposta.com'}
+                  placeholder={language === 'en' ? (authMode === 'login' ? 'Email / Username' : 'example@email.com') : (authMode === 'login' ? 'E-posta / Kullanıcı Adı' : 'ornek@eposta.com')}
                   placeholderTextColor="#8f98a8"
                   autoCapitalize="none"
                   keyboardType="email-address"
+                  autoComplete="email"
                   value={authEmail}
                   onChangeText={setAuthEmail}
                 />
@@ -1662,6 +1961,7 @@ if (isAuthChecking) {
                     placeholder="••••••••"
                     placeholderTextColor="#8f98a8"
                     secureTextEntry={!authPasswordVisible}
+                    autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
                     value={authPassword}
                     onChangeText={setAuthPassword}
                   />
@@ -1676,6 +1976,15 @@ if (isAuthChecking) {
                 )}
               </View>
 
+              {authMode === 'login' && (
+                <Pressable style={styles.rememberRow} onPress={() => setRememberMe(value => !value)}>
+                  <View style={[styles.rememberCheckbox, rememberMe && styles.rememberCheckboxActive]}>
+                    {rememberMe && <Text style={styles.rememberCheckMark}>✓</Text>}
+                  </View>
+                  <Text style={styles.rememberLabel}>Beni Hatırla</Text>
+                </Pressable>
+              )}
+
               {authMode === 'register' && (
                 <View style={styles.authFieldGroup}>
                   <Text style={[styles.inputLabel, styles.authFieldLabel, { color: '#d2d7e0' }]}>Şifre Tekrarı</Text>
@@ -1685,6 +1994,7 @@ if (isAuthChecking) {
                       placeholder="••••••••"
                       placeholderTextColor="#8f98a8"
                       secureTextEntry={!authPasswordConfirmVisible}
+                      autoComplete="new-password"
                       value={authPasswordConfirm}
                       onChangeText={setAuthPasswordConfirm}
                     />
@@ -1777,7 +2087,7 @@ if (isAuthChecking) {
                   autoCapitalize="none"
                   autoCorrect={false}
                   keyboardType="email-address"
-                  textContentType="emailAddress"
+                  autoComplete="email"
                   value={forgotPasswordEmail}
                   onChangeText={value => {
                     setForgotPasswordEmail(value.replace(/\s/g, ''));
@@ -1851,6 +2161,7 @@ if (isAuthChecking) {
           </View>
         </Modal>
       </SafeAreaView>
+      </LanguageContext.Provider>
     );
   }
 
@@ -1862,6 +2173,7 @@ if (isAuthChecking) {
     : { backgroundColor: theme.bg };
 
   return (
+    <LanguageContext.Provider value={language}>
     <SafeAreaView style={[styles.container, appBackgroundStyle]}>
       <StatusBar barStyle={theme.dark ? 'light-content' : 'dark-content'} />
       <View pointerEvents="none" style={[styles.appGlow, styles.appGlowTop, { backgroundColor: theme.activeButton }]} />
@@ -1928,6 +2240,18 @@ if (isAuthChecking) {
                 </View>
               )}
 
+              <View style={[styles.languageSegment, styles.headerLanguageSegment, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}>
+                {['tr', 'en'].map(option => (
+                  <Pressable
+                    key={option}
+                    onPress={() => setLanguage(option)}
+                    style={[styles.languageSegmentButton, language === option && styles.languageSegmentButtonActive]}
+                  >
+                    <Text style={[styles.languageSegmentText, { color: theme.textSecondary }, language === option && styles.languageSegmentTextActive]}>{option.toUpperCase()}</Text>
+                  </Pressable>
+                ))}
+              </View>
+
               <TouchableOpacity
                 style={[styles.iconButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}
                 onPress={() => setNotificationsEnabled(v => !v)}
@@ -1968,7 +2292,7 @@ if (isAuthChecking) {
                   <View style={styles.summaryTopRow}>
                     <View style={{ flex: 1, minWidth: 0 }}>
                       <View style={styles.summaryLabelRow}>
-                        <Text style={styles.summaryLabel}>{selectedDashboardYear} Aylık Ortalama Maliyet</Text>
+                        <Text style={styles.summaryLabel}>{selectedDashboardYear} Aylık Ortalama Maliyet · {analyticsIncludeCredits ? 'Toplam Finansal Yük' : 'Sabit Abonelikler'}</Text>
                         {selectedDashboardYear === currentDate.getFullYear() && hasMonthlyChangeData && (
                           <View style={[styles.changeBadge, { backgroundColor: monthlyChangePercent <= 0 ? 'rgba(52,211,153,0.22)' : 'rgba(248,113,113,0.22)' }]}>
                             <Text style={[styles.changeBadgeText, { color: monthlyChangePercent <= 0 ? '#34d399' : '#f87171' }]}>
@@ -2007,7 +2331,7 @@ if (isAuthChecking) {
 
                 <TextInput
                   style={[styles.searchInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]}
-                  placeholder="Abonelik, Kategori veya Ödeme Yöntemi Ara..."
+                  placeholder={language === 'en' ? 'Search Subscription, Category Or Payment Method...' : 'Abonelik, Kategori veya Ödeme Yöntemi Ara...'}
                   placeholderTextColor={theme.textMuted}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
@@ -2609,7 +2933,7 @@ if (isAuthChecking) {
                   <TouchableOpacity
                     key={`dashboard-picker-${year}`}
                     style={[styles.yearPickerOption, { backgroundColor: isSelected ? theme.activeButton : theme.inputBg, borderColor: isSelected ? theme.activeButtonBorder : theme.cardBorder }]}
-                    onPress={() => { setSelectedDashboardYear(year); setIsDashboardYearPickerOpen(false); }}
+                    onPress={() => { setSelectedDashboardYear(year); setSelectedAnalysisYear(year); setIsDashboardYearPickerOpen(false); }}
                   >
                     <Text style={[styles.yearPickerOptionText, { color: isSelected ? '#ffffff' : theme.textPrimary }]}>{year}</Text>
                     {isSelected && <Text style={styles.yearPickerCheck}>✓</Text>}
@@ -3354,6 +3678,7 @@ if (isAuthChecking) {
         </View>
       </Modal>
     </SafeAreaView>
+    </LanguageContext.Provider>
   );
 }
 
@@ -3383,6 +3708,13 @@ function createStyles(theme, isMobile, fontScale) {
     authGlowTop: { top: isMobile ? -110 : -180, left: isMobile ? -90 : -140 },
     authGlowBottom: { bottom: isMobile ? -120 : -210, right: isMobile ? -90 : -150, backgroundColor: '#3b82f6', opacity: 0.12 },
     authCard: { width: '100%', maxWidth: 500, borderWidth: 1, borderRadius: isMobile ? 22 : 26, paddingHorizontal: isMobile ? 22 : 38, paddingVertical: isMobile ? 24 : 34 },
+    authTopUtilityRow: { width: '100%', flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 8 },
+    languageSegment: { flexDirection: 'row', alignItems: 'center', padding: 3, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(154,163,184,0.28)', backgroundColor: 'rgba(37,43,56,0.72)', ...(Platform.OS === 'web' ? { backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' } : {}) },
+    languageSegmentButton: { minWidth: 34, height: 28, paddingHorizontal: 8, borderRadius: 7, alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '150ms' } : {}) },
+    languageSegmentButtonActive: { backgroundColor: '#6965e8', ...(Platform.OS === 'web' ? { boxShadow: '0 4px 12px rgba(105,101,232,0.24)' } : {}) },
+    languageSegmentText: { color: '#aeb7c2', fontSize: font(10), fontWeight: '800', letterSpacing: 0.4 },
+    languageSegmentTextActive: { color: '#ffffff' },
+    headerLanguageSegment: { flexShrink: 0 },
     authHeader: { alignItems: 'center', marginBottom: isMobile ? 16 : 20 },
     authLogo: { fontSize: font(isMobile ? 27 : 30), fontWeight: '800', letterSpacing: -0.5 },
     authSubtitle: { fontSize: font(11), marginTop: 6 },
@@ -3397,6 +3729,11 @@ function createStyles(theme, isMobile, fontScale) {
     eyeButtonHover: { opacity: 1, backgroundColor: 'rgba(139,213,255,0.08)' },
     forgotPasswordButton: { alignSelf: 'flex-end', paddingVertical: 8, paddingLeft: 12 },
     forgotPasswordText: { color: '#aeb7c2', fontSize: font(11), fontWeight: '600' },
+    rememberRow: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 9, marginTop: -4, marginBottom: 14, paddingVertical: 5, ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}) },
+    rememberCheckbox: { width: 19, height: 19, borderRadius: 6, borderWidth: 1, borderColor: '#657083', backgroundColor: '#252b38', alignItems: 'center', justifyContent: 'center' },
+    rememberCheckboxActive: { backgroundColor: '#6965e8', borderColor: '#8b87ff' },
+    rememberCheckMark: { color: '#ffffff', fontSize: font(12), fontWeight: '900', lineHeight: font(15) },
+    rememberLabel: { color: '#c5cbd6', fontSize: font(11), fontWeight: '700' },
     forgotPasswordBackdrop: { ...StyleSheet.absoluteFillObject },
     forgotPasswordModal: { width: '100%', maxWidth: 520, borderWidth: 1, borderRadius: isMobile ? 22 : 26, padding: isMobile ? 22 : 30, zIndex: 2 },
     forgotPasswordModalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 },
