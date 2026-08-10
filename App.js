@@ -21,6 +21,7 @@ const CATEGORY_COLORS = {
   Eğitim: '#f59e0b',
   'Bulut & Depolama': '#3b82f6',
   'Spor & Sağlık': '#ec4899',
+  Kredi: '#38bdf8',
   Diğer: '#f97316'
 };
 
@@ -207,6 +208,27 @@ const getAnnualIncreaseMultiplier = (item, targetYear, targetMonthIndex = 0) => 
   return Math.pow(1 + annualIncreaseRate / 100, elapsedYears);
 };
 
+const getCreditSchedule = item => {
+  if (!item || item.category !== 'Kredi') return null;
+
+  const installmentCount = Math.max(0, Number(item.creditInstallmentCount) || 0);
+  const startMonth = Math.max(1, Math.min(12, Number(item.creditStartMonth) || Number(item.billingMonth) || 1));
+  const startYear = Number(item.creditStartYear) || Number(item.billingYear) || new Date().getFullYear();
+  if (!installmentCount) return null;
+
+  const startMonthKey = startYear * 12 + (startMonth - 1);
+  const endMonthKey = startMonthKey + installmentCount - 1;
+  return {
+    installmentCount,
+    startMonth,
+    startYear,
+    startMonthKey,
+    endMonthKey,
+    endMonth: (endMonthKey % 12) + 1,
+    endYear: Math.floor(endMonthKey / 12)
+  };
+};
+
 const getProjectedSubscriptionPrice = (item, year, monthIndex, rates) => {
   if (!item || item.status === 'cancelled') return 0;
   return convertToTL(item.price, item.currency || 'TRY', rates)
@@ -215,9 +237,17 @@ const getProjectedSubscriptionPrice = (item, year, monthIndex, rates) => {
 
 const getSubscriptionCostForMonth = (item, year, monthIndex, rates) => {
   if (!item || item.status === 'cancelled') return 0;
+
+  const targetMonthKey = year * 12 + monthIndex;
+  const creditSchedule = getCreditSchedule(item);
+  if (creditSchedule) {
+    // Kredi kayıtları yalnızca ilk taksit ile son taksit arasındaki aylarda bütçe ve raporlara dahil edilir.
+    if (targetMonthKey < creditSchedule.startMonthKey || targetMonthKey > creditSchedule.endMonthKey) return 0;
+    return getProjectedSubscriptionPrice(item, year, monthIndex, rates);
+  }
+
   const billingYear = Number(item.billingYear) || year;
   const billingMonth = Math.max(0, Math.min(11, (Number(item.billingMonth) || 1) - 1));
-  const targetMonthKey = year * 12 + monthIndex;
   const billingMonthKey = billingYear * 12 + billingMonth;
   if (targetMonthKey < billingMonthKey) return 0;
 
@@ -433,6 +463,9 @@ export default function App() {
   const [formNotificationChannel, setFormNotificationChannel] = useState('email');
   const [formAnnualIncreaseRate, setFormAnnualIncreaseRate] = useState('0');
   const [formIncreaseApplicationPeriod, setFormIncreaseApplicationPeriod] = useState('anniversary');
+  const [formCreditInstallmentCount, setFormCreditInstallmentCount] = useState('');
+  const [formCreditStartMonth, setFormCreditStartMonth] = useState(String(currentDate.getMonth() + 1));
+  const [formCreditStartYear, setFormCreditStartYear] = useState(String(clampedYear));
   const [focusedNumericInput, setFocusedNumericInput] = useState(null);
 
   const [showTemplateForm, setShowTemplateForm] = useState(false);
@@ -993,6 +1026,22 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
 
   const styles = createStyles(theme, isMobile, fontScale);
 
+  const creditInstallmentCountNumber = Math.max(0, Number(formCreditInstallmentCount) || 0);
+  const creditStartMonthNumber = Number(formCreditStartMonth);
+  const creditStartYearNumber = Number(formCreditStartYear);
+  const creditEndPreview = (() => {
+    if (formCategory !== 'Kredi') return null;
+    if (!Number.isInteger(creditInstallmentCountNumber) || creditInstallmentCountNumber < 1) return null;
+    if (!Number.isInteger(creditStartMonthNumber) || creditStartMonthNumber < 1 || creditStartMonthNumber > 12) return null;
+    if (!Number.isInteger(creditStartYearNumber) || creditStartYearNumber < 2025 || creditStartYearNumber > 2100) return null;
+    const endMonthKey = creditStartYearNumber * 12 + (creditStartMonthNumber - 1) + creditInstallmentCountNumber - 1;
+    return {
+      month: (endMonthKey % 12) + 1,
+      year: Math.floor(endMonthKey / 12),
+      monthName: MONTH_NAMES[endMonthKey % 12]
+    };
+  })();
+
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return undefined;
     const styleId = 'cebin-subscription-scrollbar-style';
@@ -1147,13 +1196,16 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
       setFormYear(String(item.billingYear || calendarYear));
       setFormCategory(item.category || 'Diğer');
       setFormPaymentMethod(item.paymentMethod || safePaymentMethods[0] || '');
-      setFormPeriod(item.period || 'monthly');
+      setFormPeriod(item.category === 'Kredi' ? 'monthly' : (item.period || 'monthly'));
       setFormCancelUrl(item.cancelUrl || '');
       setFormColor(item.color || getServiceColor(item.name, safeTemplates));
       setFormNotificationDays(item.notificationDays !== undefined ? item.notificationDays : 2);
       setFormNotificationChannel(item.notificationChannel || 'email');
       setFormAnnualIncreaseRate(String(item.annualIncreaseRate ?? 0));
       setFormIncreaseApplicationPeriod(item.increaseApplicationPeriod || 'calendarYear');
+      setFormCreditInstallmentCount(item.category === 'Kredi' ? String(item.creditInstallmentCount || '') : '');
+      setFormCreditStartMonth(item.category === 'Kredi' ? String(item.creditStartMonth || item.billingMonth || currentDate.getMonth() + 1) : String(currentDate.getMonth() + 1));
+      setFormCreditStartYear(item.category === 'Kredi' ? String(item.creditStartYear || item.billingYear || clampedYear) : String(clampedYear));
     } else {
       setEditingId(null);
       setFormName(''); setFormPrice(''); setFormCurrency('TRY');
@@ -1162,6 +1214,7 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
       setFormPaymentMethod(safePaymentMethods[0] || DEFAULT_PAYMENT_METHODS[0]);
       setFormPeriod('monthly'); setFormCancelUrl(''); setFormColor('#6366f1');
       setFormNotificationDays(2); setFormNotificationChannel('email'); setFormAnnualIncreaseRate('0'); setFormIncreaseApplicationPeriod('anniversary');
+      setFormCreditInstallmentCount(''); setFormCreditStartMonth(String(currentDate.getMonth() + 1)); setFormCreditStartYear(String(clampedYear));
     }
     setFormStep(1);
     setShowTemplateForm(false);
@@ -1192,6 +1245,9 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
     const numericMonth = Number(formMonth);
     const numericYear = Number(formYear);
     const numericAnnualIncreaseRate = Number(String(formAnnualIncreaseRate).replace(',', '.'));
+    const numericCreditInstallmentCount = Number(formCreditInstallmentCount);
+    const numericCreditStartMonth = Number(formCreditStartMonth);
+    const numericCreditStartYear = Number(formCreditStartYear);
 
     if (!formName.trim()) { showAlert('Lütfen Abonelik veya Gider Adını Giriniz.'); return; }
     if (!Number.isFinite(numericPrice) || numericPrice <= 0) { showAlert('Lütfen sıfırdan büyük geçerli bir tutar giriniz.'); return; }
@@ -1206,6 +1262,40 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
     }
     if (!formPaymentMethod) { showAlert('Lütfen bir ödeme yöntemi seçiniz.'); return; }
     if (!isValidUrl(formCancelUrl)) { showAlert('Yönetim bağlantısı http:// veya https:// ile başlamalıdır.'); return; }
+
+    let creditSchedulePayload = {
+      creditInstallmentCount: null,
+      creditStartMonth: null,
+      creditStartYear: null,
+      creditEndMonth: null,
+      creditEndYear: null,
+      autoEndAtInstallment: false
+    };
+
+    if (formCategory === 'Kredi') {
+      if (!Number.isInteger(numericCreditInstallmentCount) || numericCreditInstallmentCount < 1 || numericCreditInstallmentCount > 600) {
+        showAlert('Toplam taksit sayısı 1 ile 600 arasında olmalıdır.');
+        return;
+      }
+      if (!Number.isInteger(numericCreditStartMonth) || numericCreditStartMonth < 1 || numericCreditStartMonth > 12) {
+        showAlert('İlk taksit ayı 1 ile 12 arasında olmalıdır.');
+        return;
+      }
+      if (!Number.isInteger(numericCreditStartYear) || numericCreditStartYear < 2025 || numericCreditStartYear > 2100) {
+        showAlert('İlk taksit yılı 2025 ile 2100 arasında olmalıdır.');
+        return;
+      }
+
+      const creditEndMonthKey = numericCreditStartYear * 12 + (numericCreditStartMonth - 1) + numericCreditInstallmentCount - 1;
+      creditSchedulePayload = {
+        creditInstallmentCount: numericCreditInstallmentCount,
+        creditStartMonth: numericCreditStartMonth,
+        creditStartYear: numericCreditStartYear,
+        creditEndMonth: (creditEndMonthKey % 12) + 1,
+        creditEndYear: Math.floor(creditEndMonthKey / 12),
+        autoEndAtInstallment: true
+      };
+    }
 
     const duplicateSubscription = safeList.find(s =>
       s.id !== editingId &&
@@ -1228,8 +1318,8 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
       price: String(numericPrice),
       currency: formCurrency,
       billingDay: String(numericDay),
-      billingMonth: String(numericMonth),
-      billingYear: String(numericYear),
+      billingMonth: String(formCategory === 'Kredi' ? numericCreditStartMonth : numericMonth),
+      billingYear: String(formCategory === 'Kredi' ? numericCreditStartYear : numericYear),
       category: formCategory,
       paymentMethod: formPaymentMethod,
       period: formPeriod,
@@ -1239,6 +1329,7 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
       notificationChannel: formNotificationChannel,
       annualIncreaseRate: numericAnnualIncreaseRate,
       increaseApplicationPeriod: formIncreaseApplicationPeriod,
+      ...creditSchedulePayload,
       status: existingSubscription?.status || 'active'
     };
 
@@ -1930,16 +2021,24 @@ if (isAuthChecking) {
                                   <Text style={[styles.informationTagText, { color: theme.accent }]}>↗ Yıllık Artış: %{Number(subscription.annualIncreaseRate).toFixed(1)}</Text>
                                 </View>
                               )}
+
+                              {subscription.category === 'Kredi' && getCreditSchedule(subscription) && (
+                                <View style={[styles.informationTag, { backgroundColor: hexToRgba(CATEGORY_COLORS.Kredi, 0.12), borderColor: CATEGORY_COLORS.Kredi }]}>
+                                  <Text style={[styles.informationTagText, { color: CATEGORY_COLORS.Kredi }]}>💳 {getCreditSchedule(subscription).installmentCount} Taksit · Bitiş {MONTH_NAMES[getCreditSchedule(subscription).endMonth - 1]} {getCreditSchedule(subscription).endYear}</Text>
+                                </View>
+                              )}
                             </View>
 
                             <Text style={[styles.subscriptionSubtitle, { color: theme.textSecondary }]}>
-                              {subscription.category} • {isYearly ? `${subscription.billingDay}/${subscription.billingMonth}/${subscription.billingYear}` : `Her ayın ${subscription.billingDay}. günü`}
+                              {subscription.category === 'Kredi' && getCreditSchedule(subscription)
+                                ? `Kredi • Her ayın ${subscription.billingDay}. günü • ${getCreditSchedule(subscription).installmentCount} taksit`
+                                : `${subscription.category} • ${isYearly ? `${subscription.billingDay}/${subscription.billingMonth}/${subscription.billingYear}` : `Her ayın ${subscription.billingDay}. günü`}`}
                             </Text>
                           </View>
                         </View>
 
                         <View style={styles.subscriptionRight}>
-                          <Text style={[styles.subscriptionPrice, { color: theme.textPrimary }]}>{formatCurrency(subscription.price, subscription.currency || 'TRY')} {isYearly ? '/yıl' : '/ay'}</Text>
+                          <Text style={[styles.subscriptionPrice, { color: theme.textPrimary }]}>{formatCurrency(subscription.price, subscription.currency || 'TRY')} {subscription.category === 'Kredi' ? '/taksit' : isYearly ? '/yıl' : '/ay'}</Text>
                           {subscription.currency !== 'TRY' && <Text style={[styles.convertedPrice, { color: theme.accent }]}>≈ {formatCurrency(priceInTL, 'TRY')}</Text>}
 
                           <View style={styles.subscriptionActions}>
@@ -2018,6 +2117,12 @@ if (isAuthChecking) {
                       const subscriptionsForDay = safeList.filter(subscription => {
                         if (subscription.status === 'cancelled') return false;
                         const targetMonthKey = calendarYear * 12 + calendarMonth;
+                        const creditSchedule = getCreditSchedule(subscription);
+                        if (creditSchedule) {
+                          if (targetMonthKey < creditSchedule.startMonthKey || targetMonthKey > creditSchedule.endMonthKey) return false;
+                          return Number(subscription.billingDay) === dayNumber;
+                        }
+
                         const billingMonthKey = (Number(subscription.billingYear) || calendarYear) * 12 + ((Number(subscription.billingMonth) || 1) - 1);
                         if (targetMonthKey < billingMonthKey) return false;
                         if (subscription.period === 'monthly') return Number(subscription.billingDay) === dayNumber;
@@ -2793,7 +2898,7 @@ if (isAuthChecking) {
                               { backgroundColor: theme.inputBg, borderColor: theme.cardBorder },
                               isSelected && { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder }
                             ]}
-                            onPress={() => setFormCategory(category)}
+                            onPress={() => { setFormCategory(category); if (category === 'Kredi') setFormPeriod('monthly'); }}
                           >
                             <View style={[styles.categoryDot, { backgroundColor: CATEGORY_COLORS[category] }]} />
                             <Text style={[styles.categoryOptionText, { color: isSelected ? theme.accent : theme.textSecondary }]}>{category}</Text>
@@ -2802,6 +2907,79 @@ if (isAuthChecking) {
                       })}
                     </View>
                   </View>
+
+                  {formCategory === 'Kredi' && (
+                    <View style={[styles.creditScheduleCard, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}>
+                      <View style={styles.creditScheduleHeader}>
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text style={[styles.formSectionTitle, { color: theme.textPrimary }]}>Kredi / Taksit Planı</Text>
+                          <Text style={[styles.creditScheduleDescription, { color: theme.textMuted }]}>Vade ve ilk taksit ayını girin. Kayıt, son taksit ayından sonra takvim ve raporlarda otomatik olarak sona erer.</Text>
+                        </View>
+                        <View style={[styles.creditScheduleBadge, { backgroundColor: hexToRgba(CATEGORY_COLORS.Kredi, 0.12), borderColor: CATEGORY_COLORS.Kredi }]}>
+                          <Text style={[styles.creditScheduleBadgeText, { color: CATEGORY_COLORS.Kredi }]}>Kredi</Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.creditScheduleFields}>
+                        <View style={styles.creditInstallmentField}>
+                          <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Toplam Taksit Sayısı (Vade)</Text>
+                          <TextInput
+                            style={[styles.textInput, { backgroundColor: theme.cardBg, color: theme.textPrimary, borderColor: theme.cardBorder }, focusedNumericInput === 'creditInstallmentCount' && styles.numericInputFocused]}
+                            placeholder="Örn: 12"
+                            placeholderTextColor={theme.textMuted}
+                            keyboardType="number-pad"
+                            inputMode="numeric"
+                            value={formCreditInstallmentCount}
+                            onFocus={() => setFocusedNumericInput('creditInstallmentCount')}
+                            onBlur={() => setFocusedNumericInput(null)}
+                            onChangeText={value => setFormCreditInstallmentCount(sanitizeNumericInput(value, { allowDecimal: false, max: 600 }))}
+                          />
+                        </View>
+
+                        <View style={styles.creditStartDateField}>
+                          <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Başlangıç / İlk Taksit Tarihi</Text>
+                          <View style={styles.creditStartDateRow}>
+                            <TextInput
+                              style={[styles.textInput, styles.creditDateInput, { backgroundColor: theme.cardBg, color: theme.textPrimary, borderColor: theme.cardBorder }, focusedNumericInput === 'creditStartMonth' && styles.numericInputFocused]}
+                              placeholder="Ay"
+                              placeholderTextColor={theme.textMuted}
+                              keyboardType="number-pad"
+                              inputMode="numeric"
+                              value={formCreditStartMonth}
+                              onFocus={() => setFocusedNumericInput('creditStartMonth')}
+                              onBlur={() => setFocusedNumericInput(null)}
+                              onChangeText={value => setFormCreditStartMonth(sanitizeNumericInput(value, { allowDecimal: false, max: 12 }))}
+                            />
+                            <TextInput
+                              style={[styles.textInput, styles.creditDateInput, { backgroundColor: theme.cardBg, color: theme.textPrimary, borderColor: theme.cardBorder }, focusedNumericInput === 'creditStartYear' && styles.numericInputFocused]}
+                              placeholder="Yıl"
+                              placeholderTextColor={theme.textMuted}
+                              keyboardType="number-pad"
+                              inputMode="numeric"
+                              value={formCreditStartYear}
+                              onFocus={() => setFocusedNumericInput('creditStartYear')}
+                              onBlur={() => setFocusedNumericInput(null)}
+                              onChangeText={value => setFormCreditStartYear(sanitizeIntegerInput(value))}
+                            />
+                          </View>
+                        </View>
+                      </View>
+
+                      {creditEndPreview ? (
+                        <View style={[styles.creditEndInfo, { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder }]}>
+                          <Text style={[styles.creditEndInfoIcon, { color: theme.accent }]}>✓</Text>
+                          <View style={{ flex: 1, minWidth: 0 }}>
+                            <Text style={[styles.creditEndInfoTitle, { color: theme.textPrimary }]}>Tahmini Son Taksit</Text>
+                            <Text style={[styles.creditEndInfoText, { color: theme.textSecondary }]}>
+                              {creditEndPreview.monthName} {creditEndPreview.year} · {creditInstallmentCountNumber} aylık vade tamamlandığında bu kalem rapor ve takvim hesaplamalarından otomatik çıkarılır.
+                            </Text>
+                          </View>
+                        </View>
+                      ) : (
+                        <Text style={[styles.creditScheduleHint, { color: theme.textMuted }]}>Bitiş tarihini görmek için vade ile başlangıç ayı/yılını girin.</Text>
+                      )}
+                    </View>
+                  )}
 
                   <View style={styles.formSection}>
                     <Text style={[styles.formSectionTitle, { color: theme.textPrimary }]}>Ödeme Tarihi</Text>
@@ -2819,7 +2997,7 @@ if (isAuthChecking) {
                         <TextInput style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }, focusedNumericInput === 'year' && styles.numericInputFocused]} placeholder="2026" placeholderTextColor={theme.textMuted} keyboardType="number-pad" inputMode="numeric" value={formYear} onFocus={() => setFocusedNumericInput('year')} onBlur={() => setFocusedNumericInput(null)} onChangeText={value => setFormYear(sanitizeIntegerInput(value))} />
                       </View>
                     </View>
-                    <Text style={[styles.helperText, { color: theme.textMuted }]}>Aylık Ödemelerde Başlangıç Ayı, Yıllık Ödemelerde Tahsilat Ayı Olarak Kullanılır.</Text>
+                    <Text style={[styles.helperText, { color: theme.textMuted }]}>{formCategory === 'Kredi' ? 'Kredi kayıtlarında gün alanı taksit gününü belirler; taksit başlangıç ayı ve yılı yukarıdaki Kredi / Taksit Planı alanından alınır.' : 'Aylık Ödemelerde Başlangıç Ayı, Yıllık Ödemelerde Tahsilat Ayı Olarak Kullanılır.'}</Text>
                   </View>
 
                   <View style={styles.formSection}>
@@ -3354,6 +3532,22 @@ function createStyles(theme, isMobile, fontScale) {
     categoryOption: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7 },
     categoryOptionText: { fontSize: font(11), fontWeight: '600' },
     categoryDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
+
+    creditScheduleCard: { borderWidth: 1, borderRadius: 14, padding: isMobile ? 12 : 14, gap: 12, width: '100%', minWidth: 0 },
+    creditScheduleHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+    creditScheduleDescription: { fontSize: font(10), lineHeight: font(15), marginTop: 3 },
+    creditScheduleBadge: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, flexShrink: 0 },
+    creditScheduleBadgeText: { fontSize: font(10), fontWeight: '800' },
+    creditScheduleFields: { flexDirection: isMobile ? 'column' : 'row', gap: 10, width: '100%' },
+    creditInstallmentField: { flex: 1, minWidth: 0, gap: 4 },
+    creditStartDateField: { flex: 1.35, minWidth: 0, gap: 4 },
+    creditStartDateRow: { flexDirection: 'row', gap: 8, width: '100%' },
+    creditDateInput: { flex: 1, minWidth: 0 },
+    creditEndInfo: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },
+    creditEndInfoIcon: { fontSize: font(16), fontWeight: '900', width: 20, textAlign: 'center' },
+    creditEndInfoTitle: { fontSize: font(11), fontWeight: '800', marginBottom: 2 },
+    creditEndInfoText: { fontSize: font(10), lineHeight: font(15) },
+    creditScheduleHint: { fontSize: font(10), lineHeight: font(15) },
 
     dateInputRow: { flexDirection: isMobile ? 'column' : 'row', gap: 10 },
     dateInputField: { flex: 1, gap: 4 },
