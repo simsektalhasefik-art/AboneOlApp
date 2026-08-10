@@ -112,6 +112,15 @@ const formatCurrencyWithPeriod = (value, currency = 'TRY', periodLabel = '') => 
   return normalizedPeriod ? `${amount} / ${normalizedPeriod}` : amount;
 };
 
+// Analiz ekranındaki aylık tutar göstergelerini tek tip biçimde sunar.
+const formatMonthlyMetric = (value, percentage = null, currency = 'TRY') => {
+  const amount = formatCurrencyWithPeriod(value, currency, 'ay');
+  if (percentage === null || percentage === undefined || percentage === '') return amount;
+  const numericPercentage = Number(percentage);
+  const ratio = Number.isFinite(numericPercentage) ? numericPercentage.toFixed(1) : String(percentage);
+  return `${amount} · %${ratio}`;
+};
+
 const convertToTL = (price, currency, rates = DEFAULT_RATES) => {
   const p = Number(price) || 0;
   if (currency === 'USD') return p * (Number(rates.USD) || DEFAULT_RATES.USD);
@@ -1263,7 +1272,7 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
       setFormYear(String(item.billingYear || calendarYear));
       setFormCategory(item.category || 'Diğer');
       setFormPaymentMethod(item.paymentMethod || safePaymentMethods[0] || '');
-      setFormPeriod(item.category === 'Kredi' ? 'monthly' : (item.period || 'monthly'));
+      setFormPeriod(item.period || 'monthly');
       setFormCancelUrl(item.cancelUrl || '');
       setFormColor(item.color || getServiceColor(item.name, safeTemplates));
       setFormNotificationDays(item.notificationDays !== undefined ? item.notificationDays : 2);
@@ -2112,7 +2121,7 @@ if (isAuthChecking) {
                         </View>
 
                         <View style={styles.subscriptionRight}>
-                          <Text style={[styles.subscriptionPrice, { color: theme.textPrimary }]}>{formatCurrencyWithPeriod(subscription.price, subscription.currency || 'TRY', subscription.category === 'Kredi' ? 'taksit' : isYearly ? 'yıl' : 'ay')}</Text>
+                          <Text style={[styles.subscriptionPrice, { color: theme.textPrimary }]}>{formatCurrencyWithPeriod(subscription.price, subscription.currency || 'TRY', isYearly ? 'yıl' : 'ay')}</Text>
                           {subscription.currency !== 'TRY' && <Text style={[styles.convertedPrice, { color: theme.accent }]}>≈ {formatCurrency(priceInTL, 'TRY')}</Text>}
 
                           <View style={styles.subscriptionActions}>
@@ -2429,7 +2438,7 @@ if (isAuthChecking) {
 
                   <View style={[styles.chartFooter, { borderTopColor: theme.cardBorder }]}>
                     <Text style={[styles.chartFooterLabel, { color: theme.textPrimary }]}>Aylık Ortalama Harcama ({selectedAnalysisYear})</Text>
-                    <Text style={[styles.chartFooterValue, { color: theme.accent }]}>{formatCurrency(averageMonthlyExpense, 'TRY')}</Text>
+                    <Text style={[styles.chartFooterValue, { color: theme.accent }]}>{formatMonthlyMetric(averageMonthlyExpense)}</Text>
                   </View>
                 </View>
 
@@ -2440,8 +2449,8 @@ if (isAuthChecking) {
                       <Text style={[styles.distributionSubtitle, { color: theme.textMuted }]}>Kart Ve Hesap Bazında Aylık Ödeme Yükü</Text>
                     </View>
                     <View style={[styles.monthlyCommitmentBadge, { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder }]}>
-                      <Text style={[styles.monthlyCommitmentBadgeLabel, { color: theme.textMuted }]}>Toplam / ay</Text>
-                      <Text style={[styles.monthlyCommitmentBadgeValue, { color: theme.textPrimary }]}>{formatCurrency(totalMonthlyPaymentCommitment, 'TRY')}</Text>
+                      <Text style={[styles.monthlyCommitmentBadgeLabel, { color: theme.textMuted }]}>Aylık Toplam</Text>
+                      <Text style={[styles.monthlyCommitmentBadgeValue, { color: theme.textPrimary }]}>{formatMonthlyMetric(totalMonthlyPaymentCommitment)}</Text>
                     </View>
                   </View>
 
@@ -2462,12 +2471,12 @@ if (isAuthChecking) {
                             </View>
                             <View style={styles.monthlyPaymentContent}>
                               <Text style={[styles.monthlyPaymentName, { color: theme.textPrimary }]} numberOfLines={1}>{paymentMethod}</Text>
-                              <Text style={[styles.monthlyPaymentMeta, { color: theme.textMuted }]}>Aylık Bütçeye Oranı: %{percentage.toFixed(1)}</Text>
+                              <Text style={[styles.monthlyPaymentMeta, { color: theme.textMuted }]}>Aylık Bütçe Dağılımı</Text>
                               <View style={[styles.progressTrack, { backgroundColor: theme.inputBg, marginTop: 8 }]}>
                                 <View style={[styles.progressFill, { width: `${percentage}%`, backgroundColor: theme.accent }]} />
                               </View>
                             </View>
-                            <Text style={[styles.monthlyPaymentAmount, { color: theme.textPrimary }]}>{formatCurrencyWithPeriod(amount, 'TRY', 'ay')}</Text>
+                            <Text style={[styles.monthlyPaymentAmount, { color: theme.textPrimary }]}>{formatMonthlyMetric(amount, percentage)}</Text>
                           </View>
                         );
                       })}
@@ -2489,7 +2498,7 @@ if (isAuthChecking) {
                             <View style={[styles.distributionColorDot, { backgroundColor: categoryColor }]} />
                             <Text style={[styles.distributionName, { color: theme.textPrimary }]}>{category}</Text>
                           </View>
-                          <Text style={[styles.distributionAmount, { color: theme.textPrimary }]}>{formatCurrencyWithPeriod(amount, 'TRY', 'ay')} · %{percentage}</Text>
+                          <Text style={[styles.distributionAmount, { color: theme.textPrimary }]}>{formatMonthlyMetric(amount, percentage)}</Text>
                         </View>
                         <View style={[styles.progressTrack, { backgroundColor: theme.inputBg }]}>
                           <View style={[styles.progressFill, { width: `${percentage}%`, backgroundColor: categoryColor }]} />
