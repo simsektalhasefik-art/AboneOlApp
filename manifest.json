@@ -10,5 +10,13 @@
   "theme_color": "#0f172a",
   "id": "/",
   "description": "Aylık abonelik ve düzenli ödemeleri takip etmeye yarayan akıllı bütçe asistanı.",
-  "lang": "tr"
+  "lang": "tr",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/simsektalhasefik-art/AboneOlApp/main/android/mipmap-xxxhdpi/ic_launcher.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
 }
