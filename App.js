@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import {
-  StyleSheet, Text as RNText, View, ScrollView, TouchableOpacity, TextInput,
+  StyleSheet, Text as RNText, View, ScrollView, TouchableOpacity, TextInput, Image,
   Modal, SafeAreaView, StatusBar, useWindowDimensions, Linking, Platform, Pressable
 } from 'react-native';
 
@@ -13,6 +13,9 @@ const auth = getAuth(app);
 auth.languageCode = 'tr';
 const db = getFirestore(app);
 const LanguageContext = createContext('tr');
+
+// Yeni kurumsal Cebin PRO logosu. Dosyayı proje içinde ./assets/cebin-pro-logo.png yoluna yerleştirin.
+const CEBIN_PRO_LOGO = require('./assets/cebin-pro-logo.png');
 
 // Arayüzdeki sabit metinleri tek merkezden TR / EN olarak sunar
 // Kullanıcı tarafından girilen abonelik adları ve özel veriler çevrilmez
@@ -2382,7 +2385,14 @@ if (isAuthChecking) {
                 </View>
               </View>
               <View style={styles.authHeader}>
-                <Text style={[styles.authLogo, { color: '#f8fafc' }]}>Cebin <Text style={{ color: '#9b98ff' }}>PRO</Text></Text>
+                <View style={styles.authBrandLogoPlate}>
+                  <Image
+                    source={CEBIN_PRO_LOGO}
+                    style={styles.authBrandLogo}
+                    resizeMode="contain"
+                    accessibilityLabel="Cebin PRO"
+                  />
+                </View>
                 <Text style={[styles.authSubtitle, { color: '#c5cbd6' }]}>Akıllı Abonelik Ve Bütçe Asistanı</Text>
               </View>
 
@@ -2656,12 +2666,17 @@ if (isAuthChecking) {
       <View style={[styles.appWrapper, isDesktop && styles.appWrapperDesktop]}>
         {isDesktop && (
           <View style={[styles.sidebarContainer, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.sidebarBg, 0.82) : theme.sidebarBg, borderRightColor: theme.cardBorder }]}>
-            <View style={styles.sidebarHeader}>
-              <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Cebin</Text>
-              <View style={styles.proBadge}><Text style={styles.proBadgeText}>PRO</Text></View>
+            <View style={styles.sidebarBrandBlock}>
+              <View style={styles.sidebarBrandLogoPlate}>
+                <Image
+                  source={CEBIN_PRO_LOGO}
+                  style={styles.sidebarBrandLogo}
+                  resizeMode="contain"
+                  accessibilityLabel="Cebin PRO"
+                />
+              </View>
+              <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Akıllı Abonelik Ve Bütçe Asistanı</Text>
             </View>
-
-            <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Akıllı Abonelik Ve Bütçe Asistanı</Text>
 
             <View style={styles.sidebarNavGroup}>
               {[
@@ -2695,6 +2710,18 @@ if (isAuthChecking) {
 
         <View style={styles.contentWrapper}>
           <View style={[styles.header, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.headerBg, 0.75) : theme.headerBg, borderBottomColor: theme.cardBorder }]}>
+            {isMobile && (
+              <View style={styles.mobileHeaderBrandRow}>
+                <View style={styles.mobileHeaderBrandLogoPlate}>
+                  <Image
+                    source={CEBIN_PRO_LOGO}
+                    style={styles.mobileHeaderBrandLogo}
+                    resizeMode="contain"
+                    accessibilityLabel="Cebin PRO"
+                  />
+                </View>
+              </View>
+            )}
             <View style={styles.pageHeaderInfo}>
               <Text style={[styles.pageHeaderTitle, { color: theme.textPrimary }]} numberOfLines={isMobile ? undefined : 1}>
                 {activeTab === 'list' ? 'Abonelikler' : activeTab === 'calendar' ? 'Ödeme Takvimi' : 'Analiz ve Raporlar'}
@@ -4193,9 +4220,24 @@ function createStyles(theme, isMobile, fontScale) {
     languageSegmentText: { color: '#aeb7c2', fontSize: font(10), fontWeight: '800', letterSpacing: 0.4 },
     languageSegmentTextActive: { color: '#ffffff' },
     headerLanguageSegment: { flexShrink: 0 },
-    authHeader: { alignItems: 'center', marginBottom: isMobile ? 16 : 20 },
-    authLogo: { fontSize: font(isMobile ? 27 : 30), fontWeight: '800', letterSpacing: -0.5 },
-    authSubtitle: { fontSize: font(11), marginTop: 6 },
+    authHeader: { alignItems: 'center', width: '100%', marginBottom: isMobile ? 16 : 20 },
+    authBrandLogoPlate: {
+      width: isMobile ? 176 : 184,
+      maxWidth: '100%',
+      height: isMobile ? 62 : 66,
+      borderRadius: 14,
+      paddingHorizontal: 8,
+      paddingVertical: 6,
+      backgroundColor: 'rgba(248,252,253,0.96)',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.54)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+      ...(Platform.OS === 'web' ? { boxShadow: '0 12px 28px rgba(3,7,18,0.24)' } : { elevation: 5 })
+    },
+    authBrandLogo: { width: '100%', height: '100%' },
+    authSubtitle: { fontSize: font(11), marginTop: 9, textAlign: 'center' },
     authTitle: { fontSize: font(19), fontWeight: '800', textAlign: 'center', marginTop: 4, marginBottom: isMobile ? 18 : 22 },
     authFieldGroup: { width: '100%', marginBottom: isMobile ? 14 : 17 },
     authFieldLabel: { marginBottom: isMobile ? 8 : 9 },
@@ -4249,11 +4291,23 @@ function createStyles(theme, isMobile, fontScale) {
     authSwitchText: { fontSize: font(12), fontWeight: '700' },
 
     sidebarContainer: { width: 250, minWidth: 250, flexShrink: 0, padding: 20, borderRightWidth: 1, ...(Platform.OS === 'web' ? { boxShadow: '14px 0 42px rgba(3,7,18,0.20)' } : { elevation: 8 }) },
-    sidebarHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    headerTitle: { fontSize: font(22), fontWeight: 'bold' },
-    proBadge: { backgroundColor: '#6366f1', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginLeft: 6 },
-    proBadgeText: { color: '#ffffff', fontSize: font(10), fontWeight: 'bold' },
-    headerSubtitle: { fontSize: font(11), marginTop: 4, marginBottom: 24 },
+    sidebarBrandBlock: { width: '100%', marginBottom: 22 },
+    sidebarBrandLogoPlate: {
+      width: '100%',
+      height: 66,
+      borderRadius: 14,
+      paddingHorizontal: 10,
+      paddingVertical: 7,
+      backgroundColor: theme.dark ? 'rgba(248,252,253,0.96)' : 'rgba(255,255,255,0.90)',
+      borderWidth: 1,
+      borderColor: theme.dark ? 'rgba(255,255,255,0.22)' : theme.cardBorder,
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+      ...(Platform.OS === 'web' ? { boxShadow: '0 12px 26px rgba(3,7,18,0.18)' } : { elevation: 4 })
+    },
+    sidebarBrandLogo: { width: '100%', height: '100%' },
+    headerSubtitle: { fontSize: font(11), marginTop: 8, marginBottom: 0, textAlign: 'left', lineHeight: font(16) },
 
     sidebarNavGroup: { gap: 6, flex: 1 },
     sidebarNavButton: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10 },
@@ -4265,7 +4319,10 @@ function createStyles(theme, isMobile, fontScale) {
 
     contentWrapper: { flex: 1, height: '100%', minHeight: 0, overflow: 'hidden' },
 
-    header: { flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: isMobile ? 10 : 0, paddingHorizontal: isMobile ? 14 : 20, paddingTop: isMobile ? 10 : 14, paddingBottom: isMobile ? 12 : 14, borderBottomWidth: 1, zIndex: 10, flexShrink: 0, width: '100%', minHeight: isMobile ? 104 : 64, overflow: 'visible', ...(Platform.OS === 'web' ? { boxShadow: '0 10px 34px rgba(3,7,18,0.18)' } : { elevation: 5 }) },
+    header: { flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: isMobile ? 9 : 0, paddingHorizontal: isMobile ? 14 : 20, paddingTop: isMobile ? 9 : 14, paddingBottom: isMobile ? 12 : 14, borderBottomWidth: 1, zIndex: 10, flexShrink: 0, width: '100%', minHeight: isMobile ? 148 : 64, overflow: 'visible', ...(Platform.OS === 'web' ? { boxShadow: '0 10px 34px rgba(3,7,18,0.18)' } : { elevation: 5 }) },
+    mobileHeaderBrandRow: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', minHeight: 34, flexShrink: 0 },
+    mobileHeaderBrandLogoPlate: { width: 104, height: 34, borderRadius: 9, paddingHorizontal: 5, paddingVertical: 4, backgroundColor: 'rgba(248,252,253,0.94)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+    mobileHeaderBrandLogo: { width: '100%', height: '100%' },
     pageHeaderInfo: { flexGrow: isMobile ? 0 : 1, flexShrink: 0, flexBasis: 'auto', width: isMobile ? '100%' : 'auto', minWidth: 0, minHeight: isMobile ? 48 : 0, marginRight: isMobile ? 0 : 12, alignSelf: 'stretch', justifyContent: 'flex-start', overflow: 'visible' },
     pageHeaderTitle: { fontSize: font(isMobile ? 18 : 18), lineHeight: font(isMobile ? 23 : 24), fontWeight: 'bold', flexShrink: 0, width: '100%', minHeight: isMobile ? 23 : 0, opacity: 1 },
     pageHeaderDescription: { fontSize: font(isMobile ? 11 : 11), lineHeight: font(isMobile ? 16 : 16), marginTop: 4, flexShrink: 0, width: '100%', minHeight: isMobile ? 16 : 0, opacity: 1 },
