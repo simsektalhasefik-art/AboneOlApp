@@ -105,6 +105,13 @@ const formatCompactCurrency = (value, currency = 'TRY') => {
   return `${Math.round(n).toLocaleString('tr-TR')} ${symbol}`;
 };
 
+// Kart ve raporlarda para birimi + periyot gösterimini tek standarda bağlar.
+const formatCurrencyWithPeriod = (value, currency = 'TRY', periodLabel = '') => {
+  const amount = formatCurrency(value, currency);
+  const normalizedPeriod = String(periodLabel || '').trim().toLocaleLowerCase('tr-TR');
+  return normalizedPeriod ? `${amount} / ${normalizedPeriod}` : amount;
+};
+
 const convertToTL = (price, currency, rates = DEFAULT_RATES) => {
   const p = Number(price) || 0;
   if (currency === 'USD') return p * (Number(rates.USD) || DEFAULT_RATES.USD);
@@ -123,6 +130,16 @@ const toTitleCaseTr = value => {
     return `${prefix}${lower.charAt(0).toLocaleUpperCase('tr-TR')}${lower.slice(1)}`;
   });
 };
+
+// Küçük açıklama ve bilgi metinleri için kurumsal Title Case: her kelime büyük başlar, nokta kullanılmaz.
+const formatUiDescription = value =>
+  String(value ?? '')
+    .replace(/\./g, '')
+    .replace(/(^|\s|["“‘(])([A-Za-zÇĞİÖŞÜçğıöşü]+)/g, (match, prefix, word) => {
+      const lower = word.toLocaleLowerCase('tr-TR');
+      return `${prefix}${lower.charAt(0).toLocaleUpperCase('tr-TR')}${lower.slice(1)}`;
+    })
+    .trim();
 
 const sanitizeNumericInput = (value, options = {}) => {
   const {
@@ -1596,7 +1613,7 @@ if (isAuthChecking) {
             >
               <View style={styles.authHeader}>
                 <Text style={[styles.authLogo, { color: '#f8fafc' }]}>Cebin <Text style={{ color: '#9b98ff' }}>PRO</Text></Text>
-                <Text style={[styles.authSubtitle, { color: '#c5cbd6' }]}>Akıllı Abonelik ve Bütçe Asistanı</Text>
+                <Text style={[styles.authSubtitle, { color: '#c5cbd6' }]}>Akıllı Abonelik Ve Bütçe Asistanı</Text>
               </View>
 
               <Text style={[styles.authTitle, { color: '#f8fafc' }]}>{authMode === 'login' ? 'Giriş Yap' : 'Kayıt Ol'}</Text>
@@ -1729,7 +1746,7 @@ if (isAuthChecking) {
 
               <Text style={styles.forgotPasswordTitle}>Şifremi Unuttum</Text>
               <Text style={styles.forgotPasswordDescription}>
-                Hesabınıza bağlı e-posta adresini girin. Şifrenizi güvenli şekilde yenileyebilmeniz için Firebase tarafından bir sıfırlama bağlantısı gönderilecektir.
+                Hesabınıza Bağlı E-Posta Adresini Girin Şifrenizi Güvenli Şekilde Yenileyebilmeniz İçin Firebase Tarafından Bir Sıfırlama Bağlantısı Gönderilecektir
               </Text>
 
               <View style={styles.forgotPasswordFieldGroup}>
@@ -1770,7 +1787,7 @@ if (isAuthChecking) {
               <View style={styles.forgotPasswordInfoBox}>
                 <Text style={styles.forgotPasswordInfoIcon}>i</Text>
                 <Text style={styles.forgotPasswordInfoText}>
-                  E-postadaki bağlantı üzerinden yeni şifrenizi belirleyebilirsiniz. Cebin PRO mevcut şifrenizi görüntülemez veya e-posta ile göndermez.
+                  E-Postadaki Bağlantı Üzerinden Yeni Şifrenizi Belirleyebilirsiniz Cebin PRO Mevcut Şifrenizi Görüntülemez Veya E-Posta İle Göndermez
                 </Text>
               </View>
 
@@ -1849,7 +1866,7 @@ if (isAuthChecking) {
               <View style={styles.proBadge}><Text style={styles.proBadgeText}>PRO</Text></View>
             </View>
 
-            <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Akıllı Abonelik ve Bütçe Asistanı</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Akıllı Abonelik Ve Bütçe Asistanı</Text>
 
             <View style={styles.sidebarNavGroup}>
               {[
@@ -1888,7 +1905,7 @@ if (isAuthChecking) {
                 {activeTab === 'list' ? 'Abonelikler' : activeTab === 'calendar' ? 'Ödeme Takvimi' : 'Analiz ve Raporlar'}
               </Text>
               <Text style={[styles.pageHeaderDescription, { color: theme.textSecondary }]} numberOfLines={isMobile ? 2 : 1}>
-                {activeTab === 'list' ? 'Aboneliklerinizi ve Düzenli Ödemelerinizi Yönetin.' : activeTab === 'calendar' ? 'Yaklaşan Ödeme Tarihlerini Takvim Üzerinden Takip Edin.' : 'Aylık Harcama Eğilimlerinizi ve Bütçe Yükünüzü İnceleyin.'}
+                {activeTab === 'list' ? 'Aboneliklerinizi Ve Düzenli Ödemelerinizi Yönetin' : activeTab === 'calendar' ? 'Yaklaşan Ödeme Tarihlerini Takvim Üzerinden Takip Edin' : 'Aylık Harcama Eğilimlerinizi Ve Bütçe Yükünüzü İnceleyin'}
               </Text>
             </View>
 
@@ -1991,7 +2008,7 @@ if (isAuthChecking) {
                   <View style={styles.filterSectionHeader}>
                     <View>
                       <Text style={[styles.sectionLabel, { color: theme.textPrimary }]}>Görünüm Filtresi</Text>
-                      <Text style={[styles.filterSectionHint, { color: theme.textMuted }]}>Abonelik Listenizi Tek Dokunuşla Daraltın.</Text>
+                      <Text style={[styles.filterSectionHint, { color: theme.textMuted }]}>Abonelik Listenizi Tek Dokunuşla Daraltın</Text>
                     </View>
                     <View style={[styles.activeFilterBadge, { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder }]}>
                       <Text style={[styles.activeFilterBadgeText, { color: theme.accent }]}>{selectedViewFilterLabel}</Text>
@@ -2027,7 +2044,7 @@ if (isAuthChecking) {
                   <View style={[styles.emptyCard, styles.elevatedSurface, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.88) : theme.cardBg, borderColor: theme.cardBorder }] }>
                     <Text style={styles.emptyIcon}>💳</Text>
                     <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Kayıt Bulunamadı</Text>
-                    <Text style={[styles.emptyDescription, { color: theme.textSecondary }]}>Arama Metnini veya Görünüm Filtresini Değiştiriniz.</Text>
+                    <Text style={[styles.emptyDescription, { color: theme.textSecondary }]}>Arama Metnini Veya Görünüm Filtresini Değiştiriniz</Text>
                     <TouchableOpacity style={[styles.primaryButton, { marginTop: 14 }]} onPress={() => openSubscriptionForm()}>
                       <Text style={styles.primaryButtonText}>+ Abonelik Ekle</Text>
                     </TouchableOpacity>
@@ -2088,14 +2105,14 @@ if (isAuthChecking) {
 
                             <Text style={[styles.subscriptionSubtitle, { color: theme.textSecondary }]}>
                               {subscription.category === 'Kredi' && getCreditSchedule(subscription)
-                                ? `Kredi • Her ayın ${subscription.billingDay}. günü • ${getCreditSchedule(subscription).installmentCount} taksit`
-                                : `${subscription.category} • ${isYearly ? `${subscription.billingDay}/${subscription.billingMonth}/${subscription.billingYear}` : `Her ayın ${subscription.billingDay}. günü`}`}
+                                ? `Kredi • Her Ayın ${subscription.billingDay}. Günü • ${getCreditSchedule(subscription).installmentCount} Taksit`
+                                : `${subscription.category} • ${isYearly ? `${subscription.billingDay}/${subscription.billingMonth}/${subscription.billingYear}` : `Her Ayın ${subscription.billingDay}. Günü`}`}
                             </Text>
                           </View>
                         </View>
 
                         <View style={styles.subscriptionRight}>
-                          <Text style={[styles.subscriptionPrice, { color: theme.textPrimary }]}>{formatCurrency(subscription.price, subscription.currency || 'TRY')} {subscription.category === 'Kredi' ? '/taksit' : isYearly ? '/yıl' : '/ay'}</Text>
+                          <Text style={[styles.subscriptionPrice, { color: theme.textPrimary }]}>{formatCurrencyWithPeriod(subscription.price, subscription.currency || 'TRY', subscription.category === 'Kredi' ? 'taksit' : isYearly ? 'yıl' : 'ay')}</Text>
                           {subscription.currency !== 'TRY' && <Text style={[styles.convertedPrice, { color: theme.accent }]}>≈ {formatCurrency(priceInTL, 'TRY')}</Text>}
 
                           <View style={styles.subscriptionActions}>
@@ -2221,7 +2238,7 @@ if (isAuthChecking) {
                 <View style={styles.analysisToolbar}>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={[styles.analysisToolbarLabel, { color: theme.textMuted }]}>Raporlama Dönemi</Text>
-                    <Text style={[styles.analysisToolbarHint, { color: theme.textSecondary }]}>Tüm Analizler Seçilen Yıla Göre Güncellenir.</Text>
+                    <Text style={[styles.analysisToolbarHint, { color: theme.textSecondary }]}>Tüm Analizler Seçilen Yıla Göre Güncellenir</Text>
                   </View>
                   <TouchableOpacity
                     activeOpacity={0.8}
@@ -2255,7 +2272,7 @@ if (isAuthChecking) {
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={[styles.insightTitle, hasHighCreditLoad && { color: theme.warning }]}>Akıllı Asistan Özeti</Text>
-                    <Text style={[styles.insightText, hasHighCreditLoad && { color: theme.textPrimary }]}>{insightText}</Text>
+                    <Text style={[styles.insightText, hasHighCreditLoad && { color: theme.textPrimary }]}>{formatUiDescription(insightText)}</Text>
                   </View>
                 </View>
 
@@ -2265,8 +2282,8 @@ if (isAuthChecking) {
                       <Text style={[styles.panelTitle, { color: theme.textPrimary }]}>{selectedAnalysisYear} Aylık Harcama Grafiği</Text>
                       <Text style={[styles.panelDescription, { color: theme.textMuted }]}>
                         {analyticsIncludeCredits
-                          ? 'Toplam finansal yük: abonelikler ve aktif kredi taksitleri birlikte gösterilir.'
-                          : 'Sabit abonelikler: kredi taksitleri ölçekten ayrılarak küçük giderler daha net görünür.'}
+                          ? 'Toplam Finansal Yük: Abonelikler Ve Aktif Kredi Taksitleri Birlikte Gösterilir'
+                          : 'Sabit Abonelikler: Kredi Taksitleri Ölçekten Ayrılarak Küçük Giderler Daha Net Görünür'}
                       </Text>
                     </View>
                   </View>
@@ -2331,7 +2348,7 @@ if (isAuthChecking) {
                           {MONTH_NAMES[selectedChartMonthIndex]} {selectedAnalysisYear}
                         </Text>
                         <Text style={[styles.chartPopoverHint, { color: theme.textMuted }]}>
-                          {analyticsIncludeCredits ? 'Toplam finansal yük' : 'Sabit abonelik harcaması'}
+                          {analyticsIncludeCredits ? 'Toplam Finansal Yük' : 'Sabit Abonelik Harcaması'}
                         </Text>
                       </View>
                       <Text style={[styles.chartPopoverAmount, { color: theme.accent }]}>
@@ -2407,7 +2424,7 @@ if (isAuthChecking) {
                   </ScrollView>
 
                   <Text style={[styles.chartInteractionHint, { color: theme.textMuted }]}>
-                    {isMobile ? 'Detay için bir aya dokunun. Grafiği yatay kaydırabilirsiniz.' : 'Detay için çubukların üzerine gelin veya tıklayın.'}
+                    {isMobile ? 'Detay İçin Bir Aya Dokunun Grafiği Yatay Kaydırabilirsiniz' : 'Detay İçin Çubukların Üzerine Gelin Veya Tıklayın'}
                   </Text>
 
                   <View style={[styles.chartFooter, { borderTopColor: theme.cardBorder }]}>
@@ -2420,10 +2437,10 @@ if (isAuthChecking) {
                   <View style={styles.distributionSectionHeader}>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.distributionTitle, styles.distributionTitleNoTop, { color: theme.textPrimary }]}>Ödeme Yöntemine Göre Aylık Dağılım</Text>
-                      <Text style={[styles.distributionSubtitle, { color: theme.textMuted }]}>Kart ve Hesap Bazında Aylık Ödeme Yükü.</Text>
+                      <Text style={[styles.distributionSubtitle, { color: theme.textMuted }]}>Kart Ve Hesap Bazında Aylık Ödeme Yükü</Text>
                     </View>
                     <View style={[styles.monthlyCommitmentBadge, { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder }]}>
-                      <Text style={[styles.monthlyCommitmentBadgeLabel, { color: theme.textMuted }]}>Toplam / Ay</Text>
+                      <Text style={[styles.monthlyCommitmentBadgeLabel, { color: theme.textMuted }]}>Toplam / ay</Text>
                       <Text style={[styles.monthlyCommitmentBadgeValue, { color: theme.textPrimary }]}>{formatCurrency(totalMonthlyPaymentCommitment, 'TRY')}</Text>
                     </View>
                   </View>
@@ -2432,7 +2449,7 @@ if (isAuthChecking) {
                     <View style={[styles.emptyCard, styles.elevatedSurface, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.88) : theme.cardBg, borderColor: theme.cardBorder }] }>
                       <Text style={styles.emptyIcon}>💳</Text>
                       <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Aylık Ödeme Yükü Bulunamadı</Text>
-                      <Text style={[styles.emptyDescription, { color: theme.textSecondary }]}>Aktif Bir Abonelik Eklediğinizde Aylık Dağılım Burada Görünür.</Text>
+                      <Text style={[styles.emptyDescription, { color: theme.textSecondary }]}>Aktif Bir Abonelik Eklediğinizde Aylık Dağılım Burada Görünür</Text>
                     </View>
                   ) : (
                     <View style={styles.monthlyPaymentGrid}>
@@ -2450,7 +2467,7 @@ if (isAuthChecking) {
                                 <View style={[styles.progressFill, { width: `${percentage}%`, backgroundColor: theme.accent }]} />
                               </View>
                             </View>
-                            <Text style={[styles.monthlyPaymentAmount, { color: theme.textPrimary }]}>{formatCurrency(amount, 'TRY')}<Text style={[styles.monthlyPaymentPeriod, { color: theme.textMuted }]}> / ay</Text></Text>
+                            <Text style={[styles.monthlyPaymentAmount, { color: theme.textPrimary }]}>{formatCurrencyWithPeriod(amount, 'TRY', 'ay')}</Text>
                           </View>
                         );
                       })}
@@ -2461,7 +2478,7 @@ if (isAuthChecking) {
                 <View style={[styles.analysisSectionCard, styles.elevatedSurface, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.88) : theme.cardBg, borderColor: theme.cardBorder }] }>
                   <Text style={[styles.distributionTitle, styles.distributionTitleNoTop, { color: theme.textPrimary }]}>Kategori Bazlı Aylık Dağılım</Text>
                   {sortedMonthlyCategoryEntries.length === 0 ? (
-                    <Text style={[styles.noDataText, { color: theme.textSecondary }]}>Seçilen Yıl İçin Kategori Verisi Bulunamadı.</Text>
+                    <Text style={[styles.noDataText, { color: theme.textSecondary }]}>Seçilen Yıl İçin Kategori Verisi Bulunamadı</Text>
                   ) : sortedMonthlyCategoryEntries.map(([category, amount]) => {
                     const categoryColor = CATEGORY_COLORS[category] || CATEGORY_COLORS.Diğer;
                     const percentage = totalMonthlyCategoryExpense > 0 ? ((amount / totalMonthlyCategoryExpense) * 100).toFixed(1) : 0;
@@ -2472,7 +2489,7 @@ if (isAuthChecking) {
                             <View style={[styles.distributionColorDot, { backgroundColor: categoryColor }]} />
                             <Text style={[styles.distributionName, { color: theme.textPrimary }]}>{category}</Text>
                           </View>
-                          <Text style={[styles.distributionAmount, { color: theme.textPrimary }]}>{formatCurrency(amount, 'TRY')} / Ay · %{percentage}</Text>
+                          <Text style={[styles.distributionAmount, { color: theme.textPrimary }]}>{formatCurrencyWithPeriod(amount, 'TRY', 'ay')} · %{percentage}</Text>
                         </View>
                         <View style={[styles.progressTrack, { backgroundColor: theme.inputBg }]}>
                           <View style={[styles.progressFill, { width: `${percentage}%`, backgroundColor: categoryColor }]} />
@@ -2570,7 +2587,7 @@ if (isAuthChecking) {
             <View style={styles.yearPickerHeader}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Ana Panel Bütçe Yılı</Text>
-                <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Özet Maliyetlerin Hesaplanacağı Projeksiyon Yılını Seçin.</Text>
+                <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Özet Maliyetlerin Hesaplanacağı Projeksiyon Yılını Seçin</Text>
               </View>
               <TouchableOpacity style={[styles.modalCloseButton, { backgroundColor: theme.inputBg }]} onPress={() => setIsDashboardYearPickerOpen(false)}>
                 <RemoveXIcon color={theme.textSecondary} />
@@ -2602,7 +2619,7 @@ if (isAuthChecking) {
             <View style={styles.yearPickerHeader}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Takvim Yılı</Text>
-                <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Ödeme Takviminde Görüntülenecek Yılı Seçin.</Text>
+                <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Ödeme Takviminde Görüntülenecek Yılı Seçin</Text>
               </View>
               <TouchableOpacity style={[styles.modalCloseButton, { backgroundColor: theme.inputBg }]} onPress={() => setIsCalendarYearPickerOpen(false)}>
                 <RemoveXIcon color={theme.textSecondary} />
@@ -2634,7 +2651,7 @@ if (isAuthChecking) {
             <View style={styles.yearPickerHeader}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Raporlama Yılı</Text>
-                <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Finansal Analizlerin Gösterileceği Yılı Seçin.</Text>
+                <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Finansal Analizlerin Gösterileceği Yılı Seçin</Text>
               </View>
               <TouchableOpacity style={[styles.modalCloseButton, { backgroundColor: theme.inputBg }]} onPress={() => setIsAnalysisYearPickerOpen(false)}>
                 <RemoveXIcon color={theme.textSecondary} />
@@ -2666,7 +2683,7 @@ if (isAuthChecking) {
             <View style={styles.modalHeader}>
               <View style={{ flex: 1, paddingRight: 12 }}>
                 <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Kullanıcı Ayarları</Text>
-                <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Hesap bilgilerinizi görüntüleyin ve şifrenizi güvenli şekilde güncelleyin.</Text>
+                <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Hesap Bilgilerinizi Görüntüleyin Ve Şifrenizi Güvenli Şekilde Güncelleyin</Text>
               </View>
               <TouchableOpacity style={[styles.modalCloseButton, { backgroundColor: theme.inputBg }]} onPress={() => setIsUserSettingsOpen(false)}>
                 <RemoveXIcon color={theme.textSecondary} />
@@ -2688,7 +2705,7 @@ if (isAuthChecking) {
 
               <View style={styles.formSection}>
                 <Text style={[styles.formSectionTitle, { color: theme.textPrimary }]}>Şifremi Değiştir</Text>
-                <Text style={[styles.formSectionDescription, { color: theme.textMuted }]}>Güvenlik Nedeniyle Önce Mevcut Şifreniz Doğrulanır.</Text>
+                <Text style={[styles.formSectionDescription, { color: theme.textMuted }]}>Güvenlik Nedeniyle Önce Mevcut Şifreniz Doğrulanır</Text>
 
                 <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Mevcut Şifre</Text>
                 <View style={[styles.passwordInputShell, { backgroundColor: theme.inputBg, borderColor: passwordErrors.current ? theme.danger : theme.cardBorder }]}>
@@ -2767,7 +2784,7 @@ if (isAuthChecking) {
             <View style={styles.modalHeader}>
               <View style={{ flex: 1, paddingRight: 12 }}>
                 <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Görünüm Ayarları</Text>
-                <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Arka Plan Temasını ve Yazı Boyutunu Kişiselleştirin.</Text>
+                <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Arka Plan Temasını Ve Yazı Boyutunu Kişiselleştirin</Text>
               </View>
               <TouchableOpacity style={[styles.modalCloseButton, { backgroundColor: theme.inputBg }]} onPress={() => setIsAppearanceModalOpen(false)}>
                 <RemoveXIcon color={theme.textSecondary} />
@@ -2814,7 +2831,7 @@ if (isAuthChecking) {
             <View style={styles.modalHeader}>
               <View style={{ flex: 1, paddingRight: 12 }}>
                 <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>{editingId ? 'Abonelik Düzenle' : 'Yeni Abonelik Ekle'}</Text>
-                <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Abonelik veya Sabit Gider Bilgilerini Girin.</Text>
+                <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Abonelik Veya Sabit Gider Bilgilerini Girin</Text>
 
                 <View style={styles.stepIndicatorRow}>
                   {[1, 2].map(step => (
@@ -2837,7 +2854,7 @@ if (isAuthChecking) {
                       <View style={styles.formSectionHeader}>
                         <View style={{ flex: 1, paddingRight: 10 }}>
                           <Text style={[styles.formSectionTitle, { color: theme.textPrimary }]}>Hızlı Şablon Seç</Text>
-                          <Text style={[styles.formSectionDescription, { color: theme.textMuted }]}>Hazır Bir Servis Seçerek Alanları Otomatik Doldurun.</Text>
+                          <Text style={[styles.formSectionDescription, { color: theme.textMuted }]}>Hazır Bir Servis Seçerek Alanları Otomatik Doldurun</Text>
                         </View>
                         <TouchableOpacity onPress={() => setShowTemplateForm(!showTemplateForm)}>
                           <Text style={[styles.formSectionAction, { color: theme.accent }]}>{showTemplateForm ? 'Kapat' : '+ Şablon Ekle'}</Text>
@@ -2966,7 +2983,7 @@ if (isAuthChecking) {
                     <View style={[styles.projectionFieldCard, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}>
                       <View style={styles.projectionFieldCopy}>
                         <Text style={[styles.inputLabel, { color: theme.textPrimary, marginBottom: 3 }]}>Yıllık Tahmini Artış / Zam Oranı (%)</Text>
-                        <Text style={[styles.formSectionDescription, { color: theme.textMuted }]}>Seçilen Oran, Gelecek Yıllardaki Maliyet ve Bütçe Projeksiyonlarına Bileşik Olarak Yansıtılır.</Text>
+                        <Text style={[styles.formSectionDescription, { color: theme.textMuted }]}>Seçilen Oran, Gelecek Yıllardaki Maliyet Ve Bütçe Projeksiyonlarına Bileşik Olarak Yansıtılır</Text>
                       </View>
                       <View style={styles.projectionRateInputWrap}>
                         <TextInput
@@ -2988,7 +3005,7 @@ if (isAuthChecking) {
                     <View style={[styles.increasePeriodCard, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}>
                       <View style={styles.increasePeriodCopy}>
                         <Text style={[styles.inputLabel, { color: theme.textPrimary, marginBottom: 3 }]}>Zam Uygulama Periyodu</Text>
-                        <Text style={[styles.formSectionDescription, { color: theme.textMuted }]}>Artışın Abonelik Yıl Dönümünde veya Her Takvim Yılı Başında Devreye Girmesini Seçin.</Text>
+                        <Text style={[styles.formSectionDescription, { color: theme.textMuted }]}>Artışın Abonelik Yıl Dönümünde Veya Her Takvim Yılı Başında Devreye Girmesini Seçin</Text>
                       </View>
                       <View style={styles.increasePeriodOptions}>
                         <TouchableOpacity
@@ -2996,14 +3013,14 @@ if (isAuthChecking) {
                           onPress={() => setFormIncreaseApplicationPeriod('anniversary')}
                         >
                           <Text style={[styles.increasePeriodOptionTitle, { color: formIncreaseApplicationPeriod === 'anniversary' ? theme.accent : theme.textPrimary }]}>Abonelik Yıl Dönümünde</Text>
-                          <Text style={[styles.increasePeriodOptionHint, { color: theme.textMuted }]}>Başlangıç Ayı Geldiğinde Zam Uygulanır.</Text>
+                          <Text style={[styles.increasePeriodOptionHint, { color: theme.textMuted }]}>Başlangıç Ayı Geldiğinde Zam Uygulanır</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={[styles.increasePeriodOption, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }, formIncreaseApplicationPeriod === 'calendarYear' && styles.increasePeriodOptionActive]}
                           onPress={() => setFormIncreaseApplicationPeriod('calendarYear')}
                         >
                           <Text style={[styles.increasePeriodOptionTitle, { color: formIncreaseApplicationPeriod === 'calendarYear' ? theme.accent : theme.textPrimary }]}>Takvim Yılı Başında (Ocak)</Text>
-                          <Text style={[styles.increasePeriodOptionHint, { color: theme.textMuted }]}>Her 1 Ocak Tarihinde Zam Uygulanır.</Text>
+                          <Text style={[styles.increasePeriodOptionHint, { color: theme.textMuted }]}>Her 1 Ocak Tarihinde Zam Uygulanır</Text>
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -3017,7 +3034,7 @@ if (isAuthChecking) {
                     <View style={styles.formSectionHeader}>
                       <View style={{ flex: 1, paddingRight: 10 }}>
                         <Text style={[styles.formSectionTitle, { color: theme.textPrimary }]}>Ödeme Yapılan Kart / Hesap</Text>
-                        <Text style={[styles.formSectionDescription, { color: theme.textMuted }]}>Aboneliğin Tahsil Edildiği Yöntemi Seçin.</Text>
+                        <Text style={[styles.formSectionDescription, { color: theme.textMuted }]}>Aboneliğin Tahsil Edildiği Yöntemi Seçin</Text>
                       </View>
                       <TouchableOpacity onPress={() => setShowPaymentMethodForm(!showPaymentMethodForm)}>
                         <Text style={[styles.formSectionAction, { color: theme.accent }]}>{showPaymentMethodForm ? 'Kapat' : '+ Yöntem Ekle'}</Text>
@@ -3087,7 +3104,7 @@ if (isAuthChecking) {
                       <View style={styles.creditScheduleHeader}>
                         <View style={{ flex: 1, minWidth: 0 }}>
                           <Text style={[styles.formSectionTitle, { color: theme.textPrimary }]}>Kredi / Taksit Planı</Text>
-                          <Text style={[styles.creditScheduleDescription, { color: theme.textMuted }]}>Vade ve ilk taksit ayını girin. Kayıt, son taksit ayından sonra takvim ve raporlarda otomatik olarak sona erer.</Text>
+                          <Text style={[styles.creditScheduleDescription, { color: theme.textMuted }]}>Vade Ve İlk Taksit Ayını Girin Kayıt, Son Taksit Ayından Sonra Takvim Ve Raporlarda Otomatik Olarak Sona Erer</Text>
                         </View>
                         <View style={[styles.creditScheduleBadge, { backgroundColor: hexToRgba(CATEGORY_COLORS.Kredi, 0.12), borderColor: CATEGORY_COLORS.Kredi }]}>
                           <Text style={[styles.creditScheduleBadgeText, { color: CATEGORY_COLORS.Kredi }]}>Kredi</Text>
@@ -3145,12 +3162,12 @@ if (isAuthChecking) {
                           <View style={{ flex: 1, minWidth: 0 }}>
                             <Text style={[styles.creditEndInfoTitle, { color: theme.textPrimary }]}>Tahmini Son Taksit</Text>
                             <Text style={[styles.creditEndInfoText, { color: theme.textSecondary }]}>
-                              {creditEndPreview.monthName} {creditEndPreview.year} · {creditInstallmentCountNumber} aylık vade tamamlandığında bu kalem rapor ve takvim hesaplamalarından otomatik çıkarılır.
+                              {creditEndPreview.monthName} {creditEndPreview.year} · {creditInstallmentCountNumber} Aylık Vade Tamamlandığında Bu Kalem Rapor Ve Takvim Hesaplamalarından Otomatik Çıkarılır
                             </Text>
                           </View>
                         </View>
                       ) : (
-                        <Text style={[styles.creditScheduleHint, { color: theme.textMuted }]}>Bitiş tarihini görmek için vade ile başlangıç ayı/yılını girin.</Text>
+                        <Text style={[styles.creditScheduleHint, { color: theme.textMuted }]}>Bitiş Tarihini Görmek İçin Vade İle Başlangıç Ayı/Yılını Girin</Text>
                       )}
                     </View>
                   )}
@@ -3171,7 +3188,7 @@ if (isAuthChecking) {
                         <TextInput style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }, focusedNumericInput === 'year' && styles.numericInputFocused]} placeholder="2026" placeholderTextColor={theme.textMuted} keyboardType="number-pad" inputMode="numeric" value={formYear} onFocus={() => setFocusedNumericInput('year')} onBlur={() => setFocusedNumericInput(null)} onChangeText={value => setFormYear(sanitizeIntegerInput(value))} />
                       </View>
                     </View>
-                    <Text style={[styles.helperText, { color: theme.textMuted }]}>{formCategory === 'Kredi' ? 'Kredi kayıtlarında gün alanı taksit gününü belirler; taksit başlangıç ayı ve yılı yukarıdaki Kredi / Taksit Planı alanından alınır.' : 'Aylık Ödemelerde Başlangıç Ayı, Yıllık Ödemelerde Tahsilat Ayı Olarak Kullanılır.'}</Text>
+                    <Text style={[styles.helperText, { color: theme.textMuted }]}>{formCategory === 'Kredi' ? 'Kredi Kayıtlarında Gün Alanı Taksit Gününü Belirler; Taksit Başlangıç Ayı Ve Yılı Yukarıdaki Kredi / Taksit Planı Alanından Alınır' : 'Aylık Ödemelerde Başlangıç Ayı, Yıllık Ödemelerde Tahsilat Ayı Olarak Kullanılır'}</Text>
                   </View>
 
                   <View style={styles.formSection}>
@@ -3209,14 +3226,14 @@ if (isAuthChecking) {
                               value={formNotificationEmail}
                               onChangeText={value => setFormNotificationEmail(value.replace(/\s/g, ''))}
                             />
-                            <Text style={[styles.helperText, { color: theme.textMuted }]}>Hatırlatıcı e-postaları bu adrese yönlendirilecektir.</Text>
+                            <Text style={[styles.helperText, { color: theme.textMuted }]}>Hatırlatıcı E-Postaları Bu Adrese Yönlendirilecektir</Text>
                           </View>
                         )}
 
                         {formNotificationChannel === 'browser' && (
                           <View style={[styles.notificationHintBox, { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder }]}>
                             <Text style={[styles.notificationHintIcon, { color: theme.accent }]}>i</Text>
-                            <Text style={[styles.notificationHintText, { color: theme.textSecondary }]}>Tarayıcı bildirimlerinin çalışması için cihazınızda ve tarayıcınızda bildirim izninin açık olması gerekir. İzin sorulduğunda “İzin Ver” seçeneğini kullanın.</Text>
+                            <Text style={[styles.notificationHintText, { color: theme.textSecondary }]}>Tarayıcı Bildirimlerinin Çalışması İçin Cihazınızda Ve Tarayıcınızda Bildirim İzninin Açık Olması Gerekir İzin Sorulduğunda “İzin Ver” Seçeneğini Kullanın</Text>
                           </View>
                         )}
                       </View>
@@ -3289,7 +3306,7 @@ if (isAuthChecking) {
             </View>
             <Text style={[styles.warningTitle, { color: theme.textPrimary }]}>Bu Abonelik Zaten Kayıtlı</Text>
             <Text style={[styles.warningMessage, { color: theme.textSecondary }]}>"{duplicateWarning.name}" İsimli Abonelik Zaten Listenizde Bulunuyor.</Text>
-            <Text style={[styles.warningHint, { color: theme.textMuted }]}>Mevcut Kaydı Düzenleyebilir veya Aboneliği Farklı Bir Adla Ekleyebilirsiniz.</Text>
+            <Text style={[styles.warningHint, { color: theme.textMuted }]}>Mevcut Kaydı Düzenleyebilir Veya Aboneliği Farklı Bir Adla Ekleyebilirsiniz</Text>
             <TouchableOpacity style={styles.warningButton} onPress={() => setDuplicateWarning({ visible: false, name: '' })}>
               <Text style={styles.warningButtonText}>Tamam</Text>
             </TouchableOpacity>
