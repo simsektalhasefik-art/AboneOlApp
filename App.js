@@ -713,13 +713,13 @@ const BACKGROUND_PRESETS = {
   smoke: { label: 'Açık Füme', dark: true, bg: '#30353c', sidebarBg: '#373d45', headerBg: '#3a4048', cardBg: '#414852', inputBg: '#343a42', cardBorder: '#58616d', textPrimary: '#f4f6f8', textSecondary: '#d2d7de', textMuted: '#aeb7c2', summaryBg: '#5b58d6', summaryBorder: '#7470ef', accent: '#63b3ff' },
   anthracite: { label: 'Antrasit', dark: true, bg: '#20242a', sidebarBg: '#272c33', headerBg: '#2a3038', cardBg: '#303741', inputBg: '#252b33', cardBorder: '#434c58', textPrimary: '#f4f5f7', textSecondary: '#cbd1d9', textMuted: '#98a2af', summaryBg: '#4f46c8', summaryBorder: '#6860df', accent: '#55aaff' },
   navy: { label: 'Lacivert', dark: true, bg: '#111827', sidebarBg: '#182131', headerBg: '#1c2636', cardBg: '#222d3d', inputBg: '#172131', cardBorder: '#344154', textPrimary: '#f1f5f9', textSecondary: '#cbd5e1', textMuted: '#94a3b8', summaryBg: '#3730a3', summaryBorder: '#4f46e5', accent: '#60a5fa' },
-  sage: { label: 'Adaçayı', dark: false, bg: '#dfe8df', sidebarBg: '#cedbce', headerBg: '#eaf1ea', cardBg: '#f5f8f4', inputBg: '#e7eee6', cardBorder: '#afc1ae', textPrimary: '#26352a', textSecondary: '#506353', textMuted: '#748278', summaryBg: '#4f7c5a', summaryBorder: '#6d9977', accent: '#d97706' },
-  mint: { label: 'Açık Yeşil', dark: false, bg: '#dff3ea', sidebarBg: '#c9e6d9', headerBg: '#ebf8f2', cardBg: '#f6fcf9', inputBg: '#e3f2eb', cardBorder: '#a8cfbc', textPrimary: '#17392b', textSecondary: '#3f6857', textMuted: '#708d80', summaryBg: '#0f766e', summaryBorder: '#14b8a6', accent: '#ea580c' },
-  apricot: { label: 'Kayısı', dark: false, bg: '#f5e3d1', sidebarBg: '#ebd1b8', headerBg: '#faeee3', cardBg: '#fff8f1', inputBg: '#f2e3d5', cardBorder: '#d7bba1', textPrimary: '#3b291d', textSecondary: '#6e5340', textMuted: '#927764', summaryBg: '#d97706', summaryBorder: '#f59e0b', accent: '#0f766e' },
-  sand: { label: 'Kum', dark: false, bg: '#eee8dc', sidebarBg: '#e0d7c7', headerBg: '#f5f1e8', cardBg: '#fcfaf5', inputBg: '#ece5d9', cardBorder: '#cbc0ae', textPrimary: '#3a342b', textSecondary: '#665e51', textMuted: '#8a8173', summaryBg: '#8b6f47', summaryBorder: '#a98b60', accent: '#2563eb' },
-  lavender: { label: 'Lavanta', dark: false, bg: '#e9e4f4', sidebarBg: '#dcd4eb', headerBg: '#f1edf8', cardBg: '#faf8fd', inputBg: '#e8e2f1', cardBorder: '#c5bad8', textPrimary: '#302740', textSecondary: '#625570', textMuted: '#85768f', summaryBg: '#7c5cbf', summaryBorder: '#9676d4', accent: '#d97706' },
-  rose: { label: 'Gül Kurusu', dark: false, bg: '#f1e1e3', sidebarBg: '#e5cfd2', headerBg: '#f8ecee', cardBg: '#fff8f9', inputBg: '#f0dfe2', cardBorder: '#d3b5ba', textPrimary: '#42282e', textSecondary: '#704d55', textMuted: '#93737a', summaryBg: '#be5f73', summaryBorder: '#d17b8d', accent: '#2563eb' },
-  light: { label: 'Açık', dark: false, bg: '#edf1f5', sidebarBg: '#ffffff', headerBg: '#ffffff', cardBg: '#ffffff', inputBg: '#f1f4f8', cardBorder: '#d8dee7', textPrimary: '#1f2937', textSecondary: '#566171', textMuted: '#7d8999', summaryBg: '#4f46e5', summaryBorder: '#6366f1', accent: '#2563eb' }
+  sage: { label: 'Adaçayı', dark: false, bg: '#dfe8df', sidebarBg: '#cedbce', headerBg: '#eaf1ea', cardBg: '#f5f8f4', inputBg: '#e7eee6', cardBorder: '#9eB39d', textPrimary: '#1f2d23', textSecondary: '#405545', textMuted: '#596b5d', summaryBg: '#4f7c5a', summaryBorder: '#5e8b68', accent: '#b45309' },
+  mint: { label: 'Açık Yeşil', dark: false, bg: '#dff3ea', sidebarBg: '#c9e6d9', headerBg: '#ebf8f2', cardBg: '#f6fcf9', inputBg: '#e3f2eb', cardBorder: '#96c3ad', textPrimary: '#123226', textSecondary: '#315a49', textMuted: '#547565', summaryBg: '#0f766e', summaryBorder: '#0f9f90', accent: '#c2410c' },
+  apricot: { label: 'Kayısı', dark: false, bg: '#f5e3d1', sidebarBg: '#ebd1b8', headerBg: '#faeee3', cardBg: '#fff8f1', inputBg: '#f2e3d5', cardBorder: '#c9aa8d', textPrimary: '#322116', textSecondary: '#5b4332', textMuted: '#725947', summaryBg: '#b45309', summaryBorder: '#d97706', accent: '#0f766e' },
+  sand: { label: 'Kum', dark: false, bg: '#eee8dc', sidebarBg: '#e0d7c7', headerBg: '#f5f1e8', cardBg: '#fcfaf5', inputBg: '#ece5d9', cardBorder: '#bdb19e', textPrimary: '#302a22', textSecondary: '#544c40', textMuted: '#6e6659', summaryBg: '#765a37', summaryBorder: '#927348', accent: '#1d4ed8' },
+  lavender: { label: 'Lavanta', dark: false, bg: '#e9e4f4', sidebarBg: '#dcd4eb', headerBg: '#f1edf8', cardBg: '#faf8fd', inputBg: '#e8e2f1', cardBorder: '#b7a8ce', textPrimary: '#292138', textSecondary: '#514461', textMuted: '#695b79', summaryBg: '#6d4fb0', summaryBorder: '#8263c3', accent: '#b45309' },
+  rose: { label: 'Gül Kurusu', dark: false, bg: '#f1e1e3', sidebarBg: '#e5cfd2', headerBg: '#f8ecee', cardBg: '#fff8f9', inputBg: '#f0dfe2', cardBorder: '#c5a4aa', textPrimary: '#382127', textSecondary: '#5e3f47', textMuted: '#765860', summaryBg: '#a9485d', summaryBorder: '#be6175', accent: '#1d4ed8' },
+  light: { label: 'Açık', dark: false, bg: '#edf1f5', sidebarBg: '#ffffff', headerBg: '#ffffff', cardBg: '#ffffff', inputBg: '#f1f4f8', cardBorder: '#cbd3df', textPrimary: '#172033', textSecondary: '#465267', textMuted: '#5f6b7d', summaryBg: '#4338ca', summaryBorder: '#5145d7', accent: '#1d4ed8' }
 };
 
 const FONT_SCALE_OPTIONS = [
@@ -1809,12 +1809,21 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
 
   const theme = {
     ...selectedPreset,
-    danger: '#f87171',
-    success: '#34d399',
-    warning: '#fbbf24',
-    activeButton: '#6965e8',
-    activeButtonBorder: '#7c78f0',
-    activeButtonSoft: '#7772ff26'
+    danger: selectedPreset.dark ? '#f87171' : '#b42318',
+    success: selectedPreset.dark ? '#34d399' : '#067647',
+    warning: selectedPreset.dark ? '#fbbf24' : '#a15c00',
+    activeButton: selectedPreset.dark ? '#6965e8' : '#4f46e5',
+    activeButtonBorder: selectedPreset.dark ? '#7c78f0' : '#4338ca',
+    activeButtonSoft: selectedPreset.dark ? '#7772ff26' : '#4f46e51f',
+    onAccent: '#ffffff',
+    onWarning: selectedPreset.dark ? '#fff7d6' : '#3b2600',
+    warningSurface: selectedPreset.dark ? 'rgba(251,191,36,0.13)' : '#fff4cf',
+    warningSurfaceBorder: selectedPreset.dark ? 'rgba(251,191,36,0.48)' : '#d9a514',
+    warningSurfaceMuted: selectedPreset.dark ? '#fde9a8' : '#624814',
+    insightSurface: selectedPreset.dark ? selectedPreset.summaryBg : '#eef2ff',
+    insightSurfaceBorder: selectedPreset.dark ? selectedPreset.summaryBorder : '#a5b4fc',
+    insightText: selectedPreset.dark ? '#ffffff' : '#1e1b4b',
+    insightMuted: selectedPreset.dark ? 'rgba(255,255,255,0.90)' : '#3730a3'
   };
 
   const safeList = Array.isArray(subscriptions) ? subscriptions : [];
@@ -2710,10 +2719,10 @@ if (isAuthChecking) {
         )}
 
         <View style={styles.contentWrapper}>
-          <View style={[styles.header, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.headerBg, 0.75) : theme.headerBg, borderBottomColor: theme.cardBorder }]}>
+          <View style={[styles.header, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.headerBg, 0.92) : theme.headerBg, borderBottomColor: theme.cardBorder }]}>
             {isMobile && (
-              <View style={styles.mobileHeaderBrandRow}>
-                <View style={styles.mobileHeaderBrandLogoPlate}>
+              <View style={styles.mobileAppHeaderRow}>
+                <View style={[styles.mobileHeaderBrandLogoPlate, { borderColor: theme.cardBorder }]}>
                   <Image
                     source={CEBIN_PRO_LOGO}
                     style={styles.mobileHeaderBrandLogo}
@@ -2721,8 +2730,41 @@ if (isAuthChecking) {
                     accessibilityLabel="Cebin PRO"
                   />
                 </View>
+
+                <View style={styles.mobileHeaderActions}>
+                  <View style={[styles.languageSegment, styles.headerLanguageSegment, styles.mobileHeaderLanguageSegment, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}>
+                    {['tr', 'en'].map(option => (
+                      <Pressable
+                        key={option}
+                        onPress={() => setLanguage(option)}
+                        style={[styles.languageSegmentButton, styles.mobileLanguageSegmentButton, language === option && styles.languageSegmentButtonActive]}
+                      >
+                        <Text style={[styles.languageSegmentText, styles.mobileLanguageSegmentText, { color: theme.textSecondary }, language === option && styles.languageSegmentTextActive]}>{option.toUpperCase()}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+
+                  <TouchableOpacity
+                    style={[styles.iconButton, styles.mobileHeaderIconButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}
+                    onPress={() => setNotificationsEnabled(v => !v)}
+                  >
+                    <Text style={styles.iconButtonText}>{notificationsEnabled ? '🔔' : '🔕'}</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.iconButton, styles.mobileHeaderIconButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}
+                    onPress={() => setIsAppearanceModalOpen(true)}
+                  >
+                    <Text style={styles.iconButtonText}>⚙️</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={[styles.primaryButton, styles.mobileHeaderAddButton]} onPress={() => openSubscriptionForm()}>
+                    <Text style={[styles.primaryButtonText, styles.mobileHeaderAddButtonText]}>+ Ekle</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
+
             <View style={styles.pageHeaderInfo}>
               <Text style={[styles.pageHeaderTitle, { color: theme.textPrimary }]} numberOfLines={isMobile ? undefined : 1}>
                 {activeTab === 'list' ? 'Abonelikler' : activeTab === 'calendar' ? 'Ödeme Takvimi' : 'Analiz ve Raporlar'}
@@ -2732,51 +2774,43 @@ if (isAuthChecking) {
               </Text>
             </View>
 
-            <View style={styles.headerActions}>
-              {isDesktop && (
+            {isDesktop && (
+              <View style={styles.headerActions}>
                 <View style={[styles.miniRatesBadge, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}>
                   <Text style={styles.miniRatesIcon}>💱</Text>
                   <Text style={[styles.miniRatesText, { color: theme.textSecondary }]} numberOfLines={1}>
                     USD {Number(exchangeRates.USD).toFixed(2)} · EUR {Number(exchangeRates.EUR).toFixed(2)}
                   </Text>
                 </View>
-              )}
 
-              <View style={[styles.languageSegment, styles.headerLanguageSegment, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}>
-                {['tr', 'en'].map(option => (
-                  <Pressable
-                    key={option}
-                    onPress={() => setLanguage(option)}
-                    style={[styles.languageSegmentButton, language === option && styles.languageSegmentButtonActive]}
-                  >
-                    <Text style={[styles.languageSegmentText, { color: theme.textSecondary }, language === option && styles.languageSegmentTextActive]}>{option.toUpperCase()}</Text>
-                  </Pressable>
-                ))}
-              </View>
+                <View style={[styles.languageSegment, styles.headerLanguageSegment, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}>
+                  {['tr', 'en'].map(option => (
+                    <Pressable
+                      key={option}
+                      onPress={() => setLanguage(option)}
+                      style={[styles.languageSegmentButton, language === option && styles.languageSegmentButtonActive]}
+                    >
+                      <Text style={[styles.languageSegmentText, { color: theme.textSecondary }, language === option && styles.languageSegmentTextActive]}>{option.toUpperCase()}</Text>
+                    </Pressable>
+                  ))}
+                </View>
 
-              <TouchableOpacity
-                style={[styles.iconButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}
-                onPress={() => setNotificationsEnabled(v => !v)}
-              >
-                <Text style={styles.iconButtonText}>{notificationsEnabled ? '🔔' : '🔕'}</Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.iconButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}
+                  onPress={() => setNotificationsEnabled(v => !v)}
+                >
+                  <Text style={styles.iconButtonText}>{notificationsEnabled ? '🔔' : '🔕'}</Text>
+                </TouchableOpacity>
 
-              {isDesktop && (
                 <TouchableOpacity style={[styles.iconButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={openUserSettings}>
                   <View style={styles.profileGlyph}><View style={styles.profileGlyphHead} /><View style={styles.profileGlyphBody} /></View>
                 </TouchableOpacity>
-              )}
 
-              <TouchableOpacity style={[styles.iconButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={() => setIsAppearanceModalOpen(true)}>
-                <Text style={styles.iconButtonText}>⚙️</Text>
-              </TouchableOpacity>
-
-              {!isDesktop && (
-                <TouchableOpacity style={styles.primaryButton} onPress={() => openSubscriptionForm()}>
-                  <Text style={styles.primaryButtonText}>+ Ekle</Text>
+                <TouchableOpacity style={[styles.iconButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={() => setIsAppearanceModalOpen(true)}>
+                  <Text style={styles.iconButtonText}>⚙️</Text>
                 </TouchableOpacity>
-              )}
-            </View>
+              </View>
+            )}
           </View>
 
           <ScrollView
@@ -3095,23 +3129,38 @@ if (isAuthChecking) {
                 <View style={[
                   styles.insightBox,
                   {
-                    backgroundColor: hasHighCreditLoad ? hexToRgba(theme.warning, 0.16) : theme.summaryBg,
-                    borderColor: hasHighCreditLoad ? hexToRgba(theme.warning, 0.72) : theme.summaryBorder,
+                    backgroundColor: hasHighCreditLoad ? theme.warningSurface : theme.insightSurface,
+                    borderColor: hasHighCreditLoad ? theme.warningSurfaceBorder : theme.insightSurfaceBorder,
                     ...(Platform.OS === 'web'
                       ? {
                           backgroundImage: hasHighCreditLoad
-                            ? `linear-gradient(135deg, ${hexToRgba(theme.warning, 0.18)}, ${hexToRgba(theme.danger, 0.14)})`
-                            : `linear-gradient(135deg, ${theme.summaryBg}, ${theme.activeButton})`
+                            ? (theme.dark
+                              ? `linear-gradient(135deg, ${hexToRgba('#fbbf24', 0.16)}, ${hexToRgba('#f87171', 0.10)})`
+                              : 'linear-gradient(135deg, #fff8dc 0%, #ffefb5 100%)')
+                            : (theme.dark
+                              ? `linear-gradient(135deg, ${theme.summaryBg}, ${theme.activeButton})`
+                              : 'linear-gradient(135deg, #f5f7ff 0%, #e9edff 100%)'),
+                          boxShadow: theme.dark
+                            ? '0 16px 34px rgba(3,7,18,0.18)'
+                            : '0 12px 28px rgba(71,85,105,0.12)'
                         }
                       : {})
                   }
                 ]}>
-                  <View style={[styles.insightIconBox, hasHighCreditLoad && { backgroundColor: hexToRgba(theme.warning, 0.18), borderColor: hexToRgba(theme.warning, 0.42), borderWidth: 1 }]}>
+                  <View style={[
+                    styles.insightIconBox,
+                    {
+                      backgroundColor: hasHighCreditLoad
+                        ? (theme.dark ? 'rgba(251,191,36,0.16)' : '#fff1b8')
+                        : (theme.dark ? 'rgba(255,255,255,0.16)' : '#ffffff'),
+                      borderColor: hasHighCreditLoad ? theme.warningSurfaceBorder : theme.insightSurfaceBorder
+                    }
+                  ]}>
                     <Text style={{ fontSize: 20 }}>{hasHighCreditLoad ? '⚠️' : '✨'}</Text>
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={[styles.insightTitle, hasHighCreditLoad && { color: theme.warning }]}>Akıllı Asistan Özeti</Text>
-                    <Text style={[styles.insightText, hasHighCreditLoad && { color: theme.textPrimary }]}>{formatUiDescription(insightText, language)}</Text>
+                    <Text style={[styles.insightTitle, { color: hasHighCreditLoad ? theme.onWarning : theme.insightText }]}>Akıllı Asistan Özeti</Text>
+                    <Text style={[styles.insightText, { color: hasHighCreditLoad ? theme.warningSurfaceMuted : theme.insightMuted }]}>{formatUiDescription(insightText, language)}</Text>
                   </View>
                 </View>
 
@@ -4200,8 +4249,8 @@ function createStyles(theme, isMobile, fontScale) {
     glassSurface,
     elevatedSurface: {
       ...(Platform.OS === 'web'
-        ? { boxShadow: '0 18px 46px rgba(3,7,18,0.28), 0 3px 12px rgba(79,70,229,0.10)' }
-        : { shadowColor: '#020617', shadowOpacity: 0.28, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 8 })
+        ? { boxShadow: theme.dark ? '0 18px 46px rgba(3,7,18,0.26), 0 3px 12px rgba(79,70,229,0.10)' : '0 14px 34px rgba(71,85,105,0.13), 0 2px 8px rgba(79,70,229,0.06)' }
+        : { shadowColor: theme.dark ? '#020617' : '#64748b', shadowOpacity: theme.dark ? 0.26 : 0.14, shadowRadius: 18, shadowOffset: { width: 0, height: 9 }, elevation: 7 })
     },
     appGlow: { position: 'absolute', width: isMobile ? 220 : 460, height: isMobile ? 220 : 460, borderRadius: 999, opacity: 0.10 },
     appGlowTop: { top: isMobile ? -120 : -230, left: isMobile ? -100 : 120 },
@@ -4320,15 +4369,22 @@ function createStyles(theme, isMobile, fontScale) {
 
     contentWrapper: { flex: 1, height: '100%', minHeight: 0, overflow: 'hidden' },
 
-    header: { flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: isMobile ? 9 : 0, paddingHorizontal: isMobile ? 14 : 20, paddingTop: isMobile ? 9 : 14, paddingBottom: isMobile ? 12 : 14, borderBottomWidth: 1, zIndex: 10, flexShrink: 0, width: '100%', minHeight: isMobile ? 148 : 64, overflow: 'visible', ...(Platform.OS === 'web' ? { boxShadow: '0 10px 34px rgba(3,7,18,0.18)' } : { elevation: 5 }) },
-    mobileHeaderBrandRow: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', minHeight: 34, flexShrink: 0 },
-    mobileHeaderBrandLogoPlate: { width: 104, height: 34, borderRadius: 9, paddingHorizontal: 5, paddingVertical: 4, backgroundColor: 'rgba(248,252,253,0.94)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+    header: { flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: isMobile ? 8 : 0, paddingHorizontal: isMobile ? 10 : 20, paddingTop: isMobile ? 8 : 14, paddingBottom: isMobile ? 10 : 14, borderBottomWidth: 1, zIndex: 10, flexShrink: 0, width: '100%', minHeight: isMobile ? 112 : 64, overflow: 'visible', ...(Platform.OS === 'web' ? { boxShadow: theme.dark ? '0 10px 30px rgba(3,7,18,0.20)' : '0 8px 24px rgba(71,85,105,0.12)' } : { elevation: 5 }) },
+    mobileAppHeaderRow: { width: '100%', minWidth: 0, minHeight: 36, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6, flexShrink: 0 },
+    mobileHeaderBrandLogoPlate: { width: 82, height: 30, flexShrink: 0, borderRadius: 8, paddingHorizontal: 4, paddingVertical: 3, backgroundColor: 'rgba(248,252,253,0.97)', borderWidth: 1, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? { boxShadow: '0 5px 14px rgba(3,7,18,0.10)' } : { elevation: 2 }) },
     mobileHeaderBrandLogo: { width: '100%', height: '100%' },
-    pageHeaderInfo: { flexGrow: isMobile ? 0 : 1, flexShrink: 0, flexBasis: 'auto', width: isMobile ? '100%' : 'auto', minWidth: 0, minHeight: isMobile ? 48 : 0, marginRight: isMobile ? 0 : 12, alignSelf: 'stretch', justifyContent: 'flex-start', overflow: 'visible' },
-    pageHeaderTitle: { fontSize: font(isMobile ? 18 : 18), lineHeight: font(isMobile ? 23 : 24), fontWeight: 'bold', flexShrink: 0, width: '100%', minHeight: isMobile ? 23 : 0, opacity: 1 },
-    pageHeaderDescription: { fontSize: font(isMobile ? 11 : 11), lineHeight: font(isMobile ? 16 : 16), marginTop: 4, flexShrink: 0, width: '100%', minHeight: isMobile ? 16 : 0, opacity: 1 },
+    mobileHeaderActions: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 5, flexWrap: 'nowrap' },
+    mobileHeaderLanguageSegment: { padding: 2, borderRadius: 9 },
+    mobileLanguageSegmentButton: { minWidth: 27, width: 27, height: 28, paddingHorizontal: 3, borderRadius: 7 },
+    mobileLanguageSegmentText: { fontSize: font(9), letterSpacing: 0.2 },
+    mobileHeaderIconButton: { width: 32, height: 32, borderRadius: 10, flexShrink: 0 },
+    mobileHeaderAddButton: { minHeight: 32, height: 32, borderRadius: 10, paddingVertical: 0, paddingHorizontal: 9, flexShrink: 0, ...(Platform.OS === 'web' ? { boxShadow: '0 7px 16px rgba(79,70,229,0.22)' } : { elevation: 3 }) },
+    mobileHeaderAddButtonText: { fontSize: font(10.5), lineHeight: font(14) },
+    pageHeaderInfo: { flexGrow: isMobile ? 0 : 1, flexShrink: 0, flexBasis: 'auto', width: isMobile ? '100%' : 'auto', minWidth: 0, minHeight: isMobile ? 46 : 0, marginRight: isMobile ? 0 : 12, alignSelf: 'stretch', justifyContent: 'flex-start', overflow: 'visible' },
+    pageHeaderTitle: { fontSize: font(isMobile ? 17 : 18), lineHeight: font(isMobile ? 22 : 24), fontWeight: '800', flexShrink: 0, width: '100%', minHeight: isMobile ? 22 : 0, opacity: 1 },
+    pageHeaderDescription: { fontSize: font(isMobile ? 10.5 : 11), lineHeight: font(isMobile ? 15 : 16), marginTop: 3, flexShrink: 0, width: '100%', minHeight: isMobile ? 15 : 0, opacity: 1 },
 
-    headerActions: { flexDirection: 'row', alignItems: 'center', justifyContent: isMobile ? 'flex-start' : 'flex-end', flexWrap: isMobile ? 'wrap' : 'nowrap', gap: 10, width: isMobile ? '100%' : 'auto', minWidth: 0, flexShrink: 0 },
+    headerActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'nowrap', gap: 10, width: 'auto', minWidth: 0, flexShrink: 0 },
     miniRatesBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1 },
     miniRatesIcon: { fontSize: font(12) },
     miniRatesText: { fontSize: font(11), fontWeight: '600' },
@@ -4361,7 +4417,7 @@ function createStyles(theme, isMobile, fontScale) {
 
     searchInput: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 13, minHeight: 48, fontSize: font(13), ...(Platform.OS === 'web' ? { boxShadow: '0 10px 24px rgba(3,7,18,0.14)' } : {}) },
 
-    singleFilterSection: { gap: 14, width: '100%', borderWidth: 1, borderRadius: 18, padding: isMobile ? 14 : 16, overflow: 'hidden' },
+    singleFilterSection: { gap: 14, width: '100%', borderWidth: 1, borderRadius: isMobile ? 18 : 20, padding: isMobile ? 14 : 16, overflow: 'hidden' },
     filterSectionHeader: { flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'space-between', gap: 10 },
     sectionLabel: { fontSize: font(13), fontWeight: 'bold' },
     filterSectionHint: { fontSize: font(10), marginTop: 2 },
@@ -4378,12 +4434,12 @@ function createStyles(theme, isMobile, fontScale) {
     sectionTitle: { fontSize: font(15), fontWeight: 'bold' },
     resultCount: { fontSize: font(11) },
 
-    emptyCard: { borderWidth: 1, borderRadius: 18, padding: isMobile ? 22 : 28, alignItems: 'center', justifyContent: 'center' },
+    emptyCard: { borderWidth: 1, borderRadius: isMobile ? 18 : 20, padding: isMobile ? 22 : 28, alignItems: 'center', justifyContent: 'center' },
     emptyIcon: { fontSize: font(28), marginBottom: 8 },
     emptyTitle: { fontSize: font(14), fontWeight: 'bold', marginBottom: 4 },
     emptyDescription: { fontSize: font(12), textAlign: 'center' },
 
-    subscriptionCard: { borderWidth: 1, borderRadius: 18, padding: isMobile ? 14 : 16, flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: 14, overflow: 'hidden' },
+    subscriptionCard: { borderWidth: 1, borderRadius: isMobile ? 18 : 20, padding: isMobile ? 14 : 16, flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: 14, overflow: 'hidden' },
     subscriptionMain: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
     serviceIcon: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     serviceIconText: { color: '#ffffff', fontSize: font(16), fontWeight: 'bold' },
@@ -4416,7 +4472,7 @@ function createStyles(theme, isMobile, fontScale) {
     calendarYearSelectValue: { fontSize: font(12), fontWeight: 'bold' },
     yearSelectChevron: { fontSize: font(12), fontWeight: 'bold' },
 
-    calendarContainer: { borderWidth: 1, borderColor: theme.cardBorder, borderRadius: 18, overflow: 'hidden', backgroundColor: theme.cardBg },
+    calendarContainer: { borderWidth: 1, borderColor: theme.cardBorder, borderRadius: isMobile ? 18 : 20, overflow: 'hidden', backgroundColor: theme.cardBg },
     calendarWeekHeader: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: theme.cardBorder },
     calendarWeekDay: { flex: 1, paddingVertical: 10, alignItems: 'center' },
     calendarWeekDayText: { fontSize: font(11), fontWeight: 'bold' },
@@ -4439,12 +4495,12 @@ function createStyles(theme, isMobile, fontScale) {
     yearSelectCaption: { fontSize: font(9) },
     yearSelectValue: { fontSize: font(15), fontWeight: 'bold' },
 
-    insightBox: { borderWidth: 1, borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, overflow: 'hidden' },
-    insightIconBox: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
-    insightTitle: { color: '#ffffff', fontSize: font(12), fontWeight: 'bold', marginBottom: 2 },
-    insightText: { color: 'rgba(255,255,255,0.9)', fontSize: font(11), lineHeight: 16 },
+    insightBox: { borderWidth: 1, borderRadius: isMobile ? 16 : 18, padding: isMobile ? 13 : 15, flexDirection: 'row', alignItems: 'center', gap: 12, overflow: 'hidden' },
+    insightIconBox: { width: 38, height: 38, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    insightTitle: { fontSize: font(12), lineHeight: font(16), fontWeight: '800', marginBottom: 3 },
+    insightText: { fontSize: font(11), lineHeight: font(17), fontWeight: '500' },
 
-    panel: { borderWidth: 1, borderRadius: 20, padding: isMobile ? 14 : 18, overflow: 'hidden' },
+    panel: { borderWidth: 1, borderRadius: isMobile ? 18 : 22, padding: isMobile ? 14 : 18, overflow: 'hidden' },
     analysisPrimaryPanel: {},
     panelTitle: { fontSize: font(15), fontWeight: 'bold', marginBottom: 2 },
     panelDescription: { fontSize: font(11), marginTop: 2, marginBottom: 0, lineHeight: font(16) },
@@ -4477,7 +4533,7 @@ function createStyles(theme, isMobile, fontScale) {
     chartFooterLabel: { fontSize: font(12), fontWeight: 'bold' },
     chartFooterValue: { fontSize: font(14), fontWeight: 'bold' },
 
-    analysisSectionCard: { borderWidth: 1, borderRadius: 20, padding: isMobile ? 14 : 18, gap: 14, overflow: 'hidden' },
+    analysisSectionCard: { borderWidth: 1, borderRadius: isMobile ? 18 : 22, padding: isMobile ? 14 : 18, gap: 14, overflow: 'hidden' },
     distributionSectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 },
     distributionTitle: { fontSize: font(14), fontWeight: 'bold' },
     distributionTitleNoTop: { marginTop: 0 },
@@ -4487,7 +4543,7 @@ function createStyles(theme, isMobile, fontScale) {
     monthlyCommitmentBadgeValue: { fontSize: font(13), fontWeight: 'bold' },
 
     monthlyPaymentGrid: { gap: 10 },
-    monthlyPaymentCard: { borderWidth: 1, borderRadius: 12, padding: 12, flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? 9 : 12, minWidth: 0, overflow: 'hidden' },
+    monthlyPaymentCard: { borderWidth: 1, borderRadius: isMobile ? 14 : 16, padding: 12, flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? 9 : 12, minWidth: 0, overflow: 'hidden' },
     monthlyPaymentIcon: { width: 36, height: 36, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
     monthlyPaymentIconText: { fontSize: font(14) },
     monthlyPaymentContent: { flex: 1, minWidth: 0, width: isMobile ? '100%' : 'auto' },
@@ -4685,7 +4741,7 @@ function createStyles(theme, isMobile, fontScale) {
     modalSaveButton: { flex: 1, backgroundColor: theme.activeButton, borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '180ms' } : {}) },
     modalSaveButtonText: { color: '#ffffff', fontSize: font(13), fontWeight: 'bold' },
 
-    primaryButton: { backgroundColor: theme.activeButton, borderRadius: 10, paddingVertical: 11, paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center' },
+    primaryButton: { backgroundColor: theme.activeButton, borderRadius: 12, paddingVertical: 11, paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? { boxShadow: '0 9px 20px rgba(79,70,229,0.20)' } : { elevation: 3 }) },
     primaryButtonText: { color: '#ffffff', fontSize: font(13), fontWeight: 'bold' },
     secondaryButton: { borderWidth: 1, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 14, alignItems: 'center' },
     secondaryButtonText: { fontSize: font(12), fontWeight: 'bold' },
