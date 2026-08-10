@@ -1,0 +1,14 @@
+{
+  "background_color": "#0f172a",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "Cebin Pro",
+  "orientation": "portrait",
+  "scope": "/",
+  "short_name": "CebinPro",
+  "start_url": "/",
+  "theme_color": "#0f172a",
+  "id": "/",
+  "description": "Aylık abonelik ve düzenli ödemeleri takip etmeye yarayan akıllı bütçe asistanı.",
+  "lang": "tr"
+}
