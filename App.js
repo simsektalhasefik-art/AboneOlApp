@@ -96,6 +96,15 @@ const formatShortCurrency = (value, currency = 'TRY') => {
   return `${Math.round(n).toLocaleString('tr-TR')} ${symbol}`;
 };
 
+const formatCompactCurrency = (value, currency = 'TRY') => {
+  const n = Number(value) || 0;
+  const symbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : '₺';
+  const abs = Math.abs(n);
+  if (abs >= 1000000) return `${(n / 1000000).toLocaleString('tr-TR', { maximumFractionDigits: 1 })} Mn ${symbol}`;
+  if (abs >= 1000) return `${(n / 1000).toLocaleString('tr-TR', { maximumFractionDigits: 1 })} B ${symbol}`;
+  return `${Math.round(n).toLocaleString('tr-TR')} ${symbol}`;
+};
+
 const convertToTL = (price, currency, rates = DEFAULT_RATES) => {
   const p = Number(price) || 0;
   if (currency === 'USD') return p * (Number(rates.USD) || DEFAULT_RATES.USD);
@@ -459,6 +468,8 @@ export default function App() {
   const [calendarYear, setCalendarYear] = useState(clampedYear);
   const [selectedAnalysisYear, setSelectedAnalysisYear] = useState(clampedYear);
   const [selectedDashboardYear, setSelectedDashboardYear] = useState(clampedYear);
+  // Analiz ekranında kredi yükünü sabit aboneliklerden ayıran görünüm filtresi.
+  const [analyticsIncludeCredits, setAnalyticsIncludeCredits] = useState(false);
 
   const [formName, setFormName] = useState('');
   const [formPrice, setFormPrice] = useState('');
@@ -1124,7 +1135,11 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
     : (thisRealMonthTotal > 0 ? 100 : 0);
   const hasMonthlyChangeData = prevRealMonthTotal > 0 || thisRealMonthTotal > 0;
 
-  const getDetailedMonthlyBreakdown = targetYear => {
+  const analyticsList = analyticsIncludeCredits
+    ? safeList
+    : safeList.filter(item => item?.category !== 'Kredi');
+
+  const getDetailedMonthlyBreakdown = (targetYear, sourceList = analyticsList) => {
     const monthlyTotals = Array(12).fill(0);
     const monthlyCategoryBreakdown = Array.from({ length: 12 }, () => []);
 
@@ -1132,7 +1147,7 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
       let monthTotal = 0;
       const categoryTotals = {};
 
-      safeList.forEach(subscription => {
+      sourceList.forEach(subscription => {
         const category = subscription.category || 'Diğer';
         const amount = getSubscriptionCostForMonth(subscription, targetYear, monthIndex, exchangeRates);
         if (amount <= 0) return;
@@ -1155,7 +1170,23 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
   const averageMonthlyExpense = monthsWithExpense > 0 ? totalYearlyExpense / monthsWithExpense : 0;
   const maxMonthlyExpense = Math.max(...monthlyTotals, 1);
 
-  const yearlyCategoryStats = safeList.reduce((acc, s) => {
+  // Kredi oranı, görünüm filtresinden bağımsız olarak toplam finansal yük üzerinden hesaplanır.
+  const fullYearlyExpense = safeList.reduce((total, item) =>
+    total + Array.from({ length: 12 }, (_, monthIndex) =>
+      getSubscriptionCostForMonth(item, selectedAnalysisYear, monthIndex, exchangeRates)
+    ).reduce((sum, amount) => sum + amount, 0), 0
+  );
+  const yearlyCreditExpense = safeList
+    .filter(item => item?.category === 'Kredi')
+    .reduce((total, item) =>
+      total + Array.from({ length: 12 }, (_, monthIndex) =>
+        getSubscriptionCostForMonth(item, selectedAnalysisYear, monthIndex, exchangeRates)
+      ).reduce((sum, amount) => sum + amount, 0), 0
+    );
+  const creditLoadPercent = fullYearlyExpense > 0 ? (yearlyCreditExpense / fullYearlyExpense) * 100 : 0;
+  const hasHighCreditLoad = creditLoadPercent >= 70;
+
+  const yearlyCategoryStats = analyticsList.reduce((acc, s) => {
     const category = s.category || 'Diğer';
     const yearlyAmount = Array.from({ length: 12 }, (_, m) => getSubscriptionCostForMonth(s, selectedAnalysisYear, m, exchangeRates)).reduce((t, a) => t + a, 0);
     if (yearlyAmount <= 0) return acc;
@@ -1163,7 +1194,7 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
     return acc;
   }, {});
 
-  const monthlyPaymentMethodStats = safeList.reduce((acc, s) => {
+  const monthlyPaymentMethodStats = analyticsList.reduce((acc, s) => {
     if (!s || s.status === 'cancelled') return acc;
     const method = s.paymentMethod || 'Nakit / Diğer';
     const startYear = Number(s.billingYear) || selectedAnalysisYear;
@@ -1186,7 +1217,7 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
   const topCategoryAmount = sortedMonthlyCategoryEntries[0]?.[1] || 0;
   const topCategoryPercent = totalMonthlyCategoryExpense > 0 ? ((topCategoryAmount / totalMonthlyCategoryExpense) * 100).toFixed(0) : 0;
 
-  const mostExpensiveSubscription = safeList.reduce((current, s) => {
+  const mostExpensiveSubscription = analyticsList.reduce((current, s) => {
     if (s.status === 'cancelled') return current;
     const priceInTL = convertToTL(s.price, s.currency || 'TRY', exchangeRates);
     const monthlyEquivalent = s.period === 'yearly' ? priceInTL / 12 : priceInTL;
@@ -1194,9 +1225,13 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
     return current;
   }, null);
 
-  const insightText = sortedMonthlyCategoryEntries.length === 0
-    ? 'Henüz Analiz Oluşturmak İçin Yeterli Abonelik Verisi Bulunmuyor.'
-    : `${selectedAnalysisYear} döneminde aylık bütçede en yüksek pay ${topCategoryLabel} kategorisinde: ${formatShortCurrency(topCategoryAmount, 'TRY')} (%${topCategoryPercent}).${mostExpensiveSubscription ? ` En yüksek aylık abonelik etkisi ${mostExpensiveSubscription.item.name} kaydından geliyor.` : ''}`;
+  const insightText = fullYearlyExpense <= 0
+    ? 'Henüz Analiz Oluşturmak İçin Yeterli Harcama Verisi Bulunmuyor.'
+    : hasHighCreditLoad
+      ? `${selectedAnalysisYear} döneminde kredi taksitleri toplam finansal yükün yaklaşık %${creditLoadPercent.toFixed(0)}'ini oluşturuyor. Krediler süreli borç kalemidir; sabit abonelik bütçenizi daha net görmek için grafikte Kredileri Hariç Tut görünümünü kullanabilirsiniz.`
+      : sortedMonthlyCategoryEntries.length === 0
+        ? `${selectedAnalysisYear} döneminde kredi dışındaki düzenli giderler için yeterli veri bulunmuyor.${yearlyCreditExpense > 0 ? ` Kredi yükü toplam finansal yükün %${creditLoadPercent.toFixed(0)}'ini oluşturuyor.` : ''}`
+        : `${selectedAnalysisYear} döneminde ${analyticsIncludeCredits ? 'toplam finansal yükte' : 'kredi hariç düzenli giderlerde'} en yüksek pay ${topCategoryLabel} kategorisinde: ${formatShortCurrency(topCategoryAmount, 'TRY')} (%${topCategoryPercent}).${mostExpensiveSubscription ? ` En yüksek aylık etki ${mostExpensiveSubscription.item.name} kaydından geliyor.` : ''}${!analyticsIncludeCredits && yearlyCreditExpense > 0 ? ` Krediler ayrıca izleniyor ve toplam finansal yükün %${creditLoadPercent.toFixed(0)}'ini oluşturuyor.` : ''}`;
 
   const openSubscriptionForm = (item = null) => {
     if (item) {
@@ -1686,7 +1721,7 @@ if (isAuthChecking) {
                   onPress={closeForgotPassword}
                   disabled={isPasswordResetSending}
                 >
-                  <Text style={styles.forgotPasswordCloseText}>×</Text>
+                  <RemoveXIcon color="#c5cbd6" />
                 </Pressable>
               </View>
 
@@ -2199,20 +2234,63 @@ if (isAuthChecking) {
                   </TouchableOpacity>
                 </View>
 
-                <View style={[styles.insightBox, { backgroundColor: theme.summaryBg, borderColor: theme.summaryBorder, ...(Platform.OS === 'web' ? { backgroundImage: `linear-gradient(135deg, ${theme.summaryBg}, ${theme.activeButton})` } : {}) }]}>
-                  <View style={styles.insightIconBox}><Text style={{ fontSize: 20 }}>✨</Text></View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.insightTitle}>Akıllı Asistan Özeti</Text>
-                    <Text style={styles.insightText}>{insightText}</Text>
+                <View style={[
+                  styles.insightBox,
+                  {
+                    backgroundColor: hasHighCreditLoad ? hexToRgba(theme.warning, 0.16) : theme.summaryBg,
+                    borderColor: hasHighCreditLoad ? hexToRgba(theme.warning, 0.72) : theme.summaryBorder,
+                    ...(Platform.OS === 'web'
+                      ? {
+                          backgroundImage: hasHighCreditLoad
+                            ? `linear-gradient(135deg, ${hexToRgba(theme.warning, 0.18)}, ${hexToRgba(theme.danger, 0.14)})`
+                            : `linear-gradient(135deg, ${theme.summaryBg}, ${theme.activeButton})`
+                        }
+                      : {})
+                  }
+                ]}>
+                  <View style={[styles.insightIconBox, hasHighCreditLoad && { backgroundColor: hexToRgba(theme.warning, 0.18), borderColor: hexToRgba(theme.warning, 0.42), borderWidth: 1 }]}>
+                    <Text style={{ fontSize: 20 }}>{hasHighCreditLoad ? '⚠️' : '✨'}</Text>
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={[styles.insightTitle, hasHighCreditLoad && { color: theme.warning }]}>Akıllı Asistan Özeti</Text>
+                    <Text style={[styles.insightText, hasHighCreditLoad && { color: theme.textPrimary }]}>{insightText}</Text>
                   </View>
                 </View>
 
                 <View style={[styles.panel, styles.analysisPrimaryPanel, styles.elevatedSurface, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.88) : theme.cardBg, borderColor: theme.cardBorder }] }>
-                  <Text style={[styles.panelTitle, { color: theme.textPrimary }]}>{selectedAnalysisYear} Aylık Harcama Grafiği</Text>
-                  <Text style={[styles.panelDescription, { color: theme.textMuted }]}>Aylık Harcama Eğilimi ve Kategori Kırılımı.</Text>
+                  <View style={styles.analysisPanelHeader}>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={[styles.panelTitle, { color: theme.textPrimary }]}>{selectedAnalysisYear} Aylık Harcama Grafiği</Text>
+                      <Text style={[styles.panelDescription, { color: theme.textMuted }]}>
+                        {analyticsIncludeCredits ? 'Toplam finansal yük: abonelikler ve kredi taksitleri.' : 'Sabit abonelik görünümü: kredi taksitleri ölçekten hariç.'}
+                      </Text>
+                    </View>
+                    <Pressable
+                      accessibilityRole="switch"
+                      accessibilityState={{ checked: analyticsIncludeCredits }}
+                      onPress={() => setAnalyticsIncludeCredits(value => !value)}
+                      style={({ hovered, pressed }) => [
+                        styles.creditFilterToggle,
+                        { backgroundColor: analyticsIncludeCredits ? hexToRgba(CATEGORY_COLORS.Kredi, 0.14) : theme.inputBg, borderColor: analyticsIncludeCredits ? CATEGORY_COLORS.Kredi : theme.cardBorder },
+                        (hovered || pressed) && styles.creditFilterToggleActive
+                      ]}
+                    >
+                      <View style={[styles.creditFilterSwitchTrack, { backgroundColor: analyticsIncludeCredits ? CATEGORY_COLORS.Kredi : theme.cardBorder }]}>
+                        <View style={[styles.creditFilterSwitchThumb, analyticsIncludeCredits && styles.creditFilterSwitchThumbOn]} />
+                      </View>
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={[styles.creditFilterToggleText, { color: analyticsIncludeCredits ? CATEGORY_COLORS.Kredi : theme.textSecondary }]}>
+                          {analyticsIncludeCredits ? 'Kredileri Hariç Tut' : 'Kredileri Dahil Et'}
+                        </Text>
+                        <Text style={[styles.creditFilterToggleHint, { color: theme.textMuted }]}>
+                          {analyticsIncludeCredits ? 'Krediler şu an dahil' : 'Krediler şu an hariç'}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  </View>
 
                   <View style={styles.categoryLegend}>
-                    {Object.entries(CATEGORY_COLORS).map(([category, color]) => (
+                    {Object.entries(CATEGORY_COLORS).filter(([category]) => analyticsIncludeCredits || category !== 'Kredi').map(([category, color]) => (
                       <View key={category} style={styles.legendItem}>
                         <View style={[styles.legendDot, { backgroundColor: color }]} />
                         <Text style={[styles.legendText, { color: theme.textSecondary }]}>{category}</Text>
@@ -2220,7 +2298,7 @@ if (isAuthChecking) {
                     ))}
                   </View>
 
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chartScrollContent}>
+                  <ScrollView horizontal={!isMobile} scrollEnabled={!isMobile} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chartScrollContent}>
                     <View style={styles.chartArea}>
                       {monthlyTotals.map((monthTotal, monthIndex) => {
                         const heightPercentage = maxMonthlyExpense > 0 ? (monthTotal / maxMonthlyExpense) * 100 : 0;
@@ -2229,7 +2307,7 @@ if (isAuthChecking) {
 
                         return (
                           <View key={monthIndex} style={styles.chartColumn}>
-                            <Text style={[styles.chartAmount, { color: theme.textSecondary }]}>{monthTotal > 0 ? formatShortCurrency(monthTotal, 'TRY') : ''}</Text>
+                            <Text style={[styles.chartAmount, { color: theme.textSecondary }]} numberOfLines={1}>{monthTotal > 0 ? (isMobile ? formatCompactCurrency(monthTotal, 'TRY') : formatShortCurrency(monthTotal, 'TRY')) : ''}</Text>
 
                             <View style={[styles.chartTrack, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}>
                               {monthTotal > 0 && (
@@ -2373,7 +2451,7 @@ if (isAuthChecking) {
                 <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Bu Güne Ait Ödemeler</Text>
               </View>
               <TouchableOpacity style={[styles.modalCloseButton, { backgroundColor: theme.inputBg }]} onPress={() => setDayDrawer(d => ({ ...d, visible: false }))}>
-                <Text style={[styles.modalCloseText, { color: theme.textSecondary }]}>×</Text>
+                <RemoveXIcon color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -2421,7 +2499,7 @@ if (isAuthChecking) {
                 <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Özet Maliyetlerin Hesaplanacağı Projeksiyon Yılını Seçin.</Text>
               </View>
               <TouchableOpacity style={[styles.modalCloseButton, { backgroundColor: theme.inputBg }]} onPress={() => setIsDashboardYearPickerOpen(false)}>
-                <Text style={[styles.modalCloseText, { color: theme.textSecondary }]}>×</Text>
+                <RemoveXIcon color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
             <View style={styles.yearPickerGrid}>
@@ -2453,7 +2531,7 @@ if (isAuthChecking) {
                 <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Ödeme Takviminde Görüntülenecek Yılı Seçin.</Text>
               </View>
               <TouchableOpacity style={[styles.modalCloseButton, { backgroundColor: theme.inputBg }]} onPress={() => setIsCalendarYearPickerOpen(false)}>
-                <Text style={[styles.modalCloseText, { color: theme.textSecondary }]}>×</Text>
+                <RemoveXIcon color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
             <View style={styles.yearPickerGrid}>
@@ -2485,7 +2563,7 @@ if (isAuthChecking) {
                 <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Finansal Analizlerin Gösterileceği Yılı Seçin.</Text>
               </View>
               <TouchableOpacity style={[styles.modalCloseButton, { backgroundColor: theme.inputBg }]} onPress={() => setIsAnalysisYearPickerOpen(false)}>
-                <Text style={[styles.modalCloseText, { color: theme.textSecondary }]}>×</Text>
+                <RemoveXIcon color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
             <View style={styles.yearPickerGrid}>
@@ -2517,7 +2595,7 @@ if (isAuthChecking) {
                 <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Hesap bilgilerinizi görüntüleyin ve şifrenizi güvenli şekilde güncelleyin.</Text>
               </View>
               <TouchableOpacity style={[styles.modalCloseButton, { backgroundColor: theme.inputBg }]} onPress={() => setIsUserSettingsOpen(false)}>
-                <Text style={[styles.modalCloseText, { color: theme.textSecondary }]}>×</Text>
+                <RemoveXIcon color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -2618,7 +2696,7 @@ if (isAuthChecking) {
                 <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Arka Plan Temasını ve Yazı Boyutunu Kişiselleştirin.</Text>
               </View>
               <TouchableOpacity style={[styles.modalCloseButton, { backgroundColor: theme.inputBg }]} onPress={() => setIsAppearanceModalOpen(false)}>
-                <Text style={[styles.modalCloseText, { color: theme.textSecondary }]}>×</Text>
+                <RemoveXIcon color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -2673,7 +2751,7 @@ if (isAuthChecking) {
               </View>
 
               <TouchableOpacity style={[styles.modalCloseButton, { backgroundColor: theme.inputBg }]} onPress={closeSubscriptionForm}>
-                <Text style={[styles.modalCloseText, { color: theme.textSecondary }]}>×</Text>
+                <RemoveXIcon color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -3223,7 +3301,7 @@ function createStyles(theme, isMobile, fontScale) {
     forgotPasswordModal: { width: '100%', maxWidth: 520, borderWidth: 1, borderRadius: isMobile ? 22 : 26, padding: isMobile ? 22 : 30, zIndex: 2 },
     forgotPasswordModalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 },
     forgotPasswordIconBox: { width: 48, height: 48, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(105,101,232,0.14)', borderWidth: 1, borderColor: 'rgba(124,120,240,0.72)' },
-    forgotPasswordCloseButton: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(37,43,56,0.90)', borderWidth: 1, borderColor: '#566071', ...(Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '160ms' } : {}) },
+    forgotPasswordCloseButton: { width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(37,43,56,0.90)', borderWidth: 1, borderColor: '#566071', ...(Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '160ms', boxShadow: '0 4px 12px rgba(0,0,0,0.14)' } : {}) },
     forgotPasswordCloseButtonHover: { backgroundColor: 'rgba(105,101,232,0.16)', borderColor: '#7c78f0' },
     forgotPasswordCloseText: { color: '#c5cbd6', fontSize: font(22), lineHeight: font(23), fontWeight: '400', marginTop: -2 },
     forgotPasswordTitle: { color: '#f8fafc', fontSize: font(isMobile ? 20 : 22), fontWeight: '800', letterSpacing: -0.25 },
@@ -3388,7 +3466,7 @@ function createStyles(theme, isMobile, fontScale) {
     yearSelectCaption: { fontSize: font(9) },
     yearSelectValue: { fontSize: font(15), fontWeight: 'bold' },
 
-    insightBox: { borderWidth: 1, borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+    insightBox: { borderWidth: 1, borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, overflow: 'hidden' },
     insightIconBox: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
     insightTitle: { color: '#ffffff', fontSize: font(12), fontWeight: 'bold', marginBottom: 2 },
     insightText: { color: 'rgba(255,255,255,0.9)', fontSize: font(11), lineHeight: 16 },
@@ -3396,21 +3474,29 @@ function createStyles(theme, isMobile, fontScale) {
     panel: { borderWidth: 1, borderRadius: 20, padding: isMobile ? 14 : 18, overflow: 'hidden' },
     analysisPrimaryPanel: {},
     panelTitle: { fontSize: font(15), fontWeight: 'bold', marginBottom: 2 },
-    panelDescription: { fontSize: font(11), marginBottom: 14 },
+    panelDescription: { fontSize: font(11), marginTop: 2, marginBottom: 0, lineHeight: font(16) },
+    analysisPanelHeader: { flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 14 },
+    creditFilterToggle: { minWidth: isMobile ? '100%' : 190, maxWidth: isMobile ? '100%' : 230, minHeight: 48, borderWidth: 1, borderRadius: 12, paddingHorizontal: 11, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 9, ...(Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '160ms' } : {}) },
+    creditFilterToggleActive: { opacity: 0.94, transform: [{ scale: 0.995 }] },
+    creditFilterSwitchTrack: { width: 34, height: 20, borderRadius: 10, padding: 2, justifyContent: 'center', flexShrink: 0 },
+    creditFilterSwitchThumb: { width: 16, height: 16, borderRadius: 8, backgroundColor: '#ffffff', transform: [{ translateX: 0 }] },
+    creditFilterSwitchThumbOn: { transform: [{ translateX: 14 }] },
+    creditFilterToggleText: { fontSize: font(10.5), fontWeight: '800' },
+    creditFilterToggleHint: { fontSize: font(9), marginTop: 1 },
     categoryLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
     legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     legendDot: { width: 8, height: 8, borderRadius: 4 },
     legendText: { fontSize: font(10) },
 
-    chartScrollContent: { paddingBottom: 4, flexGrow: 1, minWidth: isMobile ? 720 : '100%', width: isMobile ? 720 : '100%' },
-    chartArea: { flex: 1, width: '100%', minWidth: isMobile ? 720 : '100%', flexDirection: 'row', height: 210, alignItems: 'flex-end', justifyContent: 'space-between', gap: isMobile ? 12 : 0, paddingHorizontal: isMobile ? 4 : 8 },
-    chartColumn: { width: isMobile ? 44 : 'auto', minWidth: isMobile ? 44 : 40, maxWidth: isMobile ? 56 : 76, flex: isMobile ? 0 : 1, flexShrink: 0, alignItems: 'center', height: '100%', justifyContent: 'flex-end' },
-    chartAmount: { fontSize: font(8), marginBottom: 4, height: 14, textAlign: 'center' },
-    chartTrack: { width: 30, flex: 1, borderWidth: 1, borderRadius: 8, overflow: 'hidden', justifyContent: 'flex-end' },
+    chartScrollContent: { paddingBottom: 4, flexGrow: 1, minWidth: 0, width: '100%' },
+    chartArea: { flex: 1, width: '100%', minWidth: 0, flexDirection: 'row', height: isMobile ? 190 : 210, alignItems: 'flex-end', justifyContent: 'space-between', gap: isMobile ? 3 : 0, paddingHorizontal: isMobile ? 0 : 8 },
+    chartColumn: { minWidth: 0, maxWidth: isMobile ? 'none' : 76, flex: 1, flexShrink: 1, alignItems: 'center', height: '100%', justifyContent: 'flex-end', paddingHorizontal: isMobile ? 1 : 2 },
+    chartAmount: { fontSize: font(isMobile ? 6.7 : 8), marginBottom: 4, height: 14, width: '100%', textAlign: 'center' },
+    chartTrack: { width: isMobile ? 16 : 30, maxWidth: '78%', flex: 1, borderWidth: 1, borderRadius: isMobile ? 6 : 8, overflow: 'hidden', justifyContent: 'flex-end' },
     chartStack: { width: '100%', flexDirection: 'column-reverse' },
     chartSegment: { width: '100%' },
-    chartMonthLabel: { fontSize: font(10), fontWeight: 'bold', marginTop: 6 },
-    chartFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, marginTop: 14, borderTopWidth: 1 },
+    chartMonthLabel: { fontSize: font(isMobile ? 8 : 10), fontWeight: 'bold', marginTop: 6 },
+    chartFooter: { flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'space-between', gap: isMobile ? 4 : 0, paddingTop: 12, marginTop: 14, borderTopWidth: 1 },
     chartFooterLabel: { fontSize: font(12), fontWeight: 'bold' },
     chartFooterValue: { fontSize: font(14), fontWeight: 'bold' },
 
@@ -3424,24 +3510,24 @@ function createStyles(theme, isMobile, fontScale) {
     monthlyCommitmentBadgeValue: { fontSize: font(13), fontWeight: 'bold' },
 
     monthlyPaymentGrid: { gap: 10 },
-    monthlyPaymentCard: { borderWidth: 1, borderRadius: 12, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
+    monthlyPaymentCard: { borderWidth: 1, borderRadius: 12, padding: 12, flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? 9 : 12, minWidth: 0, overflow: 'hidden' },
     monthlyPaymentIcon: { width: 36, height: 36, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
     monthlyPaymentIconText: { fontSize: font(14) },
-    monthlyPaymentContent: { flex: 1 },
+    monthlyPaymentContent: { flex: 1, minWidth: 0, width: isMobile ? '100%' : 'auto' },
     monthlyPaymentName: { fontSize: font(13), fontWeight: 'bold', marginBottom: 2 },
     monthlyPaymentMeta: { fontSize: font(10) },
-    monthlyPaymentAmount: { fontSize: font(14), fontWeight: 'bold' },
+    monthlyPaymentAmount: { fontSize: font(14), fontWeight: 'bold', flexShrink: 1, alignSelf: isMobile ? 'flex-end' : 'auto' },
     monthlyPaymentPeriod: { fontSize: font(10) },
 
     distributionCard: { borderWidth: 1, borderRadius: 12, padding: 12, gap: 8 },
-    distributionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    distributionNameGroup: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    distributionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6, minWidth: 0 },
+    distributionNameGroup: { flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 0, flexShrink: 1 },
     distributionColorDot: { width: 10, height: 10, borderRadius: 5 },
     distributionName: { fontSize: font(13), fontWeight: 'bold' },
-    distributionAmount: { fontSize: font(12), fontWeight: '600' },
+    distributionAmount: { fontSize: font(12), fontWeight: '600', flexShrink: 1, textAlign: 'right' },
     noDataText: { fontSize: font(12), fontStyle: 'italic' },
 
-    progressTrack: { height: 6, borderRadius: 3, overflow: 'hidden' },
+    progressTrack: { width: '100%', minWidth: 0, height: 6, borderRadius: 3, overflow: 'hidden' },
     progressFill: { height: '100%', borderRadius: 3 },
 
     bottomNavigation: { flexDirection: 'row', height: isMobile ? 68 : 60, borderTopWidth: 1, alignItems: 'center', justifyContent: 'space-around', zIndex: 10, paddingBottom: isMobile ? 4 : 0 },
@@ -3473,7 +3559,7 @@ function createStyles(theme, isMobile, fontScale) {
     modalSubtitle: { fontSize: font(11), marginTop: 2 },
 
     // Sağ üst kapatma ikonu: kenarlıksız, ince ve zarif — kurumsal ghost-icon görünümü
-    modalCloseButton: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+    modalCloseButton: { width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: hexToRgba(theme.textMuted, 0.34), ...(Platform.OS === 'web' ? { cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.14)' } : {}) },
     modalCloseText: { fontSize: font(17), fontWeight: '300' },
 
     // Adım göstergesi: minimalist, yatay ince ilerleme çubukları
