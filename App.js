@@ -1727,6 +1727,8 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
+      console.log('Google ile giriş başarılı:', user?.email || '');
+
       // Google ile ilk girişte profil bilgilerini mevcut Firestore kullanıcı yapısıyla uyumlu tut.
       if (user?.uid) {
         await setDoc(
