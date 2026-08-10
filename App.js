@@ -4,7 +4,7 @@ import {
   Modal, SafeAreaView, StatusBar, useWindowDimensions, Linking, Platform, Pressable
 } from 'react-native';
 
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile, sendPasswordResetEmail, EmailAuthProvider, reauthenticateWithCredential, updatePassword, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile, sendPasswordResetEmail, EmailAuthProvider, reauthenticateWithCredential, updatePassword, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
 import { app } from './src/firebase';
 import Svg, { Path, Circle } from 'react-native-svg';
@@ -1709,8 +1709,51 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
     }
   };
 
-  const handleGoogleLogin = () => {
-    setAuthError('Google İle Giriş İçin OAuth Entegrasyonu Yapılandırılmalıdır.');
+  const handleGoogleLogin = async () => {
+    setAuthError('');
+
+    if (Platform.OS !== 'web') {
+      showAlert('Google İle Giriş Web Sürümünde Açılır Pencere Üzerinden Kullanılabilir.');
+      return;
+    }
+
+    try {
+      // "Beni Hatırla" tercihi Google oturumunda da e-posta/şifre girişiyle aynı şekilde uygulanır.
+      await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
+
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      // Google ile ilk girişte profil bilgilerini mevcut Firestore kullanıcı yapısıyla uyumlu tut.
+      if (user?.uid) {
+        await setDoc(
+          doc(db, 'users', user.uid),
+          {
+            username: user.displayName || user.email?.split('@')?.[0] || '',
+            email: user.email || ''
+          },
+          { merge: true }
+        );
+      }
+
+      // onAuthStateChanged mevcut panel geçişini otomatik yönettiği için ayrıca window.location gerekmez.
+    } catch (error) {
+      console.log('Google ile giriş hatası:', error);
+
+      // Kullanıcının popup'ı bilinçli olarak kapatması hata modalı üretmesin.
+      if (error?.code === 'auth/popup-closed-by-user' || error?.code === 'auth/cancelled-popup-request') return;
+
+      const googleErrorMessages = {
+        'auth/popup-blocked': 'Google Giriş Penceresi Tarayıcı Tarafından Engellendi. Lütfen Açılır Pencerelere İzin Veriniz.',
+        'auth/unauthorized-domain': 'Bu Alan Adı Firebase Google Girişi İçin Yetkilendirilmemiştir.',
+        'auth/network-request-failed': 'Ağ Bağlantısı Hatası. İnternet Bağlantınızı Kontrol Ediniz.'
+      };
+
+      showAlert(googleErrorMessages[error?.code] || 'Google İle Giriş Yapılırken Bir Hata Oluştu. Lütfen Tekrar Deneyiniz.');
+    }
   };
 
   const handleLogout = () => {
