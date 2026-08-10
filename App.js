@@ -461,6 +461,7 @@ export default function App() {
   const [formColor, setFormColor] = useState('#6366f1');
   const [formNotificationDays, setFormNotificationDays] = useState(2);
   const [formNotificationChannel, setFormNotificationChannel] = useState('email');
+  const [formNotificationEmail, setFormNotificationEmail] = useState('');
   const [formAnnualIncreaseRate, setFormAnnualIncreaseRate] = useState('0');
   const [formIncreaseApplicationPeriod, setFormIncreaseApplicationPeriod] = useState('anniversary');
   const [formCreditInstallmentCount, setFormCreditInstallmentCount] = useState('');
@@ -1201,6 +1202,7 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
       setFormColor(item.color || getServiceColor(item.name, safeTemplates));
       setFormNotificationDays(item.notificationDays !== undefined ? item.notificationDays : 2);
       setFormNotificationChannel(item.notificationChannel || 'email');
+      setFormNotificationEmail(item.notificationEmail || currentUserProfile.email || auth.currentUser?.email || '');
       setFormAnnualIncreaseRate(String(item.annualIncreaseRate ?? 0));
       setFormIncreaseApplicationPeriod(item.increaseApplicationPeriod || 'calendarYear');
       setFormCreditInstallmentCount(item.category === 'Kredi' ? String(item.creditInstallmentCount || '') : '');
@@ -1213,7 +1215,7 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
       setFormCategory('Eğlence');
       setFormPaymentMethod(safePaymentMethods[0] || DEFAULT_PAYMENT_METHODS[0]);
       setFormPeriod('monthly'); setFormCancelUrl(''); setFormColor('#6366f1');
-      setFormNotificationDays(2); setFormNotificationChannel('email'); setFormAnnualIncreaseRate('0'); setFormIncreaseApplicationPeriod('anniversary');
+      setFormNotificationDays(2); setFormNotificationChannel('email'); setFormNotificationEmail(currentUserProfile.email || auth.currentUser?.email || ''); setFormAnnualIncreaseRate('0'); setFormIncreaseApplicationPeriod('anniversary');
       setFormCreditInstallmentCount(''); setFormCreditStartMonth(String(currentDate.getMonth() + 1)); setFormCreditStartYear(String(clampedYear));
     }
     setFormStep(1);
@@ -1261,6 +1263,11 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
       return;
     }
     if (!formPaymentMethod) { showAlert('Lütfen bir ödeme yöntemi seçiniz.'); return; }
+    if (formNotificationDays !== -1 && formNotificationChannel === 'email') {
+      const notificationEmail = formNotificationEmail.trim();
+      if (!notificationEmail) { showAlert('Lütfen bildirimlerin gönderileceği e-posta adresini giriniz.'); return; }
+      if (!isValidEmailAddress(notificationEmail)) { showAlert('Lütfen geçerli bir bildirim e-posta adresi giriniz.'); return; }
+    }
     if (!isValidUrl(formCancelUrl)) { showAlert('Yönetim bağlantısı http:// veya https:// ile başlamalıdır.'); return; }
 
     let creditSchedulePayload = {
@@ -1327,6 +1334,7 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
       color: formColor,
       notificationDays: formNotificationDays,
       notificationChannel: formNotificationChannel,
+      notificationEmail: formNotificationChannel === 'email' ? formNotificationEmail.trim().toLocaleLowerCase('tr-TR') : '',
       annualIncreaseRate: numericAnnualIncreaseRate,
       increaseApplicationPeriod: formIncreaseApplicationPeriod,
       ...creditSchedulePayload,
@@ -2692,9 +2700,9 @@ if (isAuthChecking) {
                               accessibilityRole="button"
                               accessibilityLabel={`${template.name} şablonunu sil`}
                               hitSlop={8}
-                              style={({ hovered, pressed }) => [
+                              style={({ pressed }) => [
                                 styles.removeOptionButton,
-                                (hovered || pressed || Platform.OS !== 'web') && styles.removeOptionButtonVisible
+                                pressed && styles.removeOptionButtonPressed
                               ]}
                               onPress={() => removeTemplate(index)}
                             >
@@ -3011,8 +3019,8 @@ if (isAuthChecking) {
                     </View>
 
                     {formNotificationDays !== -1 && (
-                      <View style={{ marginTop: 12 }}>
-                        <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Bildirim Kanalı</Text>
+                      <View style={styles.notificationChannelBlock}>
+                        <Text style={[styles.inputLabel, styles.notificationChannelLabel, { color: theme.textSecondary }]}>Bildirim Kanalı</Text>
                         <View style={styles.periodOptionRow}>
                           <TouchableOpacity style={[styles.periodOption, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }, formNotificationChannel === 'email' && styles.periodOptionActive]} onPress={() => setFormNotificationChannel('email')}>
                             <Text style={[styles.periodOptionText, { color: theme.textSecondary }, formNotificationChannel === 'email' && styles.periodOptionTextActive]}>📧 E-posta</Text>
@@ -3021,6 +3029,30 @@ if (isAuthChecking) {
                             <Text style={[styles.periodOptionText, { color: theme.textSecondary }, formNotificationChannel === 'browser' && styles.periodOptionTextActive]}>🌐 Tarayıcı Bildirimi</Text>
                           </TouchableOpacity>
                         </View>
+
+                        {formNotificationChannel === 'email' && (
+                          <View style={styles.notificationEmailField}>
+                            <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Bildirim E-posta Adresi</Text>
+                            <TextInput
+                              style={[styles.textInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]}
+                              placeholder="ornek@eposta.com"
+                              placeholderTextColor={theme.textMuted}
+                              keyboardType="email-address"
+                              autoCapitalize="none"
+                              autoCorrect={false}
+                              value={formNotificationEmail}
+                              onChangeText={value => setFormNotificationEmail(value.replace(/\s/g, ''))}
+                            />
+                            <Text style={[styles.helperText, { color: theme.textMuted }]}>Hatırlatıcı e-postaları bu adrese yönlendirilecektir.</Text>
+                          </View>
+                        )}
+
+                        {formNotificationChannel === 'browser' && (
+                          <View style={[styles.notificationHintBox, { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder }]}>
+                            <Text style={[styles.notificationHintIcon, { color: theme.accent }]}>i</Text>
+                            <Text style={[styles.notificationHintText, { color: theme.textSecondary }]}>Tarayıcı bildirimlerinin çalışması için cihazınızda ve tarayıcınızda bildirim izninin açık olması gerekir. İzin sorulduğunda “İzin Ver” seçeneğini kullanın.</Text>
+                          </View>
+                        )}
                       </View>
                     )}
                   </View>
@@ -3474,13 +3506,13 @@ function createStyles(theme, isMobile, fontScale) {
     removableOptionGrid: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 10, paddingTop: 4, paddingBottom: 4, paddingRight: 2, overflow: 'hidden' },
 
     // Şablon çipleri: artık düz/nötr taban, sol tarafta küçük renk noktası ile marka rengi korunur
-    templateOption: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, minHeight: 44, minWidth: 0, maxWidth: '100%', flexShrink: 1 },
-    templateOptionText: { fontSize: font(12), fontWeight: '600' },
+    templateOption: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 10, paddingLeft: 14, paddingRight: 42, paddingVertical: 11, minHeight: 44, minWidth: 0, maxWidth: '100%', flexShrink: 1 },
+    templateOptionText: { flex: 1, minWidth: 0, paddingRight: 4, fontSize: font(12), fontWeight: '600' },
     templateDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
 
-    removeOptionButton: { position: 'absolute', top: 5, right: 5, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(75,85,99,0.72)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', zIndex: 5, opacity: Platform.OS === 'web' ? 0 : 0.72 },
-    removeOptionButtonVisible: { opacity: 0.86 },
-    removeOptionText: { color: 'rgba(255,255,255,0.78)', fontSize: font(14), fontWeight: '400', lineHeight: font(15) },
+    removeOptionButton: { position: 'absolute', top: 7, right: 7, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(255,255,255,0.10)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.20)', alignItems: 'center', justifyContent: 'center', zIndex: 5, opacity: 1 },
+    removeOptionButtonPressed: { opacity: 0.62, transform: [{ scale: 0.94 }] },
+    removeOptionText: { color: 'rgba(255,255,255,0.92)', fontSize: font(15), fontWeight: '500', lineHeight: font(16) },
 
     inlineForm: { borderWidth: 1, borderRadius: 12, padding: 12, gap: 10, marginTop: 4 },
     inlineInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -3493,6 +3525,13 @@ function createStyles(theme, isMobile, fontScale) {
     compactOptionButtonActive: { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder },
     compactOptionText: { fontSize: font(11), fontWeight: '600' },
     compactOptionTextActive: { color: theme.accent, fontWeight: 'bold' },
+
+    notificationChannelBlock: { marginTop: 16 },
+    notificationChannelLabel: { marginBottom: 10 },
+    notificationEmailField: { marginTop: 12, gap: 6 },
+    notificationHintBox: { marginTop: 12, borderWidth: 1, borderRadius: 11, paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row', alignItems: 'flex-start', gap: 9 },
+    notificationHintIcon: { width: 20, height: 20, borderRadius: 10, textAlign: 'center', fontSize: font(11), fontWeight: 'bold', lineHeight: font(20) },
+    notificationHintText: { flex: 1, fontSize: font(10), lineHeight: font(15) },
     flexOptionButton: { flex: 1, alignItems: 'center' },
 
     twoColumnRow: { flexDirection: 'row', gap: 12 },
