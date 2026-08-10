@@ -300,6 +300,18 @@ const PasswordEyeIcon = ({ visible, color = '#b9ddff' }) => (
   </Svg>
 );
 
+// Hızlı şablon ve ödeme yöntemi kartlarında kullanılan ince, modern silme ikonu.
+const RemoveXIcon = ({ color = '#dbe7ff' }) => (
+  <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M7 7 17 17M17 7 7 17"
+      stroke={color}
+      strokeWidth={1.7}
+      strokeLinecap="round"
+    />
+  </Svg>
+);
+
 
 export default function App() {
   const { width } = useWindowDimensions();
@@ -2699,14 +2711,15 @@ if (isAuthChecking) {
                             <Pressable
                               accessibilityRole="button"
                               accessibilityLabel={`${template.name} şablonunu sil`}
-                              hitSlop={8}
-                              style={({ pressed }) => [
+                              hitSlop={6}
+                              style={({ hovered, pressed }) => [
                                 styles.removeOptionButton,
+                                hovered && styles.removeOptionButtonHover,
                                 pressed && styles.removeOptionButtonPressed
                               ]}
                               onPress={() => removeTemplate(index)}
                             >
-                              <Text style={styles.removeOptionText}>×</Text>
+                              <RemoveXIcon color={theme.textSecondary} />
                             </Pressable>
                           </View>
                         ))}
@@ -2868,14 +2881,15 @@ if (isAuthChecking) {
                           <Pressable
                             accessibilityRole="button"
                             accessibilityLabel={`${paymentMethod} ödeme yöntemini sil`}
-                            hitSlop={8}
+                            hitSlop={6}
                             style={({ hovered, pressed }) => [
                               styles.removeOptionButton,
-                              (hovered || pressed || Platform.OS !== 'web') && styles.removeOptionButtonVisible
+                              hovered && styles.removeOptionButtonHover,
+                              pressed && styles.removeOptionButtonPressed
                             ]}
                             onPress={() => removePaymentMethod(paymentMethod)}
                           >
-                            <Text style={styles.removeOptionText}>×</Text>
+                            <RemoveXIcon color={formPaymentMethod === paymentMethod ? '#ffffff' : theme.textSecondary} />
                           </Pressable>
                         </View>
                       ))}
@@ -3506,13 +3520,22 @@ function createStyles(theme, isMobile, fontScale) {
     removableOptionGrid: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 10, paddingTop: 4, paddingBottom: 4, paddingRight: 2, overflow: 'hidden' },
 
     // Şablon çipleri: artık düz/nötr taban, sol tarafta küçük renk noktası ile marka rengi korunur
-    templateOption: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 10, paddingLeft: 14, paddingRight: 42, paddingVertical: 11, minHeight: 44, minWidth: 0, maxWidth: '100%', flexShrink: 1 },
+    templateOption: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 10, paddingLeft: 14, paddingRight: 46, paddingVertical: 11, minHeight: 44, minWidth: 0, maxWidth: '100%', flexShrink: 1 },
     templateOptionText: { flex: 1, minWidth: 0, paddingRight: 4, fontSize: font(12), fontWeight: '600' },
     templateDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
 
-    removeOptionButton: { position: 'absolute', top: 7, right: 7, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(255,255,255,0.10)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.20)', alignItems: 'center', justifyContent: 'center', zIndex: 5, opacity: 1 },
-    removeOptionButtonPressed: { opacity: 0.62, transform: [{ scale: 0.94 }] },
-    removeOptionText: { color: 'rgba(255,255,255,0.92)', fontSize: font(15), fontWeight: '500', lineHeight: font(16) },
+    removeOptionButton: {
+      position: 'absolute', top: 7, right: 7, width: 28, height: 28, borderRadius: 9,
+      backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.inputBg, 0.90) : theme.inputBg,
+      borderWidth: 1, borderColor: hexToRgba(theme.textMuted, 0.34),
+      alignItems: 'center', justifyContent: 'center', zIndex: 5, opacity: 1,
+      ...(Platform.OS === 'web' ? { boxShadow: '0 4px 12px rgba(0,0,0,0.16)', cursor: 'pointer' } : {})
+    },
+    removeOptionButtonHover: {
+      backgroundColor: hexToRgba(theme.danger, 0.12), borderColor: hexToRgba(theme.danger, 0.62),
+      ...(Platform.OS === 'web' ? { boxShadow: `0 5px 15px ${hexToRgba(theme.danger, 0.13)}` } : {})
+    },
+    removeOptionButtonPressed: { opacity: 0.78, transform: [{ scale: 0.92 }] },
 
     inlineForm: { borderWidth: 1, borderRadius: 12, padding: 12, gap: 10, marginTop: 4 },
     inlineInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -3563,7 +3586,7 @@ function createStyles(theme, isMobile, fontScale) {
     increasePeriodOptionTitle: { fontSize: font(11), fontWeight: '700', marginBottom: 3 },
     increasePeriodOptionHint: { fontSize: font(9), lineHeight: font(13) },
 
-    paymentMethodOption: { width: '100%', borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, minHeight: 44, minWidth: 0, maxWidth: '100%', flexShrink: 1 },
+    paymentMethodOption: { width: '100%', borderWidth: 1, borderRadius: 10, paddingLeft: 14, paddingRight: 46, paddingVertical: 11, minHeight: 44, minWidth: 0, maxWidth: '100%', flexShrink: 1 },
     paymentMethodOptionActive: { backgroundColor: theme.activeButton, borderColor: theme.activeButtonBorder },
     paymentMethodOptionText: { fontSize: font(12), fontWeight: '600' },
 
