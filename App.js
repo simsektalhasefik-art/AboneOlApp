@@ -287,6 +287,9 @@ const translations = {
       'Yıllık Artış': 'Yıllık Artış',
       'Taksit · Bitiş': 'Taksit · Bitiş',
       'Aylık Vade Tamamlandığında Bu Kalem Rapor Ve Takvim Hesaplamalarından Otomatik Çıkarılır': 'Aylık Vade Tamamlandığında Bu Kalem Rapor Ve Takvim Hesaplamalarından Otomatik Çıkarılır',
+      'Mevcut şifreniz': 'Mevcut Şifreniz',
+      'Yeni şifreyi tekrar giriniz': 'Yeni Şifreyi Tekrar Giriniz',
+      'Örn: 12': 'Örn: 12',
     },
     calendar: {
       months: ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'],
@@ -567,7 +570,10 @@ const translations = {
   'kayıt': 'records',
   'Yıllık Artış': 'Annual Increase',
   'Taksit · Bitiş': 'Installments · Ends',
-  'Aylık Vade Tamamlandığında Bu Kalem Rapor Ve Takvim Hesaplamalarından Otomatik Çıkarılır': 'This Item Is Automatically Removed From Report And Calendar Calculations When The Monthly Term Is Completed'
+  'Aylık Vade Tamamlandığında Bu Kalem Rapor Ve Takvim Hesaplamalarından Otomatik Çıkarılır': 'This Item Is Automatically Removed From Report And Calendar Calculations When The Monthly Term Is Completed',
+  'Mevcut şifreniz': 'Current Password',
+  'Yeni şifreyi tekrar giriniz': 'Enter The New Password Again',
+  'Örn: 12': 'Example: 12'
     },
     calendar: {
       months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
@@ -914,6 +920,32 @@ const getSubscriptionCostForMonth = (item, year, monthIndex, rates) => {
 
   if (item.period === 'monthly') return priceInTL;
   return monthIndex === billingMonth ? priceInTL : 0;
+};
+
+
+// Abonelikler ve Analiz sayfalarının aynı kapsam ve aynı matematikle çalışmasını sağlar.
+// includeCredits=false => Sabit Abonelikler, true => Toplam Finansal Yük.
+const getFinancialMetricSource = (items, includeCredits = false) => {
+  const list = Array.isArray(items) ? items : [];
+  return includeCredits ? list : list.filter(item => item?.category !== 'Kredi');
+};
+
+const calculateFinancialMetrics = (items, year, rates, includeCredits = false) => {
+  const sourceList = getFinancialMetricSource(items, includeCredits);
+  const monthlyTotals = Array.from({ length: 12 }, (_, monthIndex) =>
+    sourceList.reduce(
+      (total, item) => total + getSubscriptionCostForMonth(item, year, monthIndex, rates),
+      0
+    )
+  );
+  const yearlyTotal = monthlyTotals.reduce((total, amount) => total + amount, 0);
+  return {
+    sourceList,
+    monthlyTotals,
+    yearlyTotal,
+    monthlyAverageCost: yearlyTotal / 12,
+    dailyAverageCost: yearlyTotal / 365
+  };
 };
 
 const lightenHex = (hex, percent) => {
@@ -1775,39 +1807,33 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
     })
     .sort((a, b) => {
       if (viewFilter === 'EXPENSIVE') return convertToTL(b.price, b.currency, exchangeRates) - convertToTL(a.price, a.currency, exchangeRates);
-      if (viewFilter === 'NAME') return String(a.name || '').localeCompare(String(b.name || ''), 'tr');
+      if (viewFilter === 'NAME') return String(a.name || '').localeCompare(String(b.name || ''), getLocale(language));
       if (viewFilter === 'UPCOMING') return getNextRenewal(a, todayForFiltering) - getNextRenewal(b, todayForFiltering);
-      return String(a.name || '').localeCompare(String(b.name || ''), 'tr');
+      return String(a.name || '').localeCompare(String(b.name || ''), getLocale(language));
     });
 
   const selectedViewFilterLabel = VIEW_FILTER_OPTIONS.find(o => o.key === viewFilter)?.label || 'Tüm Abonelikler';
 
-  const dashboardMetricList = analyticsIncludeCredits
-    ? safeList
-    : safeList.filter(item => item?.category !== 'Kredi');
-
-  const dashboardMonthlyTotals = Array.from({ length: 12 }, (_, monthIndex) =>
-    dashboardMetricList.reduce(
-      (total, subscription) => total + getSubscriptionCostForMonth(subscription, selectedDashboardYear, monthIndex, exchangeRates),
-      0
-    )
-  );
-  const yearlyProjectionTL = dashboardMonthlyTotals.reduce((total, amount) => total + amount, 0);
-  const monthlyTotalTL = yearlyProjectionTL / 12;
-  const dailyAverageTL = yearlyProjectionTL / 365;
+  const dashboardMetrics = calculateFinancialMetrics(safeList, selectedDashboardYear, exchangeRates, analyticsIncludeCredits);
+  const dashboardMetricList = dashboardMetrics.sourceList;
+  const dashboardMonthlyTotals = dashboardMetrics.monthlyTotals;
+  const yearlyProjectionTL = dashboardMetrics.yearlyTotal;
+  const monthlyTotalTL = dashboardMetrics.monthlyAverageCost;
+  const dailyAverageTL = dashboardMetrics.dailyAverageCost;
 
   const realNow = new Date();
   const prevMonthDate = new Date(realNow.getFullYear(), realNow.getMonth() - 1, 1);
-  const thisRealMonthTotal = dashboardMetricList.reduce((t, s) => t + getSubscriptionCostForMonth(s, realNow.getFullYear(), realNow.getMonth(), exchangeRates), 0);
-  const prevRealMonthTotal = dashboardMetricList.reduce((t, s) => t + getSubscriptionCostForMonth(s, prevMonthDate.getFullYear(), prevMonthDate.getMonth(), exchangeRates), 0);
+  const thisRealMonthMetrics = calculateFinancialMetrics(safeList, realNow.getFullYear(), exchangeRates, analyticsIncludeCredits);
+  const prevRealMonthMetrics = calculateFinancialMetrics(safeList, prevMonthDate.getFullYear(), exchangeRates, analyticsIncludeCredits);
+  const thisRealMonthTotal = thisRealMonthMetrics.monthlyTotals[realNow.getMonth()] || 0;
+  const prevRealMonthTotal = prevRealMonthMetrics.monthlyTotals[prevMonthDate.getMonth()] || 0;
   const monthlyChangePercent = prevRealMonthTotal > 0
     ? ((thisRealMonthTotal - prevRealMonthTotal) / prevRealMonthTotal) * 100
     : (thisRealMonthTotal > 0 ? 100 : 0);
   const hasMonthlyChangeData = prevRealMonthTotal > 0 || thisRealMonthTotal > 0;
 
-  const analyticsList = analyticsIncludeCredits
-    ? safeList
-    : safeList.filter(item => item?.category !== 'Kredi');
+  const analyticsMetrics = calculateFinancialMetrics(safeList, selectedAnalysisYear, exchangeRates, analyticsIncludeCredits);
+  const analyticsList = analyticsMetrics.sourceList;
 
   const getDetailedMonthlyBreakdown = (targetYear, sourceList = analyticsList) => {
     const monthlyTotals = Array(12).fill(0);
@@ -1834,10 +1860,11 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
     return { monthlyTotals, monthlyCategoryBreakdown };
   };
 
-  const { monthlyTotals, monthlyCategoryBreakdown } = getDetailedMonthlyBreakdown(selectedAnalysisYear);
-  const totalYearlyExpense = monthlyTotals.reduce((t, a) => t + a, 0);
+  const { monthlyCategoryBreakdown } = getDetailedMonthlyBreakdown(selectedAnalysisYear, analyticsList);
+  const monthlyTotals = analyticsMetrics.monthlyTotals;
+  const totalYearlyExpense = analyticsMetrics.yearlyTotal;
   const monthsWithExpense = monthlyTotals.filter(a => a > 0).length;
-  const averageMonthlyExpense = monthsWithExpense > 0 ? totalYearlyExpense / monthsWithExpense : 0;
+  const averageMonthlyExpense = analyticsMetrics.monthlyAverageCost;
   const maxMonthlyExpense = Math.max(...monthlyTotals, 1);
 
   // Kredi oranı, görünüm filtresinden bağımsız olarak toplam finansal yük üzerinden hesaplanır.
@@ -1880,7 +1907,7 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
   const sortedMonthlyPaymentMethodEntries = Object.entries(monthlyPaymentMethodStats).sort((a, b) => b[1] - a[1]);
   const totalMonthlyPaymentCommitment = sortedMonthlyPaymentMethodEntries.reduce((total, [, amount]) => total + amount, 0);
   const sortedCategoryEntries = Object.entries(yearlyCategoryStats).sort((a, b) => b[1] - a[1]);
-  const categoryMonthDivisor = Math.max(monthsWithExpense, 1);
+  const categoryMonthDivisor = 12;
   const sortedMonthlyCategoryEntries = sortedCategoryEntries.map(([category, amount]) => [category, amount / categoryMonthDivisor]);
   const totalMonthlyCategoryExpense = sortedMonthlyCategoryEntries.reduce((total, [, amount]) => total + amount, 0);
   const topCategoryLabel = sortedCategoryEntries[0]?.[0] || '-';
@@ -2701,6 +2728,10 @@ if (isAuthChecking) {
                   style={[styles.searchInput, { backgroundColor: theme.inputBg, color: theme.textPrimary, borderColor: theme.cardBorder }]}
                   placeholder={language === 'en' ? 'Search Subscription, Category Or Payment Method...' : 'Abonelik, Kategori veya Ödeme Yöntemi Ara...'}
                   placeholderTextColor={theme.textMuted}
+                  autoComplete="off"
+                  autoCorrect={false}
+                  textContentType="none"
+                  {...(Platform.OS === 'web' ? { name: 'cebin-subscription-search', autoCapitalize: 'none' } : {})}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
                 />
@@ -3415,7 +3446,7 @@ if (isAuthChecking) {
                     secureTextEntry={!currentPasswordVisible}
                     value={currentPassword}
                     onChangeText={value => { setCurrentPassword(value); setPasswordErrors(current => ({ ...current, current: '', general: '' })); }}
-                    placeholder="Mevcut şifreniz"
+                    placeholder={t('Mevcut şifreniz', language)}
                     placeholderTextColor={theme.textMuted}
                   />
                   <Pressable style={({ hovered, pressed }) => [styles.eyeButton, (hovered || pressed) && styles.eyeButtonHover]} onPress={() => setCurrentPasswordVisible(value => !value)}>
@@ -3452,7 +3483,7 @@ if (isAuthChecking) {
                         value={newPasswordConfirm}
                         onChangeText={value => { setNewPasswordConfirm(value); setPasswordErrors(current => ({ ...current, confirm: value && value !== newPassword ? 'Şifreler uyuşmuyor.' : '', general: '' })); }}
                         onBlur={() => { if (newPasswordConfirm && newPasswordConfirm !== newPassword) showToast('Şifreler uyuşmuyor.', 'error'); }}
-                        placeholder="Yeni şifreyi tekrar giriniz"
+                        placeholder={t('Yeni şifreyi tekrar giriniz', language)}
                         placeholderTextColor={theme.textMuted}
                       />
                       <Pressable style={({ hovered, pressed }) => [styles.eyeButton, (hovered || pressed) && styles.eyeButtonHover]} onPress={() => setNewPasswordConfirmVisible(value => !value)}>
@@ -3817,7 +3848,7 @@ if (isAuthChecking) {
                           <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Toplam Taksit Sayısı (Vade)</Text>
                           <TextInput
                             style={[styles.textInput, { backgroundColor: theme.cardBg, color: theme.textPrimary, borderColor: theme.cardBorder }, focusedNumericInput === 'creditInstallmentCount' && styles.numericInputFocused]}
-                            placeholder="Örn: 12"
+                            placeholder={t('Örn: 12', language)}
                             placeholderTextColor={theme.textMuted}
                             keyboardType="number-pad"
                             inputMode="numeric"
