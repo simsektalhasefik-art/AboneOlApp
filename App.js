@@ -2662,10 +2662,10 @@ if (isAuthChecking) {
         <View style={styles.contentWrapper}>
           <View style={[styles.header, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.headerBg, 0.75) : theme.headerBg, borderBottomColor: theme.cardBorder }]}>
             <View style={styles.pageHeaderInfo}>
-              <Text style={[styles.pageHeaderTitle, { color: theme.textPrimary }]} numberOfLines={1}>
+              <Text style={[styles.pageHeaderTitle, { color: theme.textPrimary }]} numberOfLines={isMobile ? 2 : 1}>
                 {activeTab === 'list' ? 'Abonelikler' : activeTab === 'calendar' ? 'Ödeme Takvimi' : 'Analiz ve Raporlar'}
               </Text>
-              <Text style={[styles.pageHeaderDescription, { color: theme.textSecondary }]} numberOfLines={isMobile ? 2 : 1}>
+              <Text style={[styles.pageHeaderDescription, { color: theme.textSecondary }]} numberOfLines={isMobile ? 3 : 1}>
                 {activeTab === 'list' ? 'Aboneliklerinizi Ve Düzenli Ödemelerinizi Yönetin' : activeTab === 'calendar' ? 'Yaklaşan Ödeme Tarihlerini Takvim Üzerinden Takip Edin' : 'Aylık Ortalama Maliyet Eğilimlerinizi Ve Bütçe Yükünüzü İnceleyin'}
               </Text>
             </View>
@@ -4231,12 +4231,12 @@ function createStyles(theme, isMobile, fontScale) {
 
     contentWrapper: { flex: 1, height: '100%', minHeight: 0, overflow: 'hidden' },
 
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, zIndex: 10, ...(Platform.OS === 'web' ? { boxShadow: '0 10px 34px rgba(3,7,18,0.18)' } : { elevation: 5 }) },
-    pageHeaderInfo: { flex: 1, marginRight: 12 },
-    pageHeaderTitle: { fontSize: font(18), fontWeight: 'bold' },
-    pageHeaderDescription: { fontSize: font(11), marginTop: 2 },
+    header: { flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: isMobile ? 12 : 0, paddingHorizontal: isMobile ? 14 : 20, paddingVertical: isMobile ? 12 : 14, borderBottomWidth: 1, zIndex: 10, ...(Platform.OS === 'web' ? { boxShadow: '0 10px 34px rgba(3,7,18,0.18)' } : { elevation: 5 }) },
+    pageHeaderInfo: { flex: isMobile ? 0 : 1, width: isMobile ? '100%' : 'auto', minWidth: 0, marginRight: isMobile ? 0 : 12, alignSelf: 'stretch' },
+    pageHeaderTitle: { fontSize: font(isMobile ? 17 : 18), lineHeight: font(isMobile ? 22 : 24), fontWeight: 'bold', flexShrink: 1, width: '100%' },
+    pageHeaderDescription: { fontSize: font(11), lineHeight: font(16), marginTop: 4, flexShrink: 1, width: '100%' },
 
-    headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    headerActions: { flexDirection: 'row', alignItems: 'center', justifyContent: isMobile ? 'flex-start' : 'flex-end', flexWrap: isMobile ? 'wrap' : 'nowrap', gap: 10, width: isMobile ? '100%' : 'auto', minWidth: 0 },
     miniRatesBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1 },
     miniRatesIcon: { fontSize: font(12) },
     miniRatesText: { fontSize: font(11), fontWeight: '600' },
