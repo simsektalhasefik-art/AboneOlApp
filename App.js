@@ -32,7 +32,7 @@ const translations = {
       'Şifre Tekrarı': 'Şifre Tekrarı',
       'Şifremi Unuttum?': 'Şifremi Unuttum?',
       'veya': 'veya',
-      'Google İle Devam Et': 'Google İle Devam Et',
+      'Google Hesabınla Devam Et': 'Google Hesabınla Devam Et',
       'Hesabın Yok Mu? Kayıt Ol': 'Hesabın Yok Mu? Kayıt Ol',
       'Zaten Hesabın Var Mı? Giriş Yap': 'Zaten Hesabın Var Mı? Giriş Yap',
       'Beni Hatırla': 'Beni Hatırla',
@@ -312,7 +312,7 @@ const translations = {
   'Şifre Tekrarı': 'Confirm Password',
   'Şifremi Unuttum?': 'Forgot Password?',
   'veya': 'or',
-  'Google İle Devam Et': 'Continue With Google',
+  'Google Hesabınla Devam Et': 'Continue With Your Google Account',
   'Hesabın Yok Mu? Kayıt Ol': 'No Account? Sign Up',
   'Zaten Hesabın Var Mı? Giriş Yap': 'Already Have An Account? Sign In',
   'Beni Hatırla': 'Remember Me',
@@ -999,6 +999,29 @@ const RemoveXIcon = ({ color = '#dbe7ff' }) => (
       stroke={color}
       strokeWidth={1.7}
       strokeLinecap="round"
+    />
+  </Svg>
+);
+
+
+// Google'ın resmi dört renkli "G" işaretine uygun giriş ikonu.
+const GoogleGIcon = ({ size = 20 }) => (
+  <Svg width={size} height={size} viewBox="0 0 18 18" fill="none">
+    <Path
+      fill="#4285F4"
+      d="M17.64 9.205c0-.638-.057-1.252-.164-1.841H9v3.482h4.844a4.14 4.14 0 0 1-1.797 2.716v2.258h2.909c1.702-1.567 2.684-3.878 2.684-6.615Z"
+    />
+    <Path
+      fill="#34A853"
+      d="M9 18c2.43 0 4.468-.806 5.956-2.18l-2.909-2.258c-.806.54-1.836.859-3.047.859-2.344 0-4.328-1.585-5.037-3.714H.956v2.332A9 9 0 0 0 9 18Z"
+    />
+    <Path
+      fill="#FBBC05"
+      d="M3.963 10.707A5.41 5.41 0 0 1 3.682 9c0-.592.102-1.168.281-1.707V4.961H.956A9 9 0 0 0 0 9c0 1.45.347 2.824.956 4.039l3.007-2.332Z"
+    />
+    <Path
+      fill="#EA4335"
+      d="M9 3.579c1.321 0 2.507.454 3.441 1.346l2.581-2.581C13.464.892 11.427 0 9 0A9 9 0 0 0 .956 4.961l3.007 2.332C4.672 5.164 6.656 3.579 9 3.579Z"
     />
   </Svg>
 );
@@ -1741,7 +1764,10 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
         );
       }
 
-      // onAuthStateChanged mevcut panel geçişini otomatik yönettiği için ayrıca window.location gerekmez.
+      // Kullanıcının talebi doğrultusunda başarılı Google girişinden sonra ana sayfayı aç.
+      if (typeof window !== 'undefined') {
+        window.location.href = 'index.html';
+      }
     } catch (error) {
       console.log('Google ile giriş hatası:', error);
 
@@ -2457,9 +2483,17 @@ if (isAuthChecking) {
                 <View style={styles.authDividerLine} />
               </View>
 
-              <TouchableOpacity style={styles.googleButton} onPress={handleGoogleLogin}>
-                <View style={styles.googleIconBox}><Text style={styles.googleIconText}>G</Text></View>
-                <Text style={styles.googleButtonText}>Google İle Devam Et</Text>
+              <TouchableOpacity
+                nativeID="googleLoginBtn"
+                accessibilityRole="button"
+                accessibilityLabel={t('Google Hesabınla Devam Et', language)}
+                style={styles.googleButton}
+                onPress={handleGoogleLogin}
+              >
+                <View style={styles.googleIconBox}>
+                  <GoogleGIcon size={20} />
+                </View>
+                <Text style={styles.googleButtonText}>Google Hesabınla Devam Et</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.authSwitchButton} onPress={() => { setAuthMode(authMode === 'login' ? 'register' : 'login'); setAuthError(''); closeAlertModal(); setAuthPassword(''); setAuthPasswordConfirm(''); }}>
