@@ -470,6 +470,8 @@ export default function App() {
   const [selectedDashboardYear, setSelectedDashboardYear] = useState(clampedYear);
   // Analiz ekranında kredi yükünü sabit aboneliklerden ayıran görünüm filtresi.
   const [analyticsIncludeCredits, setAnalyticsIncludeCredits] = useState(false);
+  // Mobilde tutar etiketlerinin üst üste binmesini önlemek için seçili ay tek bir bilgi balonunda gösterilir.
+  const [selectedChartMonthIndex, setSelectedChartMonthIndex] = useState(null);
 
   const [formName, setFormName] = useState('');
   const [formPrice, setFormPrice] = useState('');
@@ -1228,7 +1230,7 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
   const insightText = fullYearlyExpense <= 0
     ? 'Henüz Analiz Oluşturmak İçin Yeterli Harcama Verisi Bulunmuyor.'
     : hasHighCreditLoad
-      ? `${selectedAnalysisYear} döneminde kredi taksitleri toplam finansal yükün yaklaşık %${creditLoadPercent.toFixed(0)}'ini oluşturuyor. Krediler süreli borç kalemidir; sabit abonelik bütçenizi daha net görmek için grafikte Kredileri Hariç Tut görünümünü kullanabilirsiniz.`
+      ? `${selectedAnalysisYear} döneminde kredi taksitleri toplam finansal yükün yaklaşık %${creditLoadPercent.toFixed(0)}'ini oluşturuyor. Krediler süreli borç kalemidir; sabit abonelik bütçenizi daha net görmek için grafikte Sabit Abonelikler görünümünü kullanabilirsiniz.`
       : sortedMonthlyCategoryEntries.length === 0
         ? `${selectedAnalysisYear} döneminde kredi dışındaki düzenli giderler için yeterli veri bulunmuyor.${yearlyCreditExpense > 0 ? ` Kredi yükü toplam finansal yükün %${creditLoadPercent.toFixed(0)}'ini oluşturuyor.` : ''}`
         : `${selectedAnalysisYear} döneminde ${analyticsIncludeCredits ? 'toplam finansal yükte' : 'kredi hariç düzenli giderlerde'} en yüksek pay ${topCategoryLabel} kategorisinde: ${formatShortCurrency(topCategoryAmount, 'TRY')} (%${topCategoryPercent}).${mostExpensiveSubscription ? ` En yüksek aylık etki ${mostExpensiveSubscription.item.name} kaydından geliyor.` : ''}${!analyticsIncludeCredits && yearlyCreditExpense > 0 ? ` Krediler ayrıca izleniyor ve toplam finansal yükün %${creditLoadPercent.toFixed(0)}'ini oluşturuyor.` : ''}`;
@@ -2262,30 +2264,54 @@ if (isAuthChecking) {
                     <View style={{ flex: 1, minWidth: 0 }}>
                       <Text style={[styles.panelTitle, { color: theme.textPrimary }]}>{selectedAnalysisYear} Aylık Harcama Grafiği</Text>
                       <Text style={[styles.panelDescription, { color: theme.textMuted }]}>
-                        {analyticsIncludeCredits ? 'Toplam finansal yük: abonelikler ve kredi taksitleri.' : 'Sabit abonelik görünümü: kredi taksitleri ölçekten hariç.'}
+                        {analyticsIncludeCredits
+                          ? 'Toplam finansal yük: abonelikler ve aktif kredi taksitleri birlikte gösterilir.'
+                          : 'Sabit abonelikler: kredi taksitleri ölçekten ayrılarak küçük giderler daha net görünür.'}
                       </Text>
                     </View>
+                  </View>
+
+                  <View style={[styles.analyticsSegmentedControl, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}>
                     <Pressable
-                      accessibilityRole="switch"
-                      accessibilityState={{ checked: analyticsIncludeCredits }}
-                      onPress={() => setAnalyticsIncludeCredits(value => !value)}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: !analyticsIncludeCredits }}
+                      onPress={() => { setAnalyticsIncludeCredits(false); setSelectedChartMonthIndex(null); }}
                       style={({ hovered, pressed }) => [
-                        styles.creditFilterToggle,
-                        { backgroundColor: analyticsIncludeCredits ? hexToRgba(CATEGORY_COLORS.Kredi, 0.14) : theme.inputBg, borderColor: analyticsIncludeCredits ? CATEGORY_COLORS.Kredi : theme.cardBorder },
-                        (hovered || pressed) && styles.creditFilterToggleActive
+                        styles.analyticsSegmentButton,
+                        !analyticsIncludeCredits && { backgroundColor: theme.activeButton, borderColor: theme.activeButtonBorder },
+                        (hovered || pressed) && styles.analyticsSegmentButtonInteractive
                       ]}
                     >
-                      <View style={[styles.creditFilterSwitchTrack, { backgroundColor: analyticsIncludeCredits ? CATEGORY_COLORS.Kredi : theme.cardBorder }]}>
-                        <View style={[styles.creditFilterSwitchThumb, analyticsIncludeCredits && styles.creditFilterSwitchThumbOn]} />
-                      </View>
-                      <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text style={[styles.creditFilterToggleText, { color: analyticsIncludeCredits ? CATEGORY_COLORS.Kredi : theme.textSecondary }]}>
-                          {analyticsIncludeCredits ? 'Kredileri Hariç Tut' : 'Kredileri Dahil Et'}
-                        </Text>
-                        <Text style={[styles.creditFilterToggleHint, { color: theme.textMuted }]}>
-                          {analyticsIncludeCredits ? 'Krediler şu an dahil' : 'Krediler şu an hariç'}
-                        </Text>
-                      </View>
+                      <Text
+                        numberOfLines={1}
+                        style={[
+                          styles.analyticsSegmentText,
+                          { color: !analyticsIncludeCredits ? '#ffffff' : theme.textSecondary }
+                        ]}
+                      >
+                        Sabit Abonelikler
+                      </Text>
+                    </Pressable>
+
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: analyticsIncludeCredits }}
+                      onPress={() => { setAnalyticsIncludeCredits(true); setSelectedChartMonthIndex(null); }}
+                      style={({ hovered, pressed }) => [
+                        styles.analyticsSegmentButton,
+                        analyticsIncludeCredits && { backgroundColor: hexToRgba(CATEGORY_COLORS.Kredi, 0.18), borderColor: CATEGORY_COLORS.Kredi },
+                        (hovered || pressed) && styles.analyticsSegmentButtonInteractive
+                      ]}
+                    >
+                      <Text
+                        numberOfLines={1}
+                        style={[
+                          styles.analyticsSegmentText,
+                          { color: analyticsIncludeCredits ? CATEGORY_COLORS.Kredi : theme.textSecondary }
+                        ]}
+                      >
+                        Toplam Finansal Yük
+                      </Text>
                     </Pressable>
                   </View>
 
@@ -2298,18 +2324,60 @@ if (isAuthChecking) {
                     ))}
                   </View>
 
-                  <ScrollView horizontal={!isMobile} scrollEnabled={!isMobile} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chartScrollContent}>
+                  {selectedChartMonthIndex !== null && (
+                    <View style={[styles.chartPopover, { backgroundColor: theme.inputBg, borderColor: theme.activeButtonBorder }]}>
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={[styles.chartPopoverMonth, { color: theme.textPrimary }]}>
+                          {MONTH_NAMES[selectedChartMonthIndex]} {selectedAnalysisYear}
+                        </Text>
+                        <Text style={[styles.chartPopoverHint, { color: theme.textMuted }]}>
+                          {analyticsIncludeCredits ? 'Toplam finansal yük' : 'Sabit abonelik harcaması'}
+                        </Text>
+                      </View>
+                      <Text style={[styles.chartPopoverAmount, { color: theme.accent }]}>
+                        {formatCurrency(monthlyTotals[selectedChartMonthIndex] || 0, 'TRY')}
+                      </Text>
+                    </View>
+                  )}
+
+                  <ScrollView
+                    horizontal={isMobile}
+                    scrollEnabled={isMobile}
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.chartScrollContent}
+                  >
                     <View style={styles.chartArea}>
                       {monthlyTotals.map((monthTotal, monthIndex) => {
                         const heightPercentage = maxMonthlyExpense > 0 ? (monthTotal / maxMonthlyExpense) * 100 : 0;
                         const visibleHeight = monthTotal > 0 ? Math.max(heightPercentage, 8) : 0;
                         const categorySegments = monthlyCategoryBreakdown[monthIndex] || [];
+                        const isSelectedMonth = selectedChartMonthIndex === monthIndex;
 
                         return (
-                          <View key={monthIndex} style={styles.chartColumn}>
-                            <Text style={[styles.chartAmount, { color: theme.textSecondary }]} numberOfLines={1}>{monthTotal > 0 ? (isMobile ? formatCompactCurrency(monthTotal, 'TRY') : formatShortCurrency(monthTotal, 'TRY')) : ''}</Text>
+                          <Pressable
+                            key={monthIndex}
+                            accessibilityRole="button"
+                            accessibilityLabel={`${MONTH_NAMES[monthIndex]} ${selectedAnalysisYear}: ${formatCurrency(monthTotal, 'TRY')}`}
+                            onPress={() => setSelectedChartMonthIndex(current => current === monthIndex ? null : monthIndex)}
+                            onHoverIn={() => { if (Platform.OS === 'web') setSelectedChartMonthIndex(monthIndex); }}
+                            style={({ pressed }) => [styles.chartColumn, pressed && styles.chartColumnPressed]}
+                          >
+                            {!isMobile && (
+                              <Text style={[styles.chartAmount, { color: isSelectedMonth ? theme.accent : theme.textSecondary }]} numberOfLines={1}>
+                                {monthTotal > 0 ? formatCompactCurrency(monthTotal, 'TRY') : ''}
+                              </Text>
+                            )}
 
-                            <View style={[styles.chartTrack, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]}>
+                            <View
+                              style={[
+                                styles.chartTrack,
+                                {
+                                  backgroundColor: theme.inputBg,
+                                  borderColor: isSelectedMonth ? theme.activeButtonBorder : theme.cardBorder
+                                },
+                                isSelectedMonth && styles.chartTrackSelected
+                              ]}
+                            >
                               {monthTotal > 0 && (
                                 <View style={[styles.chartStack, { height: `${visibleHeight}%` }]}>
                                   {categorySegments.map((segment, segmentIndex) => (
@@ -2329,12 +2397,18 @@ if (isAuthChecking) {
                               )}
                             </View>
 
-                            <Text style={[styles.chartMonthLabel, { color: theme.textPrimary }]}>{MONTH_NAMES[monthIndex].substring(0, 3)}</Text>
-                          </View>
+                            <Text style={[styles.chartMonthLabel, { color: isSelectedMonth ? theme.accent : theme.textPrimary }]}>
+                              {MONTH_NAMES[monthIndex].substring(0, 3)}
+                            </Text>
+                          </Pressable>
                         );
                       })}
                     </View>
                   </ScrollView>
+
+                  <Text style={[styles.chartInteractionHint, { color: theme.textMuted }]}>
+                    {isMobile ? 'Detay için bir aya dokunun. Grafiği yatay kaydırabilirsiniz.' : 'Detay için çubukların üzerine gelin veya tıklayın.'}
+                  </Text>
 
                   <View style={[styles.chartFooter, { borderTopColor: theme.cardBorder }]}>
                     <Text style={[styles.chartFooterLabel, { color: theme.textPrimary }]}>Aylık Ortalama Harcama ({selectedAnalysisYear})</Text>
@@ -3475,27 +3549,31 @@ function createStyles(theme, isMobile, fontScale) {
     analysisPrimaryPanel: {},
     panelTitle: { fontSize: font(15), fontWeight: 'bold', marginBottom: 2 },
     panelDescription: { fontSize: font(11), marginTop: 2, marginBottom: 0, lineHeight: font(16) },
-    analysisPanelHeader: { flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 14 },
-    creditFilterToggle: { minWidth: isMobile ? '100%' : 190, maxWidth: isMobile ? '100%' : 230, minHeight: 48, borderWidth: 1, borderRadius: 12, paddingHorizontal: 11, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 9, ...(Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '160ms' } : {}) },
-    creditFilterToggleActive: { opacity: 0.94, transform: [{ scale: 0.995 }] },
-    creditFilterSwitchTrack: { width: 34, height: 20, borderRadius: 10, padding: 2, justifyContent: 'center', flexShrink: 0 },
-    creditFilterSwitchThumb: { width: 16, height: 16, borderRadius: 8, backgroundColor: '#ffffff', transform: [{ translateX: 0 }] },
-    creditFilterSwitchThumbOn: { transform: [{ translateX: 14 }] },
-    creditFilterToggleText: { fontSize: font(10.5), fontWeight: '800' },
-    creditFilterToggleHint: { fontSize: font(9), marginTop: 1 },
-    categoryLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
+    analysisPanelHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 12 },
+    analyticsSegmentedControl: { width: '100%', borderWidth: 1, borderRadius: 13, padding: 4, flexDirection: 'row', gap: 4, marginBottom: 14, overflow: 'hidden' },
+    analyticsSegmentButton: { flex: 1, minWidth: 0, minHeight: isMobile ? 42 : 40, borderWidth: 1, borderColor: 'transparent', borderRadius: 10, paddingHorizontal: isMobile ? 8 : 12, paddingVertical: 9, alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '160ms' } : {}) },
+    analyticsSegmentButtonInteractive: { opacity: 0.94, transform: [{ scale: 0.995 }] },
+    analyticsSegmentText: { fontSize: font(isMobile ? 9.5 : 10.5), fontWeight: '800', textAlign: 'center' },
+    categoryLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: isMobile ? 8 : 10, marginBottom: 12 },
     legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     legendDot: { width: 8, height: 8, borderRadius: 4 },
-    legendText: { fontSize: font(10) },
+    legendText: { fontSize: font(isMobile ? 9 : 10) },
 
-    chartScrollContent: { paddingBottom: 4, flexGrow: 1, minWidth: 0, width: '100%' },
-    chartArea: { flex: 1, width: '100%', minWidth: 0, flexDirection: 'row', height: isMobile ? 190 : 210, alignItems: 'flex-end', justifyContent: 'space-between', gap: isMobile ? 3 : 0, paddingHorizontal: isMobile ? 0 : 8 },
-    chartColumn: { minWidth: 0, maxWidth: isMobile ? 'none' : 76, flex: 1, flexShrink: 1, alignItems: 'center', height: '100%', justifyContent: 'flex-end', paddingHorizontal: isMobile ? 1 : 2 },
-    chartAmount: { fontSize: font(isMobile ? 6.7 : 8), marginBottom: 4, height: 14, width: '100%', textAlign: 'center' },
-    chartTrack: { width: isMobile ? 16 : 30, maxWidth: '78%', flex: 1, borderWidth: 1, borderRadius: isMobile ? 6 : 8, overflow: 'hidden', justifyContent: 'flex-end' },
+    chartPopover: { width: '100%', minWidth: 0, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, marginBottom: 10, flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'space-between', gap: isMobile ? 3 : 10 },
+    chartPopoverMonth: { fontSize: font(11), fontWeight: '800' },
+    chartPopoverHint: { fontSize: font(9), marginTop: 1 },
+    chartPopoverAmount: { fontSize: font(isMobile ? 13 : 14), fontWeight: '900', flexShrink: 1 },
+    chartScrollContent: { paddingBottom: 4, minWidth: isMobile ? 620 : '100%', flexGrow: 1 },
+    chartArea: { width: isMobile ? 620 : '100%', minWidth: isMobile ? 620 : 0, flexDirection: 'row', height: isMobile ? 210 : 220, alignItems: 'flex-end', justifyContent: 'space-between', gap: isMobile ? 7 : 0, paddingHorizontal: isMobile ? 6 : 8 },
+    chartColumn: { minWidth: isMobile ? 43 : 0, maxWidth: isMobile ? 43 : 76, flex: isMobile ? 0 : 1, flexShrink: isMobile ? 0 : 1, alignItems: 'center', height: '100%', justifyContent: 'flex-end', paddingHorizontal: isMobile ? 2 : 2, borderRadius: 10, ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}) },
+    chartColumnPressed: { opacity: 0.86, transform: [{ scale: 0.985 }] },
+    chartAmount: { fontSize: font(8), marginBottom: 4, height: 14, width: '100%', textAlign: 'center' },
+    chartTrack: { width: isMobile ? 22 : 30, maxWidth: '78%', flex: 1, borderWidth: 1, borderRadius: isMobile ? 7 : 8, overflow: 'hidden', justifyContent: 'flex-end' },
+    chartTrackSelected: { borderWidth: 2, ...(Platform.OS === 'web' ? { boxShadow: '0 0 0 2px rgba(105,101,232,0.12)' } : {}) },
     chartStack: { width: '100%', flexDirection: 'column-reverse' },
     chartSegment: { width: '100%' },
-    chartMonthLabel: { fontSize: font(isMobile ? 8 : 10), fontWeight: 'bold', marginTop: 6 },
+    chartMonthLabel: { fontSize: font(isMobile ? 9 : 10), fontWeight: 'bold', marginTop: 7 },
+    chartInteractionHint: { fontSize: font(9), lineHeight: font(13), marginTop: 6 },
     chartFooter: { flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'space-between', gap: isMobile ? 4 : 0, paddingTop: 12, marginTop: 14, borderTopWidth: 1 },
     chartFooterLabel: { fontSize: font(12), fontWeight: 'bold' },
     chartFooterValue: { fontSize: font(14), fontWeight: 'bold' },
