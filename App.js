@@ -16,7 +16,286 @@ const LanguageContext = createContext('tr');
 
 // Arayüzdeki sabit metinleri tek merkezden TR / EN olarak sunar
 // Kullanıcı tarafından girilen abonelik adları ve özel veriler çevrilmez
-const UI_TRANSLATIONS_EN = {
+const translations = {
+  tr: {
+    ui: {
+      'Yükleniyor...': 'Yükleniyor...',
+      'Akıllı Abonelik Ve Bütçe Asistanı': 'Akıllı Abonelik Ve Bütçe Asistanı',
+      'Giriş Yap': 'Giriş Yap',
+      'Kayıt Ol': 'Kayıt Ol',
+      'Ad Soyad / Kullanıcı Adı': 'Ad Soyad / Kullanıcı Adı',
+      'Ad Soyad veya Kullanıcı Adı': 'Ad Soyad veya Kullanıcı Adı',
+      'E-posta / Kullanıcı Adı': 'E-posta / Kullanıcı Adı',
+      'E-posta': 'E-posta',
+      'E-posta Adresi': 'E-posta Adresi',
+      'Şifre': 'Şifre',
+      'Şifre Tekrarı': 'Şifre Tekrarı',
+      'Şifremi Unuttum?': 'Şifremi Unuttum?',
+      'veya': 'veya',
+      'Google İle Devam Et': 'Google İle Devam Et',
+      'Hesabın Yok Mu? Kayıt Ol': 'Hesabın Yok Mu? Kayıt Ol',
+      'Zaten Hesabın Var Mı? Giriş Yap': 'Zaten Hesabın Var Mı? Giriş Yap',
+      'Beni Hatırla': 'Beni Hatırla',
+      'Şifremi Unuttum': 'Şifremi Unuttum',
+      'Sıfırlama Bağlantısı Gönder': 'Sıfırlama Bağlantısı Gönder',
+      'Gönderiliyor...': 'Gönderiliyor...',
+      'Vazgeç': 'Vazgeç',
+      'Tamam': 'Tamam',
+      'İptal': 'İptal',
+      'E-posta Gönderildi': 'E-posta Gönderildi',
+      'Kayıt Başarıyla Gerçekleşti': 'Kayıt Başarıyla Gerçekleşti',
+      'Eksik veya Hatalı Bilgi': 'Eksik veya Hatalı Bilgi',
+      'Şifreniz Başarıyla Güncellendi': 'Şifreniz Başarıyla Güncellendi',
+      'Abonelikler': 'Abonelikler',
+      'Takvim': 'Takvim',
+      'Ödeme Takvimi': 'Ödeme Takvimi',
+      'Analiz ve Raporlar': 'Analiz ve Raporlar',
+      'Kullanıcı Ayarları': 'Kullanıcı Ayarları',
+      'CSV Excel İndir': 'CSV Excel İndir',
+      '+ Yeni Abonelik Ekle': '+ Yeni Abonelik Ekle',
+      '+ Abonelik Ekle': '+ Abonelik Ekle',
+      '+ Ekle': '+ Ekle',
+      'Çıkış Yap': 'Çıkış Yap',
+      'Oturumu Kapat': 'Oturumu Kapat',
+      'Aboneliklerinizi Ve Düzenli Ödemelerinizi Yönetin': 'Aboneliklerinizi Ve Düzenli Ödemelerinizi Yönetin',
+      'Yaklaşan Ödeme Tarihlerini Takvim Üzerinden Takip Edin': 'Yaklaşan Ödeme Tarihlerini Takvim Üzerinden Takip Edin',
+      'Aylık Ortalama Maliyet Eğilimlerinizi Ve Bütçe Yükünüzü İnceleyin': 'Aylık Ortalama Maliyet Eğilimlerinizi ve Bütçe Yükünüzü İnceleyin',
+      'Görünüm Filtresi': 'Görünüm Filtresi',
+      'Abonelik Listenizi Tek Dokunuşla Daraltın': 'Abonelik Listenizi Tek Dokunuşla Daraltın',
+      'Tüm Abonelikler': 'Tüm Abonelikler',
+      'Aylık Ödemeler': 'Aylık Ödemeler',
+      'Yıllık Ödemeler': 'Yıllık Ödemeler',
+      'Yaklaşan Ödemeler': 'Yaklaşan Ödemeler',
+      'En Yüksek Tutar': 'En Yüksek Tutar',
+      'Ada Göre': 'Ada Göre',
+      'Kayıt Bulunamadı': 'Kayıt Bulunamadı',
+      'Arama Metnini Veya Görünüm Filtresini Değiştiriniz': 'Arama Metnini Veya Görünüm Filtresini Değiştiriniz',
+      'Abonelik, Kategori veya Ödeme Yöntemi Ara...': 'Abonelik, Kategori veya Ödeme Yöntemi Ara...',
+      'Günlük Maliyet': 'Günlük Maliyet',
+      'Bütçe Yılı': 'Bütçe Yılı',
+      'Ödendi': 'Ödendi',
+      'Ödendi İşaretle': 'Ödendi İşaretle',
+      'Düzenle': 'Düzenle',
+      'Kredi': 'Kredi',
+      'Eğlence': 'Eğlence',
+      'Yazılım & AI': 'Yazılım & AI',
+      'Müzik': 'Müzik',
+      'Eğitim': 'Eğitim',
+      'Bulut & Depolama': 'Bulut & Depolama',
+      'Spor & Sağlık': 'Spor & Sağlık',
+      'Diğer': 'Diğer',
+      'Bildirim Yok': 'Bildirim Yok',
+      'Aynı Gün': 'Aynı Gün',
+      '1 Gün Önce': '1 Gün Önce',
+      '2 Gün Önce': '2 Gün Önce',
+      '3 Gün Önce': '3 Gün Önce',
+      '1 Hafta Önce': '1 Hafta Önce',
+      'Sabit Abonelikler': 'Sabit Abonelikler',
+      'Toplam Finansal Yük': 'Toplam Finansal Yük',
+      'Sabit Abonelik Aylık Ortalama Maliyeti': 'Sabit Abonelik Aylık Ortalama Maliyeti',
+      'Aylık Ortalama Maliyet Grafiği': 'Aylık Ortalama Maliyet Grafiği',
+      'Akıllı Asistan Özeti': 'Akıllı Asistan Özeti',
+      'Ödeme Yöntemine Göre Aylık Dağılım': 'Ödeme Yöntemine Göre Aylık Dağılım',
+      'Kategori Bazlı Aylık Dağılım': 'Kategori Bazlı Aylık Dağılım',
+      'Toplam / Ay': 'Toplam / Ay',
+      'Yeni Abonelik Ekle': 'Yeni Abonelik Ekle',
+      'Hızlı Şablon Seç': 'Hızlı Şablon Seç',
+      '+ Şablon Ekle': '+ Şablon Ekle',
+      'Temel Bilgiler': 'Temel Bilgiler',
+      'Servis / Abonelik Adı': 'Servis / Abonelik Adı',
+      'Tutar / Fiyat': 'Tutar / Fiyat',
+      'Para Birimi': 'Para Birimi',
+      'Ödeme Periyodu': 'Ödeme Periyodu',
+      'Aylık': 'Aylık',
+      'Yıllık': 'Yıllık',
+      'Yıllık Tahmini Artış / Zam Oranı (%)': 'Yıllık Tahmini Artış / Zam Oranı (%)',
+      'Zam Uygulama Periyodu': 'Zam Uygulama Periyodu',
+      'Ödeme Yapılan Kart / Hesap': 'Ödeme Yapılan Kart / Hesap',
+      '+ Yöntem Ekle': '+ Yöntem Ekle',
+      'Kategori': 'Kategori',
+      'Ödeme Tarihi': 'Ödeme Tarihi',
+      'Gün': 'Gün',
+      'Ay': 'Ay',
+      'Yıl': 'Yıl',
+      'Hatırlatıcı Kuralı': 'Hatırlatıcı Kuralı',
+      'Bildirim Kanalı': 'Bildirim Kanalı',
+      'Tarayıcı Bildirimi': 'Tarayıcı Bildirimi',
+      'İptal / Yönetim Bağlantısı': 'İptal / Yönetim Bağlantısı',
+      'İleri →': 'İleri →',
+      '← Geri': '← Geri',
+      'Kaydet': 'Kaydet',
+      'Kapat': 'Kapat',
+      'Şifremi Değiştir': 'Şifremi Değiştir',
+      'Mevcut Şifre': 'Mevcut Şifre',
+      'Yeni Şifre': 'Yeni Şifre',
+      'Yeni Şifre Tekrarı': 'Yeni Şifre Tekrarı',
+      'Şifreyi Güncelle': 'Şifreyi Güncelle',
+      'Görünüm Ayarları': 'Görünüm Ayarları',
+      'Tema': 'Tema',
+      'Yazı Boyutu': 'Yazı Boyutu',
+      'Küçük': 'Küçük',
+      'Normal': 'Normal',
+      'Büyük': 'Büyük',
+      'Çok Büyük': 'Çok Büyük',
+      'Açık Füme': 'Açık Füme',
+      'Antrasit': 'Antrasit',
+      'Lacivert': 'Lacivert',
+      'Adaçayı': 'Adaçayı',
+      'Açık Yeşil': 'Açık Yeşil',
+      'Kayısı': 'Kayısı',
+      'Kum': 'Kum',
+      'Lavanta': 'Lavanta',
+      'Gül Kurusu': 'Gül Kurusu',
+      'Açık': 'Açık',
+      'Ocak': 'Ocak',
+      'Temmuz': 'Temmuz',
+      'Bugün': 'Bugün',
+      'Aboneliği Sil': 'Aboneliği Sil',
+      'Şablonu Sil': 'Şablonu Sil',
+      'Ödeme Yöntemini Sil': 'Ödeme Yöntemini Sil',
+      'Geri Yükle': 'Geri Yükle',
+      'Yedeği Geri Yükle': 'Yedeği Geri Yükle',
+      'Abonelik Veya Sabit Gider Bilgilerini Girin': 'Abonelik Veya Sabit Gider Bilgilerini Girin',
+      'Abonelik Yıl Dönümünde': 'Abonelik Yıl Dönümünde',
+      'Aboneliğin Tahsil Edildiği Yöntemi Seçin': 'Aboneliğin Tahsil Edildiği Yöntemi Seçin',
+      'Aktif Bir Abonelik Eklediğinizde Aylık Dağılım Burada Görünür': 'Aktif Bir Abonelik Eklediğinizde Aylık Dağılım Burada Görünür',
+      'Ana Panel Bütçe Yılı': 'Ana Panel Bütçe Yılı',
+      'Arka Plan Teması': 'Arka Plan Teması',
+      'Arka Plan Temasını Ve Yazı Boyutunu Kişiselleştirin': 'Arka Plan Temasını Ve Yazı Boyutunu Kişiselleştirin',
+      'Artışın Abonelik Yıl Dönümünde Veya Her Takvim Yılı Başında Devreye Girmesini Seçin': 'Artışın Abonelik Yıl Dönümünde Veya Her Takvim Yılı Başında Devreye Girmesini Seçin',
+      'Ayarları Uygula': 'Ayarları Uygula',
+      'Aylık Bütçe Dağılımı': 'Aylık Bütçe Dağılımı',
+      'Aylık Toplam': 'Aylık Toplam',
+      'Aylık Ödeme Yükü Bulunamadı': 'Aylık Ödeme Yükü Bulunamadı',
+      'Başlangıç / İlk Taksit Tarihi': 'Başlangıç / İlk Taksit Tarihi',
+      'Başlangıç Ayı Geldiğinde Zam Uygulanır': 'Başlangıç Ayı Geldiğinde Zam Uygulanır',
+      'Bildirim E-posta Adresi': 'Bildirim E-posta Adresi',
+      'Bitiş Tarihini Görmek İçin Vade İle Başlangıç Ayı/Yılını Girin': 'Bitiş Tarihini Görmek İçin Vade İle Başlangıç Ayı/Yılını Girin',
+      'Bu Abonelik Zaten Kayıtlı': 'Bu Abonelik Zaten Kayıtlı',
+      'Bu Gün İçin Ödeme Yok': 'Bu Gün İçin Ödeme Yok',
+      'Bu Güne Ait Ödemeler': 'Bu Güne Ait Ödemeler',
+      'E-Postadaki Bağlantı Üzerinden Yeni Şifrenizi Belirleyebilirsiniz Cebin PRO Mevcut Şifrenizi Görüntülemez Veya E-Posta İle Göndermez': 'E-Postadaki Bağlantı Üzerinden Yeni Şifrenizi Belirleyebilirsiniz Cebin PRO Mevcut Şifrenizi Görüntülemez Veya E-Posta İle Göndermez',
+      'Finansal Analizlerin Gösterileceği Yılı Seçin': 'Finansal Analizlerin Gösterileceği Yılı Seçin',
+      'Güvenlik Nedeniyle Önce Mevcut Şifreniz Doğrulanır': 'Güvenlik Nedeniyle Önce Mevcut Şifreniz Doğrulanır',
+      'Hatırlatıcı E-Postaları Bu Adrese Yönlendirilecektir': 'Hatırlatıcı E-Postaları Bu Adrese Yönlendirilecektir',
+      'Hazır Bir Servis Seçerek Alanları Otomatik Doldurun': 'Hazır Bir Servis Seçerek Alanları Otomatik Doldurun',
+      'Her 1 Ocak Tarihinde Zam Uygulanır': 'Her 1 Ocak Tarihinde Zam Uygulanır',
+      'Hesabınıza Bağlı E-Posta Adresini Girin Şifrenizi Güvenli Şekilde Yenileyebilmeniz İçin Firebase Tarafından Bir Sıfırlama Bağlantısı Gönderilecektir': 'Hesabınıza Bağlı E-Posta Adresini Girin Şifrenizi Güvenli Şekilde Yenileyebilmeniz İçin Firebase Tarafından Bir Sıfırlama Bağlantısı Gönderilecektir',
+      'Hesap Bilgileri': 'Hesap Bilgileri',
+      'Hesap Bilgilerinizi Görüntüleyin Ve Şifrenizi Güvenli Şekilde Güncelleyin': 'Hesap Bilgilerinizi Görüntüleyin Ve Şifrenizi Güvenli Şekilde Güncelleyin',
+      'Kart Ve Hesap Bazında Aylık Ödeme Yükü': 'Kart Ve Hesap Bazında Aylık Ödeme Yükü',
+      'Kredi / Taksit Planı': 'Kredi / Taksit Planı',
+      'Kullanıcı Adı': 'Kullanıcı Adı',
+      'Mevcut Kaydı Düzenleyebilir Veya Aboneliği Farklı Bir Adla Ekleyebilirsiniz': 'Mevcut Kaydı Düzenleyebilir Veya Aboneliği Farklı Bir Adla Ekleyebilirsiniz',
+      'Raporlama Dönemi': 'Raporlama Dönemi',
+      'Raporlama Yılı': 'Raporlama Yılı',
+      'Seçilen Oran, Gelecek Yıllardaki Maliyet Ve Bütçe Projeksiyonlarına Bileşik Olarak Yansıtılır': 'Seçilen Oran, Gelecek Yıllardaki Maliyet Ve Bütçe Projeksiyonlarına Bileşik Olarak Yansıtılır',
+      'Seçilen Yıl İçin Kategori Verisi Bulunamadı': 'Seçilen Yıl İçin Kategori Verisi Bulunamadı',
+      'Sonraki ▶': 'Sonraki ▶',
+      'Tahmini Son Taksit': 'Tahmini Son Taksit',
+      'Takvim Yılı': 'Takvim Yılı',
+      'Takvim Yılı Başında (Ocak)': 'Takvim Yılı Başında (Ocak)',
+      'Tarayıcı Bildirimlerinin Çalışması İçin Cihazınızda Ve Tarayıcınızda Bildirim İzninin Açık Olması Gerekir İzin Sorulduğunda “İzin Ver” Seçeneğini Kullanın': 'Tarayıcı Bildirimlerinin Çalışması İçin Cihazınızda Ve Tarayıcınızda Bildirim İzninin Açık Olması Gerekir İzin Sorulduğunda “İzin Ver” Seçeneğini Kullanın',
+      'Toplam': 'Toplam',
+      'Toplam Taksit Sayısı (Vade)': 'Toplam Taksit Sayısı (Vade)',
+      'Tüm Analizler Seçilen Yıla Göre Güncellenir': 'Tüm Analizler Seçilen Yıla Göre Güncellenir',
+      'Vade Ve İlk Taksit Ayını Girin Kayıt, Son Taksit Ayından Sonra Takvim Ve Raporlarda Otomatik Olarak Sona Erer': 'Vade Ve İlk Taksit Ayını Girin Kayıt, Son Taksit Ayından Sonra Takvim Ve Raporlarda Otomatik Olarak Sona Erer',
+      'Yönet': 'Yönet',
+      'Ödeme Takviminde Görüntülenecek Yılı Seçin': 'Ödeme Takviminde Görüntülenecek Yılı Seçin',
+      'Özet Maliyetlerin Hesaplanacağı Projeksiyon Yılını Seçin': 'Özet Maliyetlerin Hesaplanacağı Projeksiyon Yılını Seçin',
+      'Şablonu Kaydet': 'Şablonu Kaydet',
+      '◀ Önceki': '◀ Önceki',
+      '📧 E-posta': '📧 E-posta',
+      '🌐 Tarayıcı Bildirimi': '🌐 Tarayıcı Bildirimi',
+      '📄 CSV Excel İndir': '📄 CSV Excel İndir',
+      '🚪 Çıkış Yap': '🚪 Çıkış Yap',
+      'Lütfen Ad Soyad veya Kullanıcı Adınızı Giriniz.': 'Lütfen Ad Soyad veya Kullanıcı Adınızı Giriniz.',
+      'Lütfen E-posta Adresinizi Giriniz.': 'Lütfen E-posta Adresinizi Giriniz.',
+      'Lütfen E-posta veya Kullanıcı Adınızı ve Şifrenizi Giriniz.': 'Lütfen E-posta veya Kullanıcı Adınızı ve Şifrenizi Giriniz.',
+      'Lütfen Geçerli Bir E-posta Adresi Giriniz.': 'Lütfen Geçerli Bir E-posta Adresi Giriniz.',
+      'Lütfen Tüm Zorunlu Alanları Doldurunuz.': 'Lütfen Tüm Zorunlu Alanları Doldurunuz.',
+      'Lütfen Şifrenizi Tekrar Giriniz.': 'Lütfen Şifrenizi Tekrar Giriniz.',
+      'Şifre En Az 6 Karakter Olmalıdır.': 'Şifre En Az 6 Karakter Olmalıdır.',
+      'Şifre ve Şifre Tekrarı Uyuşmuyor. Lütfen Bilgilerinizi Kontrol Ediniz.': 'Şifre ve Şifre Tekrarı Uyuşmuyor. Lütfen Bilgilerinizi Kontrol Ediniz.',
+      'Kullanıcı Adı veya E-posta Bulunamadı.': 'Kullanıcı Adı veya E-posta Bulunamadı.',
+      'Bu Kullanıcı Adıyla Hesap Mevcut': 'Bu Kullanıcı Adıyla Hesap Mevcut',
+      'Bu E-posta Adresi Zaten Kullanılıyor.': 'Bu E-posta Adresi Zaten Kullanılıyor.',
+      'Geçersiz E-posta Adresi.': 'Geçersiz E-posta Adresi.',
+      'Şifre Hatalı. Lütfen Tekrar Deneyiniz.': 'Şifre Hatalı. Lütfen Tekrar Deneyiniz.',
+      'E-posta/Kullanıcı Adı veya Şifre Hatalı.': 'E-posta/Kullanıcı Adı veya Şifre Hatalı.',
+      'Çok Fazla Deneme Yapıldı. Lütfen Bir Süre Sonra Tekrar Deneyiniz.': 'Çok Fazla Deneme Yapıldı. Lütfen Bir Süre Sonra Tekrar Deneyiniz.',
+      'Ağ Bağlantısı Hatası. İnternet Bağlantınızı Kontrol Ediniz.': 'Ağ Bağlantısı Hatası. İnternet Bağlantınızı Kontrol Ediniz.',
+      'Bir Hata Oluştu. Lütfen Tekrar Deneyiniz.': 'Bir Hata Oluştu. Lütfen Tekrar Deneyiniz.',
+      'Bu E-posta Adresiyle Kayıtlı Bir Hesap Bulunamadı.': 'Bu E-posta Adresiyle Kayıtlı Bir Hesap Bulunamadı.',
+      'Şifre Sıfırlama E-postası Gönderilemedi. Lütfen Tekrar Deneyiniz.': 'Şifre Sıfırlama E-postası Gönderilemedi. Lütfen Tekrar Deneyiniz.',
+      'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.': 'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.',
+      'Oturumu Kapatmak İstediğinize Emin Misiniz?': 'Oturumu Kapatmak İstediğinize Emin Misiniz?',
+      'Mevcut şifrenizi giriniz.': 'Mevcut şifrenizi giriniz.',
+      'Yeni şifrenizi giriniz.': 'Yeni şifrenizi giriniz.',
+      'Yeni şifre en az 6 karakter olmalıdır.': 'Yeni şifre en az 6 karakter olmalıdır.',
+      'Yeni şifrenizi tekrar giriniz.': 'Yeni şifrenizi tekrar giriniz.',
+      'Şifreler uyuşmuyor.': 'Şifreler uyuşmuyor.',
+      'Eski şifre yanlış.': 'Eski şifre yanlış.',
+      'Oturum bilgileri bulunamadı. Lütfen yeniden giriş yapınız.': 'Oturum bilgileri bulunamadı. Lütfen yeniden giriş yapınız.',
+      'Google İle Giriş İçin OAuth Entegrasyonu Yapılandırılmalıdır.': 'Google İle Giriş İçin OAuth Entegrasyonu Yapılandırılmalıdır.',
+      'Toplam Finansal Yük: Abonelikler Ve Aktif Kredi Taksitleri Birlikte Gösterilir': 'Toplam Finansal Yük: Abonelikler Ve Aktif Kredi Taksitleri Birlikte Gösterilir',
+      'Sabit Abonelikler: Kredi Taksitleri Ölçekten Ayrılarak Küçük Giderler Daha Net Görünür': 'Sabit Abonelikler: Kredi Taksitleri Ölçekten Ayrılarak Küçük Giderler Daha Net Görünür',
+      'Detay İçin Bir Aya Dokunun Grafiği Yatay Kaydırabilirsiniz': 'Detay İçin Bir Aya Dokunun Grafiği Yatay Kaydırabilirsiniz',
+      'Detay İçin Çubukların Üzerine Gelin Veya Tıklayın': 'Detay İçin Çubukların Üzerine Gelin Veya Tıklayın',
+      'Aylık Ortalama Maliyet': 'Aylık Ortalama Maliyet',
+      'Henüz Analiz Oluşturmak İçin Yeterli Maliyet Verisi Bulunmuyor.': 'Henüz Analiz Oluşturmak İçin Yeterli Maliyet Verisi Bulunmuyor.',
+      'Lütfen Abonelik veya Gider Adını Giriniz.': 'Lütfen Abonelik veya Gider Adını Giriniz.',
+      'Lütfen sıfırdan büyük geçerli bir tutar giriniz.': 'Lütfen sıfırdan büyük geçerli bir tutar giriniz.',
+      'Ay değeri 1 ile 12 arasında olmalıdır.': 'Ay değeri 1 ile 12 arasında olmalıdır.',
+      'Lütfen geçerli bir yıl seçiniz.': 'Lütfen geçerli bir yıl seçiniz.',
+      'Yıllık artış oranı 0 ile 100 arasında olmalıdır.': 'Yıllık artış oranı 0 ile 100 arasında olmalıdır.',
+      'Lütfen bir ödeme yöntemi seçiniz.': 'Lütfen bir ödeme yöntemi seçiniz.',
+      'Lütfen bildirimlerin gönderileceği e-posta adresini giriniz.': 'Lütfen bildirimlerin gönderileceği e-posta adresini giriniz.',
+      'Lütfen geçerli bir bildirim e-posta adresi giriniz.': 'Lütfen geçerli bir bildirim e-posta adresi giriniz.',
+      'Yönetim bağlantısı http:// veya https:// ile başlamalıdır.': 'Yönetim bağlantısı http:// veya https:// ile başlamalıdır.',
+      'Toplam taksit sayısı 1 ile 600 arasında olmalıdır.': 'Toplam taksit sayısı 1 ile 600 arasında olmalıdır.',
+      'İlk taksit ayı 1 ile 12 arasında olmalıdır.': 'İlk taksit ayı 1 ile 12 arasında olmalıdır.',
+      'İlk taksit yılı 2025 ile 2100 arasında olmalıdır.': 'İlk taksit yılı 2025 ile 2100 arasında olmalıdır.',
+      'Lütfen şablon adını giriniz.': 'Lütfen şablon adını giriniz.',
+      'Lütfen sıfırdan büyük geçerli bir şablon fiyatı giriniz.': 'Lütfen sıfırdan büyük geçerli bir şablon fiyatı giriniz.',
+      'Bu isimde bir şablon zaten bulunuyor.': 'Bu isimde bir şablon zaten bulunuyor.',
+      'Lütfen ödeme yöntemi adını giriniz.': 'Lütfen ödeme yöntemi adını giriniz.',
+      'Bu ödeme yöntemi zaten bulunuyor.': 'Bu ödeme yöntemi zaten bulunuyor.',
+      'Dışa aktarılacak kayıt bulunmuyor.': 'Dışa aktarılacak kayıt bulunmuyor.',
+      'Abonelik listesi bulunamadı.': 'Abonelik listesi bulunamadı.',
+      'Yedek başarıyla geri yüklendi.': 'Yedek başarıyla geri yüklendi.',
+      'Abonelik Düzenle': 'Abonelik Düzenle',
+      'Şablon Adı': 'Şablon Adı',
+      'Örn: Netflix, Ev Kirası': 'Örn: Netflix, Ev Kirası',
+      'Örn: Akbank Axess': 'Örn: Akbank Axess',
+      'Kredi Kayıtlarında Gün Alanı Taksit Gününü Belirler; Taksit Başlangıç Ayı Ve Yılı Yukarıdaki Kredi / Taksit Planı Alanından Alınır': 'Kredi Kayıtlarında Gün Alanı Taksit Gününü Belirler; Taksit Başlangıç Ayı Ve Yılı Yukarıdaki Kredi / Taksit Planı Alanından Alınır',
+      'Aylık Ödemelerde Başlangıç Ayı, Yıllık Ödemelerde Tahsilat Ayı Olarak Kullanılır': 'Aylık Ödemelerde Başlangıç Ayı, Yıllık Ödemelerde Tahsilat Ayı Olarak Kullanılır',
+      'Çıkış': 'Çıkış',
+      'Mevcut Şifreniz': 'Mevcut Şifreniz',
+      'Yeni Şifreyi Tekrar Giriniz': 'Yeni Şifreyi Tekrar Giriniz',
+      'Güncelleniyor...': 'Güncelleniyor...',
+      'Taksit': 'Taksit',
+      'Bitiş': 'Bitiş',
+      'Kayıt': 'Kayıt',
+      'Kayıtlar': 'Kayıtlar',
+      'Adım': 'Adım',
+      'Aylık Vade Tamamlandığında Bu Kalem Rapor Ve Takvim Hesaplamalarından Otomatik Olarak Çıkar': 'Aylık Vade Tamamlandığında Bu Kalem Rapor Ve Takvim Hesaplamalarından Otomatik Olarak Çıkar',
+      'İsimli Abonelik Zaten Listenizde Bulunuyor': 'İsimli Abonelik Zaten Listenizde Bulunuyor',
+      'Geçen Aya Göre': 'Geçen Aya Göre',
+      'Yıllık Toplam Maliyet': 'Yıllık Toplam Maliyet',
+      'kayıt': 'kayıt',
+      'Yıllık Artış': 'Yıllık Artış',
+      'Taksit · Bitiş': 'Taksit · Bitiş',
+      'Aylık Vade Tamamlandığında Bu Kalem Rapor Ve Takvim Hesaplamalarından Otomatik Çıkarılır': 'Aylık Vade Tamamlandığında Bu Kalem Rapor Ve Takvim Hesaplamalarından Otomatik Çıkarılır',
+    },
+    calendar: {
+      months: ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'],
+      weekdaysShort: ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz']
+    },
+    periods: { month: 'ay', year: 'yıl' }
+  },
+  en: {
+    ui: {
   'Yükleniyor...': 'Loading...',
   'Akıllı Abonelik Ve Bütçe Asistanı': 'Smart Subscription And Budget Assistant',
   'Giriş Yap': 'Sign In',
@@ -57,7 +336,7 @@ const UI_TRANSLATIONS_EN = {
   'Oturumu Kapat': 'Sign Out',
   'Aboneliklerinizi Ve Düzenli Ödemelerinizi Yönetin': 'Manage Your Subscriptions And Recurring Payments',
   'Yaklaşan Ödeme Tarihlerini Takvim Üzerinden Takip Edin': 'Track Upcoming Payment Dates On The Calendar',
-  'Aylık Harcama Eğilimlerinizi Ve Bütçe Yükünüzü İnceleyin': 'Review Monthly Spending Trends And Your Budget Load',
+  'Aylık Ortalama Maliyet Eğilimlerinizi Ve Bütçe Yükünüzü İnceleyin': 'Review Monthly Average Cost Trends And Your Budget Load',
   'Görünüm Filtresi': 'View Filter',
   'Abonelik Listenizi Tek Dokunuşla Daraltın': 'Narrow Your Subscription List With One Tap',
   'Tüm Abonelikler': 'All Subscriptions',
@@ -90,8 +369,8 @@ const UI_TRANSLATIONS_EN = {
   '1 Hafta Önce': '1 Week Before',
   'Sabit Abonelikler': 'Fixed Subscriptions',
   'Toplam Finansal Yük': 'Total Financial Load',
-  'Sabit Abonelik Harcaması': 'Fixed Subscription Spending',
-  'Aylık Harcama Grafiği': 'Monthly Spending Chart',
+  'Sabit Abonelik Aylık Ortalama Maliyeti': 'Fixed Subscription Monthly Average Cost',
+  'Aylık Ortalama Maliyet Grafiği': 'Monthly Average Cost Chart',
   'Akıllı Asistan Özeti': 'Smart Assistant Summary',
   'Ödeme Yöntemine Göre Aylık Dağılım': 'Monthly Distribution By Payment Method',
   'Kategori Bazlı Aylık Dağılım': 'Monthly Distribution By Category',
@@ -240,30 +519,118 @@ const UI_TRANSLATIONS_EN = {
   'Toplam Finansal Yük: Abonelikler Ve Aktif Kredi Taksitleri Birlikte Gösterilir': 'Total Financial Load: Subscriptions And Active Credit Installments Are Shown Together',
   'Sabit Abonelikler: Kredi Taksitleri Ölçekten Ayrılarak Küçük Giderler Daha Net Görünür': 'Fixed Subscriptions: Credit Installments Are Excluded From The Scale So Smaller Expenses Stay Clear',
   'Detay İçin Bir Aya Dokunun Grafiği Yatay Kaydırabilirsiniz': 'Tap A Month For Details You Can Scroll The Chart Horizontally',
-  'Detay İçin Çubukların Üzerine Gelin Veya Tıklayın': 'Hover Over Or Click A Bar For Details'
+  'Detay İçin Çubukların Üzerine Gelin Veya Tıklayın': 'Hover Over Or Click A Bar For Details',
+  'Aylık Ortalama Maliyet': 'Monthly Average Cost',
+  'Aylık Ortalama Maliyet Eğilimlerinizi Ve Bütçe Yükünüzü İnceleyin': 'Review Monthly Average Cost Trends And Your Budget Load',
+  'Sabit Abonelik Aylık Ortalama Maliyeti': 'Fixed Subscription Monthly Average Cost',
+  'Aylık Ortalama Maliyet Grafiği': 'Monthly Average Cost Chart',
+  'Henüz Analiz Oluşturmak İçin Yeterli Maliyet Verisi Bulunmuyor.': 'There Is Not Enough Cost Data To Create Analytics Yet.',
+  'Lütfen Abonelik veya Gider Adını Giriniz.': 'Please Enter The Subscription Or Expense Name.',
+  'Lütfen sıfırdan büyük geçerli bir tutar giriniz.': 'Please Enter A Valid Amount Greater Than Zero.',
+  'Ay değeri 1 ile 12 arasında olmalıdır.': 'The Month Value Must Be Between 1 And 12.',
+  'Lütfen geçerli bir yıl seçiniz.': 'Please Select A Valid Year.',
+  'Yıllık artış oranı 0 ile 100 arasında olmalıdır.': 'The Annual Increase Rate Must Be Between 0 And 100.',
+  'Lütfen bir ödeme yöntemi seçiniz.': 'Please Select A Payment Method.',
+  'Lütfen bildirimlerin gönderileceği e-posta adresini giriniz.': 'Please Enter The Email Address For Notifications.',
+  'Lütfen geçerli bir bildirim e-posta adresi giriniz.': 'Please Enter A Valid Notification Email Address.',
+  'Yönetim bağlantısı http:// veya https:// ile başlamalıdır.': 'The Management Link Must Start With http:// Or https://.',
+  'Toplam taksit sayısı 1 ile 600 arasında olmalıdır.': 'The Total Installment Count Must Be Between 1 And 600.',
+  'İlk taksit ayı 1 ile 12 arasında olmalıdır.': 'The First Installment Month Must Be Between 1 And 12.',
+  'İlk taksit yılı 2025 ile 2100 arasında olmalıdır.': 'The First Installment Year Must Be Between 2025 And 2100.',
+  'Lütfen şablon adını giriniz.': 'Please Enter The Template Name.',
+  'Lütfen sıfırdan büyük geçerli bir şablon fiyatı giriniz.': 'Please Enter A Valid Template Price Greater Than Zero.',
+  'Bu isimde bir şablon zaten bulunuyor.': 'A Template With This Name Already Exists.',
+  'Lütfen ödeme yöntemi adını giriniz.': 'Please Enter The Payment Method Name.',
+  'Bu ödeme yöntemi zaten bulunuyor.': 'This Payment Method Already Exists.',
+  'Dışa aktarılacak kayıt bulunmuyor.': 'There Are No Records To Export.',
+  'Abonelik listesi bulunamadı.': 'The Subscription List Could Not Be Found.',
+  'Yedek başarıyla geri yüklendi.': 'The Backup Was Restored Successfully.',
+  'Abonelik Düzenle': 'Edit Subscription',
+  'Şablon Adı': 'Template Name',
+  'Örn: Netflix, Ev Kirası': 'Example: Netflix, Rent',
+  'Örn: Akbank Axess': 'Example: Bank Card',
+  'Kredi Kayıtlarında Gün Alanı Taksit Gününü Belirler; Taksit Başlangıç Ayı Ve Yılı Yukarıdaki Kredi / Taksit Planı Alanından Alınır': 'For Credit Records The Day Field Sets The Installment Day; The Installment Start Month And Year Come From The Credit / Installment Plan Above',
+  'Aylık Ödemelerde Başlangıç Ayı, Yıllık Ödemelerde Tahsilat Ayı Olarak Kullanılır': 'For Monthly Payments The Month Is Used As The Start Month; For Yearly Payments It Is Used As The Collection Month',
+  'Çıkış': 'Exit',
+  'Mevcut Şifreniz': 'Your Current Password',
+  'Yeni Şifreyi Tekrar Giriniz': 'Enter The New Password Again',
+  'Güncelleniyor...': 'Updating...',
+  'Taksit': 'Installment',
+  'Bitiş': 'Ends',
+  'Kayıt': 'Record',
+  'Kayıtlar': 'Records',
+  'Adım': 'Step',
+  'Aylık Vade Tamamlandığında Bu Kalem Rapor Ve Takvim Hesaplamalarından Otomatik Olarak Çıkar': 'This Item Is Automatically Removed From Report And Calendar Calculations After The Monthly Term Is Completed',
+  'İsimli Abonelik Zaten Listenizde Bulunuyor': 'Subscription Is Already In Your List',
+  'Geçen Aya Göre': 'Vs Previous Month',
+  'Yıllık Toplam Maliyet': 'Yearly Total Cost',
+  'kayıt': 'records',
+  'Yıllık Artış': 'Annual Increase',
+  'Taksit · Bitiş': 'Installments · Ends',
+  'Aylık Vade Tamamlandığında Bu Kalem Rapor Ve Takvim Hesaplamalarından Otomatik Çıkarılır': 'This Item Is Automatically Removed From Report And Calendar Calculations When The Monthly Term Is Completed'
+    },
+    calendar: {
+      months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+      weekdaysShort: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    },
+    periods: { month: 'month', year: 'year' }
+  }
 };
 
-const translateUiString = (value, language) => {
-  if (language !== 'en' || typeof value !== 'string') return value;
-  if (UI_TRANSLATIONS_EN[value]) return UI_TRANSLATIONS_EN[value];
+const getLocale = language => (language === 'en' ? 'en-US' : 'tr-TR');
 
-  let translated = value;
-  const exactTrimmed = value.trim();
-  if (UI_TRANSLATIONS_EN[exactTrimmed]) {
-    const leading = value.match(/^\s*/)?.[0] || '';
-    const trailing = value.match(/\s*$/)?.[0] || '';
-    return `${leading}${UI_TRANSLATIONS_EN[exactTrimmed]}${trailing}`;
-  }
+const formatUiTitle = (value, language = 'tr') => {
+  const locale = getLocale(language);
+  const conjunctions = new Set(language === 'en' ? ['and', 'or', 'with'] : ['ve', 'veya', 'ile']);
+  const preserveUpper = new Set(['PRO', 'CSV', 'JSON', 'AI', 'USD', 'EUR', 'TRY', 'OAuth', 'Firebase']);
+  const input = String(value ?? '');
+  if (!input || /https?:\/\//i.test(input) || /^[^\s@]+@[^\s@]+$/.test(input)) return input;
+  return input.replace(/[A-Za-zÇĞİÖŞÜçğıöşü]+(?:-[A-Za-zÇĞİÖŞÜçğıöşü]+)*/g, word => {
+    if (preserveUpper.has(word)) return word;
+    const lower = word.toLocaleLowerCase(locale);
+    if (conjunctions.has(lower)) return lower;
+    return `${lower.charAt(0).toLocaleUpperCase(locale)}${lower.slice(1)}`;
+  });
+};
 
-  translated = translated
-    .replace(/(\d+) gün kaldı/gi, '$1 days left')
+const translateDynamicUiString = (value, language) => {
+  if (language !== 'en') return value;
+  return String(value)
+    .replace(/(\d+) gün kaldı/gi, '$1 Days Left')
     .replace(/Her Ayın\s+(\d+)\.\s+Günü/gi, 'Every Month On Day $1')
-    .replace(/(\d+) Taksit · Bitiş/gi, '$1 Installments · Ends')
+    .replace(/(\d+) Taksit · Bitiş\s+([^\d]+)\s+(\d{4})/gi, '$1 Installments · Ends $2 $3')
     .replace(/(\d+) Taksit/gi, '$1 Installments')
     .replace(/Geçen Aya Göre/gi, 'Vs Previous Month')
     .replace(/Yıllık Artış:/gi, 'Annual Increase:')
-    .replace(/kayıt/gi, 'records');
-  return translated;
+    .replace(/(\d+) kayıt/gi, '$1 Records')
+    .replace(/Seçilen ay için gün 1 ile (\d+) arasında olmalıdır\.?/gi, 'The Day For The Selected Month Must Be Between 1 And $1.')
+    .replace(/Bu ödeme yöntemi (\d+) kayıtta kullanılıyor\. Önce ilgili kayıtların ödeme yöntemini değiştiriniz\.?/gi, 'This Payment Method Is Used In $1 Records. Change The Payment Method Of Those Records First.')
+    .replace(/(\d+) Kayıt İçe Aktarılacak ve Mevcut Abonelik Listeniz Değiştirilecek\.?/gi, '$1 Records Will Be Imported and Your Existing Subscription List Will Be Replaced.')
+    .replace(/Yedek yüklenemedi:\s*(.+)$/gi, 'Backup Could Not Be Loaded: $1')
+    .replace(/^"([^"]+)" Aboneliği Kalıcı Olarak Silinecek\. Bu İşlem Geri Alınamaz\.?$/i, '"$1" Subscription Will Be Permanently Deleted. This Action Cannot Be Undone.')
+    .replace(/^"([^"]+)" Hızlı Seçim Şablonlarından Kaldırılacak\.?$/i, '"$1" Will Be Removed From Quick Selection Templates.')
+    .replace(/^"([^"]+)" Ödeme Yöntemi Listenizden Kaldırılacak\.?$/i, '"$1" Will Be Removed From Your Payment Method List.')
+    .replace(/^Kredi • Her Ayın (\d+)\. Günü • (\d+) Taksit$/i, 'Credit • Every Month On Day $1 • $2 Installments')
+    .replace(/^"([^"]+)" İsimli Abonelik Zaten Listenizde Bulunuyor\.?$/i, '"$1" Subscription Is Already In Your List.')
+    .replace(/(\d+) Aylık Vade Tamamlandığında Bu Kalem Rapor Ve Takvim Hesaplamalarından Otomatik Olarak Çıkar/gi, 'This Item Is Automatically Removed From Report And Calendar Calculations After The $1-Month Term Is Completed')
+    .replace(/Adım (\d+) \/ (\d+)/gi, 'Step $1 / $2');
+};
+
+const translateUiString = (value, language) => {
+  if (typeof value !== 'string') return value;
+  const exactTrimmed = value.trim();
+  const ui = translations[language]?.ui || translations.tr.ui;
+  const sourceIsKnown = Object.prototype.hasOwnProperty.call(translations.en.ui, value) || Object.prototype.hasOwnProperty.call(translations.en.ui, exactTrimmed) || Object.prototype.hasOwnProperty.call(translations.tr.ui, value) || Object.prototype.hasOwnProperty.call(translations.tr.ui, exactTrimmed);
+  const direct = language === 'tr'
+    ? (translations.tr.ui[value] ?? translations.tr.ui[exactTrimmed] ?? (sourceIsKnown ? exactTrimmed : undefined))
+    : (ui[value] ?? ui[exactTrimmed]);
+  if (direct !== undefined) {
+    const leading = value.match(/^\s*/)?.[0] || '';
+    const trailing = value.match(/\s*$/)?.[0] || '';
+    return `${leading}${formatUiTitle(direct, language)}${trailing}`;
+  }
+  const dynamic = translateDynamicUiString(value, language);
+  return dynamic !== value ? formatUiTitle(dynamic, language) : value;
 };
 
 const translateUiChildren = (children, language) => {
@@ -276,6 +643,12 @@ const Text = ({ children, ...props }) => {
   const language = useContext(LanguageContext);
   return <RNText {...props}>{translateUiChildren(children, language)}</RNText>;
 };
+
+const t = (value, language = 'tr') => translateUiString(value, language);
+const getMonthName = (monthIndex, language = 'tr') => translations[language]?.calendar?.months?.[monthIndex] || translations.tr.calendar.months[monthIndex] || '';
+const getWeekdayShortNames = (language = 'tr') => translations[language]?.calendar?.weekdaysShort || translations.tr.calendar.weekdaysShort;
+const getPeriodSuffix = (period, language = 'tr') => translations[language]?.periods?.[period] || translations.tr.periods[period] || period;
+
 const DEFAULT_RATES = { USD: 47.56, EUR: 54.77 };
 
 const CATEGORY_COLORS = {
@@ -313,7 +686,7 @@ const NOTIFICATION_OPTIONS = [
   { label: '1 Hafta Önce', badgeLabel: '🔔 1 Hafta Önce', value: 7 }
 ];
 
-const MONTH_NAMES = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+const MONTH_NAMES = translations.tr.calendar.months;
 
 const YEARS = [2025, 2026, 2027, 2028, 2029, 2030];
 
@@ -370,15 +743,15 @@ const formatCompactCurrency = (value, currency = 'TRY') => {
 };
 
 // Kart ve raporlarda para birimi + periyot gösterimini tek standarda bağlar.
-const formatCurrencyWithPeriod = (value, currency = 'TRY', periodLabel = '') => {
+const formatCurrencyWithPeriod = (value, currency = 'TRY', period = '', language = 'tr') => {
   const amount = formatCurrency(value, currency);
-  const normalizedPeriod = String(periodLabel || '').trim().toLocaleLowerCase('tr-TR');
-  return normalizedPeriod ? `${amount} / ${normalizedPeriod}` : amount;
+  const suffix = period ? getPeriodSuffix(period, language) : '';
+  return suffix ? `${amount} / ${suffix}` : amount;
 };
 
-// Analiz ekranındaki aylık tutar göstergelerini tek tip biçimde sunar.
-const formatMonthlyMetric = (value, percentage = null, currency = 'TRY') => {
-  const amount = formatCurrencyWithPeriod(value, currency, 'ay');
+// Analiz ekranındaki aylık tutar göstergelerini tek tip ve dile duyarlı biçimde sunar.
+const formatMonthlyMetric = (value, percentage = null, currency = 'TRY', language = 'tr') => {
+  const amount = formatCurrencyWithPeriod(value, currency, 'month', language);
   if (percentage === null || percentage === undefined || percentage === '') return amount;
   const numericPercentage = Number(percentage);
   const ratio = Number.isFinite(numericPercentage) ? numericPercentage.toFixed(1) : String(percentage);
@@ -394,25 +767,12 @@ const convertToTL = (price, currency, rates = DEFAULT_RATES) => {
 
 const normalizeText = (value = '') => String(value).toLocaleLowerCase('tr-TR').replace(/\s+/g, ' ').trim();
 
-// Uyarı, bilgi ve açıklama metinlerinde bağlaçları küçük bırakan kurumsal başlık düzeni.
-const toTitleCaseTr = value => {
-  const conjunctions = new Set(['ve', 'veya']);
-  return String(value ?? '').replace(/(^|\s|["“‘(])([A-Za-zÇĞİÖŞÜçğıöşü]+)/g, (match, prefix, word) => {
-    const lower = word.toLocaleLowerCase('tr-TR');
-    if (conjunctions.has(lower)) return `${prefix}${lower}`;
-    return `${prefix}${lower.charAt(0).toLocaleUpperCase('tr-TR')}${lower.slice(1)}`;
-  });
-};
+// Uyarı, başlık ve etiketlerde bağlaçları seçili dile göre küçük bırakan merkezi kural.
+const toTitleCaseTr = (value, language = 'tr') => formatUiTitle(value, language);
 
-// Küçük açıklama ve bilgi metinleri için kurumsal Title Case: her kelime büyük başlar, nokta kullanılmaz.
-const formatUiDescription = value =>
-  String(value ?? '')
-    .replace(/\./g, '')
-    .replace(/(^|\s|["“‘(])([A-Za-zÇĞİÖŞÜçğıöşü]+)/g, (match, prefix, word) => {
-      const lower = word.toLocaleLowerCase('tr-TR');
-      return `${prefix}${lower.charAt(0).toLocaleUpperCase('tr-TR')}${lower.slice(1)}`;
-    })
-    .trim();
+// Küçük açıklama ve bilgi metinleri aynı i18n ve başlık standardından geçer.
+const formatUiDescription = (value, language = 'tr') =>
+  formatUiTitle(t(String(value ?? '').replace(/\./g, ''), language), language).trim();
 
 const sanitizeNumericInput = (value, options = {}) => {
   const {
@@ -686,7 +1046,7 @@ export default function App() {
     setAlertModal({
       visible: true,
       title: options.title || 'Eksik veya Hatalı Bilgi',
-      message: options.preserveCase ? String(message || '') : toTitleCaseTr(message),
+      message: options.preserveCase ? t(String(message || ''), language) : formatUiTitle(t(message, language), language),
       type: options.type || 'error'
     });
   };
@@ -734,7 +1094,7 @@ export default function App() {
   });
   const requestConfirmation = ({ title, message, confirmLabel = 'Tamam', cancelLabel = 'İptal', tone = 'warning', onConfirm }) => {
     confirmCallbackRef.current = onConfirm;
-    setConfirmModal({ visible: true, title: toTitleCaseTr(title), message: toTitleCaseTr(message), confirmLabel, cancelLabel, tone });
+    setConfirmModal({ visible: true, title: formatUiTitle(t(title, language), language), message: formatUiTitle(t(message, language), language), confirmLabel: t(confirmLabel, language), cancelLabel: t(cancelLabel, language), tone });
   };
   const closeConfirmModal = () => {
     confirmCallbackRef.current = null;
@@ -1069,7 +1429,7 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
       'auth/too-many-requests': 'Çok Fazla Deneme Yapıldı. Lütfen Bir Süre Sonra Tekrar Deneyiniz.',
       'auth/network-request-failed': 'Ağ Bağlantısı Hatası. İnternet Bağlantınızı Kontrol Ediniz.'
     };
-    return messages[errorCode] || 'Bir Hata Oluştu. Lütfen Tekrar Deneyiniz.';
+    return t(messages[errorCode] || 'Bir Hata Oluştu. Lütfen Tekrar Deneyiniz.', language);
   };
 
   const handleLogin = async () => {
@@ -1368,7 +1728,7 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
     return {
       month: (endMonthKey % 12) + 1,
       year: Math.floor(endMonthKey / 12),
-      monthName: MONTH_NAMES[endMonthKey % 12]
+      monthName: getMonthName(endMonthKey % 12, language)
     };
   })();
 
@@ -1535,13 +1895,18 @@ const normalizeUsernameKey = value => normalizeText(value).replace(/\s+/g, '');
     return current;
   }, null);
 
-  const insightText = fullYearlyExpense <= 0
-    ? 'Henüz Analiz Oluşturmak İçin Yeterli Harcama Verisi Bulunmuyor.'
-    : hasHighCreditLoad
-      ? `${selectedAnalysisYear} döneminde kredi taksitleri toplam finansal yükün yaklaşık %${creditLoadPercent.toFixed(0)}'ini oluşturuyor. Krediler süreli borç kalemidir; sabit abonelik bütçenizi daha net görmek için grafikte Sabit Abonelikler görünümünü kullanabilirsiniz.`
-      : sortedMonthlyCategoryEntries.length === 0
-        ? `${selectedAnalysisYear} döneminde kredi dışındaki düzenli giderler için yeterli veri bulunmuyor.${yearlyCreditExpense > 0 ? ` Kredi yükü toplam finansal yükün %${creditLoadPercent.toFixed(0)}'ini oluşturuyor.` : ''}`
-        : `${selectedAnalysisYear} döneminde ${analyticsIncludeCredits ? 'toplam finansal yükte' : 'kredi hariç düzenli giderlerde'} en yüksek pay ${topCategoryLabel} kategorisinde: ${formatShortCurrency(topCategoryAmount, 'TRY')} (%${topCategoryPercent}).${mostExpensiveSubscription ? ` En yüksek aylık etki ${mostExpensiveSubscription.item.name} kaydından geliyor.` : ''}${!analyticsIncludeCredits && yearlyCreditExpense > 0 ? ` Krediler ayrıca izleniyor ve toplam finansal yükün %${creditLoadPercent.toFixed(0)}'ini oluşturuyor.` : ''}`;
+  const insightText = (() => {
+    if (language === 'en') {
+      if (fullYearlyExpense <= 0) return 'There Is Not Enough Cost Data To Create Analytics Yet';
+      if (hasHighCreditLoad) return `${selectedAnalysisYear} Credit Installments Make Up Approximately ${creditLoadPercent.toFixed(0)}% Of The Total Financial Load. Credits Are Term-Limited Debt Items; Use The Fixed Subscriptions View To See Your Subscription Budget More Clearly`;
+      if (sortedMonthlyCategoryEntries.length === 0) return `${selectedAnalysisYear} There Is Not Enough Data For Regular Costs Excluding Credit.${yearlyCreditExpense > 0 ? ` Credit Load Makes Up ${creditLoadPercent.toFixed(0)}% Of The Total Financial Load` : ''}`;
+      return `${selectedAnalysisYear} In ${analyticsIncludeCredits ? 'Total Financial Load' : 'Regular Costs Excluding Credit'}, The Highest Share Is In ${t(topCategoryLabel, language)}: ${formatShortCurrency(topCategoryAmount, 'TRY')} (${topCategoryPercent}%).${mostExpensiveSubscription ? ` The Highest Monthly Cost Impact Comes From ${mostExpensiveSubscription.item.name}` : ''}${!analyticsIncludeCredits && yearlyCreditExpense > 0 ? ` Credits Are Tracked Separately And Make Up ${creditLoadPercent.toFixed(0)}% Of The Total Financial Load` : ''}`;
+    }
+    if (fullYearlyExpense <= 0) return 'Henüz Analiz Oluşturmak İçin Yeterli Maliyet Verisi Bulunmuyor';
+    if (hasHighCreditLoad) return `${selectedAnalysisYear} Döneminde Kredi Taksitleri Toplam Finansal Yükün Yaklaşık %${creditLoadPercent.toFixed(0)}'ini Oluşturuyor. Krediler Süreli Borç Kalemidir; Sabit Abonelik Bütçenizi Daha Net Görmek İçin Grafikte Sabit Abonelikler Görünümünü Kullanabilirsiniz`;
+    if (sortedMonthlyCategoryEntries.length === 0) return `${selectedAnalysisYear} Döneminde Kredi Dışındaki Düzenli Maliyetler İçin Yeterli Veri Bulunmuyor.${yearlyCreditExpense > 0 ? ` Kredi Yükü Toplam Finansal Yükün %${creditLoadPercent.toFixed(0)}'ini Oluşturuyor` : ''}`;
+    return `${selectedAnalysisYear} Döneminde ${analyticsIncludeCredits ? 'Toplam Finansal Yükte' : 'Kredi Hariç Düzenli Maliyetlerde'} En Yüksek Pay ${topCategoryLabel} Kategorisinde: ${formatShortCurrency(topCategoryAmount, 'TRY')} (%${topCategoryPercent}).${mostExpensiveSubscription ? ` En Yüksek Aylık Maliyet Etkisi ${mostExpensiveSubscription.item.name} Kaydından Geliyor` : ''}${!analyticsIncludeCredits && yearlyCreditExpense > 0 ? ` Krediler Ayrıca İzleniyor ve Toplam Finansal Yükün %${creditLoadPercent.toFixed(0)}'ini Oluşturuyor` : ''}`;
+  })();
 
   const openSubscriptionForm = (item = null) => {
     if (item) {
@@ -1930,7 +2295,7 @@ if (isAuthChecking) {
                   <Text style={[styles.inputLabel, styles.authFieldLabel, { color: '#d2d7e0' }]}>Ad Soyad / Kullanıcı Adı</Text>
                   <TextInput
                     style={[styles.textInput, styles.authTextInput, { backgroundColor: '#252b38', color: '#f8fafc', borderColor: '#566071' }]}
-                    placeholder={language === 'en' ? 'Full Name or Username' : 'Ad Soyad veya Kullanıcı Adı'}
+                    placeholder={t('Ad Soyad veya Kullanıcı Adı', language)}
                     placeholderTextColor="#8f98a8"
                     autoCapitalize="words"
                     value={authName}
@@ -1943,11 +2308,14 @@ if (isAuthChecking) {
                 <Text style={[styles.inputLabel, styles.authFieldLabel, { color: '#d2d7e0' }]}>{authMode === 'login' ? 'E-posta / Kullanıcı Adı' : 'E-posta'}</Text>
                 <TextInput
                   style={[styles.textInput, styles.authTextInput, { backgroundColor: '#252b38', color: '#f8fafc', borderColor: '#566071' }]}
-                  placeholder={language === 'en' ? (authMode === 'login' ? 'Email / Username' : 'example@email.com') : (authMode === 'login' ? 'E-posta / Kullanıcı Adı' : 'ornek@eposta.com')}
+                  placeholder={authMode === 'login' ? t('E-posta / Kullanıcı Adı', language) : (language === 'en' ? 'example@email.com' : 'ornek@eposta.com')}
                   placeholderTextColor="#8f98a8"
                   autoCapitalize="none"
                   keyboardType="email-address"
                   autoComplete="email"
+                  textContentType="emailAddress"
+                  autoCorrect={false}
+                  {...(Platform.OS === 'web' ? { name: 'email' } : {})}
                   value={authEmail}
                   onChangeText={setAuthEmail}
                 />
@@ -2226,7 +2594,7 @@ if (isAuthChecking) {
                 {activeTab === 'list' ? 'Abonelikler' : activeTab === 'calendar' ? 'Ödeme Takvimi' : 'Analiz ve Raporlar'}
               </Text>
               <Text style={[styles.pageHeaderDescription, { color: theme.textSecondary }]} numberOfLines={isMobile ? 2 : 1}>
-                {activeTab === 'list' ? 'Aboneliklerinizi Ve Düzenli Ödemelerinizi Yönetin' : activeTab === 'calendar' ? 'Yaklaşan Ödeme Tarihlerini Takvim Üzerinden Takip Edin' : 'Aylık Harcama Eğilimlerinizi Ve Bütçe Yükünüzü İnceleyin'}
+                {activeTab === 'list' ? 'Aboneliklerinizi Ve Düzenli Ödemelerinizi Yönetin' : activeTab === 'calendar' ? 'Yaklaşan Ödeme Tarihlerini Takvim Üzerinden Takip Edin' : 'Aylık Ortalama Maliyet Eğilimlerinizi Ve Bütçe Yükünüzü İnceleyin'}
               </Text>
             </View>
 
@@ -2292,7 +2660,7 @@ if (isAuthChecking) {
                   <View style={styles.summaryTopRow}>
                     <View style={{ flex: 1, minWidth: 0 }}>
                       <View style={styles.summaryLabelRow}>
-                        <Text style={styles.summaryLabel}>{selectedDashboardYear} Aylık Ortalama Maliyet · {analyticsIncludeCredits ? 'Toplam Finansal Yük' : 'Sabit Abonelikler'}</Text>
+                        <Text style={styles.summaryLabel}>{selectedDashboardYear} {t('Aylık Ortalama Maliyet', language)} · {analyticsIncludeCredits ? t('Toplam Finansal Yük', language) : t('Sabit Abonelikler', language)}</Text>
                         {selectedDashboardYear === currentDate.getFullYear() && hasMonthlyChangeData && (
                           <View style={[styles.changeBadge, { backgroundColor: monthlyChangePercent <= 0 ? 'rgba(52,211,153,0.22)' : 'rgba(248,113,113,0.22)' }]}>
                             <Text style={[styles.changeBadgeText, { color: monthlyChangePercent <= 0 ? '#34d399' : '#f87171' }]}>
@@ -2431,7 +2799,7 @@ if (isAuthChecking) {
 
                               {subscription.category === 'Kredi' && getCreditSchedule(subscription) && (
                                 <View style={[styles.informationTag, { backgroundColor: hexToRgba(CATEGORY_COLORS.Kredi, 0.12), borderColor: CATEGORY_COLORS.Kredi }]}>
-                                  <Text style={[styles.informationTagText, { color: CATEGORY_COLORS.Kredi }]}>💳 {getCreditSchedule(subscription).installmentCount} Taksit · Bitiş {MONTH_NAMES[getCreditSchedule(subscription).endMonth - 1]} {getCreditSchedule(subscription).endYear}</Text>
+                                  <Text style={[styles.informationTagText, { color: CATEGORY_COLORS.Kredi }]}>💳 {getCreditSchedule(subscription).installmentCount} {t('Taksit', language)} · {t('Bitiş', language)} {getMonthName(getCreditSchedule(subscription).endMonth - 1, language)} {getCreditSchedule(subscription).endYear}</Text>
                                 </View>
                               )}
                             </View>
@@ -2445,7 +2813,7 @@ if (isAuthChecking) {
                         </View>
 
                         <View style={styles.subscriptionRight}>
-                          <Text style={[styles.subscriptionPrice, { color: theme.textPrimary }]}>{formatCurrencyWithPeriod(subscription.price, subscription.currency || 'TRY', isYearly ? 'yıl' : 'ay')}</Text>
+                          <Text style={[styles.subscriptionPrice, { color: theme.textPrimary }]}>{formatCurrencyWithPeriod(subscription.price, subscription.currency || 'TRY', isYearly ? 'year' : 'month', language)}</Text>
                           {subscription.currency !== 'TRY' && <Text style={[styles.convertedPrice, { color: theme.accent }]}>≈ {formatCurrency(priceInTL, 'TRY')}</Text>}
 
                           <View style={styles.subscriptionActions}>
@@ -2484,7 +2852,7 @@ if (isAuthChecking) {
                     <Text style={[styles.calendarNavigationText, { color: theme.accent }]}>◀ Önceki</Text>
                   </TouchableOpacity>
 
-                  <Text style={[styles.calendarTitle, { color: theme.textPrimary }]}>{MONTH_NAMES[calendarMonth]} {calendarYear}</Text>
+                  <Text style={[styles.calendarTitle, { color: theme.textPrimary }]}>{getMonthName(calendarMonth, language)} {calendarYear}</Text>
 
                   <TouchableOpacity style={[styles.calendarNavigationButton, { backgroundColor: theme.inputBg, borderColor: theme.cardBorder }]} onPress={() => {
                     if (calendarMonth === 11) { setCalendarMonth(0); setCalendarYear(Math.min(YEARS[YEARS.length - 1], calendarYear + 1)); } else setCalendarMonth(calendarMonth + 1);
@@ -2507,7 +2875,7 @@ if (isAuthChecking) {
 
                 <View style={[styles.calendarContainer, styles.elevatedSurface, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.88) : theme.cardBg }]}>
                   <View style={styles.calendarWeekHeader}>
-                    {['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].map(dayName => (
+                    {getWeekdayShortNames(language).map(dayName => (
                       <View key={dayName} style={styles.calendarWeekDay}>
                         <Text style={[styles.calendarWeekDayText, { color: theme.textSecondary }]}>{dayName}</Text>
                       </View>
@@ -2605,14 +2973,14 @@ if (isAuthChecking) {
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={[styles.insightTitle, hasHighCreditLoad && { color: theme.warning }]}>Akıllı Asistan Özeti</Text>
-                    <Text style={[styles.insightText, hasHighCreditLoad && { color: theme.textPrimary }]}>{formatUiDescription(insightText)}</Text>
+                    <Text style={[styles.insightText, hasHighCreditLoad && { color: theme.textPrimary }]}>{formatUiDescription(insightText, language)}</Text>
                   </View>
                 </View>
 
                 <View style={[styles.panel, styles.analysisPrimaryPanel, styles.elevatedSurface, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.88) : theme.cardBg, borderColor: theme.cardBorder }] }>
                   <View style={styles.analysisPanelHeader}>
                     <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text style={[styles.panelTitle, { color: theme.textPrimary }]}>{selectedAnalysisYear} Aylık Harcama Grafiği</Text>
+                      <Text style={[styles.panelTitle, { color: theme.textPrimary }]}>{selectedAnalysisYear} {t('Aylık Ortalama Maliyet Grafiği', language)}</Text>
                       <Text style={[styles.panelDescription, { color: theme.textMuted }]}>
                         {analyticsIncludeCredits
                           ? 'Toplam Finansal Yük: Abonelikler Ve Aktif Kredi Taksitleri Birlikte Gösterilir'
@@ -2678,10 +3046,10 @@ if (isAuthChecking) {
                     <View style={[styles.chartPopover, { backgroundColor: theme.inputBg, borderColor: theme.activeButtonBorder }]}>
                       <View style={{ flex: 1, minWidth: 0 }}>
                         <Text style={[styles.chartPopoverMonth, { color: theme.textPrimary }]}>
-                          {MONTH_NAMES[selectedChartMonthIndex]} {selectedAnalysisYear}
+                          {getMonthName(selectedChartMonthIndex, language)} {selectedAnalysisYear}
                         </Text>
                         <Text style={[styles.chartPopoverHint, { color: theme.textMuted }]}>
-                          {analyticsIncludeCredits ? 'Toplam Finansal Yük' : 'Sabit Abonelik Harcaması'}
+                          {t('Aylık Ortalama Maliyet', language)} · {analyticsIncludeCredits ? t('Toplam Finansal Yük', language) : t('Sabit Abonelikler', language)}
                         </Text>
                       </View>
                       <Text style={[styles.chartPopoverAmount, { color: theme.accent }]}>
@@ -2707,7 +3075,7 @@ if (isAuthChecking) {
                           <Pressable
                             key={monthIndex}
                             accessibilityRole="button"
-                            accessibilityLabel={`${MONTH_NAMES[monthIndex]} ${selectedAnalysisYear}: ${formatCurrency(monthTotal, 'TRY')}`}
+                            accessibilityLabel={`${getMonthName(monthIndex, language)} ${selectedAnalysisYear}: ${formatCurrency(monthTotal, 'TRY')}`}
                             onPress={() => setSelectedChartMonthIndex(current => current === monthIndex ? null : monthIndex)}
                             onHoverIn={() => { if (Platform.OS === 'web') setSelectedChartMonthIndex(monthIndex); }}
                             style={({ pressed }) => [styles.chartColumn, pressed && styles.chartColumnPressed]}
@@ -2748,7 +3116,7 @@ if (isAuthChecking) {
                             </View>
 
                             <Text style={[styles.chartMonthLabel, { color: isSelectedMonth ? theme.accent : theme.textPrimary }]}>
-                              {MONTH_NAMES[monthIndex].substring(0, 3)}
+                              {getMonthName(monthIndex, language).substring(0, 3)}
                             </Text>
                           </Pressable>
                         );
@@ -2761,8 +3129,8 @@ if (isAuthChecking) {
                   </Text>
 
                   <View style={[styles.chartFooter, { borderTopColor: theme.cardBorder }]}>
-                    <Text style={[styles.chartFooterLabel, { color: theme.textPrimary }]}>Aylık Ortalama Harcama ({selectedAnalysisYear})</Text>
-                    <Text style={[styles.chartFooterValue, { color: theme.accent }]}>{formatMonthlyMetric(averageMonthlyExpense)}</Text>
+                    <Text style={[styles.chartFooterLabel, { color: theme.textPrimary }]}>{t('Aylık Ortalama Maliyet', language)} ({selectedAnalysisYear})</Text>
+                    <Text style={[styles.chartFooterValue, { color: theme.accent }]}>{formatMonthlyMetric(averageMonthlyExpense, null, 'TRY', language)}</Text>
                   </View>
                 </View>
 
@@ -2774,7 +3142,7 @@ if (isAuthChecking) {
                     </View>
                     <View style={[styles.monthlyCommitmentBadge, { backgroundColor: theme.activeButtonSoft, borderColor: theme.activeButtonBorder }]}>
                       <Text style={[styles.monthlyCommitmentBadgeLabel, { color: theme.textMuted }]}>Aylık Toplam</Text>
-                      <Text style={[styles.monthlyCommitmentBadgeValue, { color: theme.textPrimary }]}>{formatMonthlyMetric(totalMonthlyPaymentCommitment)}</Text>
+                      <Text style={[styles.monthlyCommitmentBadgeValue, { color: theme.textPrimary }]}>{formatMonthlyMetric(totalMonthlyPaymentCommitment, null, 'TRY', language)}</Text>
                     </View>
                   </View>
 
@@ -2800,7 +3168,7 @@ if (isAuthChecking) {
                                 <View style={[styles.progressFill, { width: `${percentage}%`, backgroundColor: theme.accent }]} />
                               </View>
                             </View>
-                            <Text style={[styles.monthlyPaymentAmount, { color: theme.textPrimary }]}>{formatMonthlyMetric(amount, percentage)}</Text>
+                            <Text style={[styles.monthlyPaymentAmount, { color: theme.textPrimary }]}>{formatMonthlyMetric(amount, percentage, 'TRY', language)}</Text>
                           </View>
                         );
                       })}
@@ -2822,7 +3190,7 @@ if (isAuthChecking) {
                             <View style={[styles.distributionColorDot, { backgroundColor: categoryColor }]} />
                             <Text style={[styles.distributionName, { color: theme.textPrimary }]}>{category}</Text>
                           </View>
-                          <Text style={[styles.distributionAmount, { color: theme.textPrimary }]}>{formatMonthlyMetric(amount, percentage)}</Text>
+                          <Text style={[styles.distributionAmount, { color: theme.textPrimary }]}>{formatMonthlyMetric(amount, percentage, 'TRY', language)}</Text>
                         </View>
                         <View style={[styles.progressTrack, { backgroundColor: theme.inputBg }]}>
                           <View style={[styles.progressFill, { width: `${percentage}%`, backgroundColor: categoryColor }]} />
@@ -2871,7 +3239,7 @@ if (isAuthChecking) {
           <View style={[styles.dayDrawerPanel, styles.glassSurface, { backgroundColor: Platform.OS === 'web' ? hexToRgba(theme.cardBg, 0.94) : theme.cardBg, borderColor: theme.cardBorder }]}>
             <View style={styles.modalHeader}>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>{dayDrawer.day} {dayDrawer.month !== null ? MONTH_NAMES[dayDrawer.month] : ''} {dayDrawer.year}</Text>
+                <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>{dayDrawer.day} {dayDrawer.month !== null ? getMonthName(dayDrawer.month, language) : ''} {dayDrawer.year}</Text>
                 <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>Bu Güne Ait Ödemeler</Text>
               </View>
               <TouchableOpacity style={[styles.modalCloseButton, { backgroundColor: theme.inputBg }]} onPress={() => setDayDrawer(d => ({ ...d, visible: false }))}>
